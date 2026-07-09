@@ -21,6 +21,6 @@ jobs:
         run: |
           git config user.name "weather-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add temps_log.csv
+          git add temps_log.csv daily_highs.csv
           git diff --cached --quiet || git commit -m "temps $(date -u +'%H:%M')"
           git push
