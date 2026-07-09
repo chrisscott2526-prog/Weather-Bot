@@ -41,6 +41,17 @@ SERIES = {
 SIGMA = 3.0
 OUT = "edges.csv"
 
+def cents(m, field):
+    """Read a *_dollars string field, return cents as float, or None."""
+    v = m.get(field)
+    if v in (None, ""):
+        return None
+    try:
+        c = float(v) * 100
+    except (TypeError, ValueError):
+        return None
+    return c if c > 0 else None
+
 def signed_get(path):
     ts = str(int(time.time() * 1000))
     msg = ts + "GET" + path.split("?")[0]
@@ -102,12 +113,11 @@ def main():
                 continue
             mkts = data.get("markets", [])
             print(f"{city}: {len(mkts)} open markets")
-            if mkts: print(json.dumps(mkts[0], indent=2)[:1500])
             for m in mkts:
                 floor_s = m.get("floor_strike")
                 cap_s = m.get("cap_strike")
-                yes_ask = m.get("yes_ask")
-                no_ask = m.get("no_ask")
+                yes_ask = cents(m, "yes_ask_dollars")
+                no_ask = cents(m, "no_ask_dollars")
                 prob = (bracket_prob(fc, floor_s, cap_s) * 100
                         if fc is not None else None)
                 edge = (round(prob - yes_ask, 1)
@@ -115,11 +125,14 @@ def main():
                 bet = ("YES" if edge is not None and edge >= 10
                        and yes_ask and 3 <= yes_ask <= 70 else "")
                 w.writerow([stamp, city, m.get("ticker"),
-                            m.get("subtitle") or m.get("yes_sub_title", ""),
-                            floor_s, cap_s, yes_ask, no_ask,
+                            m.get("yes_sub_title") or m.get("subtitle", ""),
+                            floor_s, cap_s,
+                            round(yes_ask, 1) if yes_ask else "",
+                            round(no_ask, 1) if no_ask else "",
                             round(prob, 1) if prob is not None else "",
                             edge if edge is not None else "", bet])
 
 if __name__ == "__main__":
     main()
+
 
