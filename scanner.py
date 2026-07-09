@@ -102,6 +102,7 @@ def main():
                 continue
             mkts = data.get("markets", [])
             print(f"{city}: {len(mkts)} open markets")
+            if mkts: print(json.dumps(mkts[0], indent=2)[:1500])
             for m in mkts:
                 floor_s = m.get("floor_strike")
                 cap_s = m.get("cap_strike")
