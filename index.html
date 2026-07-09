@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WEATHER_DESK // Live Stations</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Chakra+Petch:wght@700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0c0e;--panel:#101418;--line:#232b33;--txt:#e8edf2;--dim:#7d8a96;
+--faint:#4a5560;--wx:#4fc3f7;--up:#2fe6a7}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font-family:'JetBrains Mono',monospace;font-size:14px}
+.topbar{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line);
+position:sticky;top:0;background:rgba(10,12,14,.94);backdrop-filter:blur(8px);z-index:5}
+.wordmark{font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:18px;letter-spacing:.12em}
+.wordmark span{color:var(--wx);animation:pulse 2.4s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+.sys{margin-left:auto;display:flex;gap:14px;align-items:center;font-size:11px;color:var(--dim)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--up);box-shadow:0 0 8px var(--up)}
+#clock{color:var(--txt);font-weight:700}
+.wrap{max-width:1400px;margin:0 auto;padding:20px}
+.sub{font-size:11px;color:var(--dim);margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px;position:relative;overflow:hidden}
+.card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;
+background:linear-gradient(90deg,var(--wx),transparent)}
+.top{display:flex;align-items:flex-start;gap:10px}
+.city{font-family:'Chakra Petch',sans-serif;font-size:16px;font-weight:700}
+.stn{font-size:10px;color:var(--faint);letter-spacing:.1em;margin-top:2px}
+.now{margin-left:auto;text-align:right}
+.temp{font-size:26px;font-weight:800}
+.temp small{font-size:13px;color:var(--dim)}
+.hi{font-size:10px;color:var(--wx);letter-spacing:.08em}
+canvas{width:100%;height:95px;display:block;margin:8px 0 6px}
+.foot{display:flex;justify-content:space-between;font-size:10px;color:var(--dim)}
+.err{padding:30px;text-align:center;color:var(--dim)}
+footer{padding:22px;text-align:center;font-size:10px;color:var(--faint);letter-spacing:.12em}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="wordmark">WEATHER<span>_</span>DESK</div>
+  <div class="sys"><span class="dot"></span><span>SYS_ONLINE</span><span id="clock">--:--</span></div>
+</div>
+<div class="wrap">
+  <div class="sub">NWS SETTLEMENT STATIONS · POLLED EVERY 15 MIN BY WEATHER-BOT · LAST READING <span id="last">—</span></div>
+  <div class="grid" id="grid"><div class="err">Loading station data…</div></div>
+</div>
+<footer>WEATHER-BOT v0.2 · DATA: api.weather.gov · RUNS ON GITHUB ACTIONS</footer>
+<script>
+const clock=document.getElementById('clock');
+setInterval(()=>{clock.textContent=new Date().toLocaleTimeString('en-US',{hour12:false})},1000);
+
+function parseCSV(text){
+  const lines=text.trim().split(/\r?\n/);
+  const head=lines.shift().split(',');
+  return lines.map(l=>{
+    const cells=l.split(',');const o={};
+    head.forEach((h,i)=>o[h]=cells[i]);return o;
+  });
+}
+
+async function load(){
+  try{
+    const [tRes,hRes]=await Promise.all([
+      fetch('temps_log.csv',{cache:'no-store'}),
+      fetch('daily_highs.csv',{cache:'no-store'})
+    ]);
+    const temps=parseCSV(await tRes.text());
+    const highs=hRes.ok?parseCSV(await hRes.text()):[];
+    render(temps,highs);
+  }catch(e){
+    document.getElementById('grid').innerHTML=
+      '<div class="err">Could not load data yet — check back after the next poll.</div>';
+  }
+}
+
+function render(temps,highs){
+  const byStation={};
+  temps.forEach(r=>{
+    if(r.temp_f==='ERROR'||r.temp_f==='')return;
+    (byStation[r.station]=byStation[r.station]||[]).push(r);
+  });
+  const today=new Date().toISOString().slice(0,10);
+  const highMap={};
+  highs.forEach(r=>{if(r.date===today)highMap[r.station]=r;});
+
+  const grid=document.getElementById('grid');
+  grid.innerHTML='';
+  let lastStamp='';
+  Object.keys(byStation).forEach(sid=>{
+    const rows=byStation[sid];
+    const city=rows[0].city;
+    // keep last 24h of points
+    const cutoff=Date.now()-24*3600*1000;
+    const pts=rows.map(r=>({t:new Date(r.utc_time).getTime(),v:parseFloat(r.temp_f)}))
+                  .filter(p=>!isNaN(p.v)&&p.t>cutoff)
+                  .sort((a,b)=>a.t-b.t);
+    if(!pts.length)return;
+    const cur=pts[pts.length-1];
+    lastStamp=new Date(cur.t).toLocaleString();
+    const hi=highMap[sid]?parseFloat(highMap[sid].high_f):Math.max(...pts.map(p=>p.v));
+
+    const card=document.createElement('div');card.className='card';
+    card.innerHTML=`<div class="top">
+        <div><div class="city">${city}</div><div class="stn">${sid} · NWS</div></div>
+        <div class="now"><div class="temp">${cur.v.toFixed(1)}<small>°F</small></div>
+        <div class="hi">TODAY'S HIGH ${hi.toFixed(1)}°</div></div></div>
+      <canvas width="640" height="190"></canvas>
+      <div class="foot"><span>LAST 24H</span><span>${pts.length} READINGS</span></div>`;
+    grid.appendChild(card);
+    draw(card.querySelector('canvas'),pts,hi);
+  });
+  document.getElementById('last').textContent=lastStamp||'—';
+  if(!grid.children.length)
+    grid.innerHTML='<div class="err">No readings in the last 24h yet — the bot is young. Give it time.</div>';
+}
+
+function draw(cv,pts,hi){
+  const c=cv.getContext('2d'),W=cv.width,H=cv.height,P=12;
+  const vs=pts.map(p=>p.v);
+  const min=Math.min(...vs,hi)-2,max=Math.max(...vs,hi)+2;
+  const t0=pts[0].t,t1=pts[pts.length-1].t||t0+1;
+  const X=t=>P+(t-t0)/((t1-t0)||1)*(W-2*P);
+  const Y=v=>H-P-(v-min)/(max-min)*(H-2*P);
+  // high line
+  c.strokeStyle='rgba(79,195,247,.5)';c.setLineDash([5,4]);c.lineWidth=1;
+  c.beginPath();c.moveTo(P,Y(hi));c.lineTo(W-P,Y(hi));c.stroke();c.setLineDash([]);
+  // temp line
+  c.strokeStyle='#e8edf2';c.lineWidth=2.2;c.beginPath();
+  pts.forEach((p,i)=>i?c.lineTo(X(p.t),Y(p.v)):c.moveTo(X(p.t),Y(p.v)));c.stroke();
+  // running-high ratchet
+  let rh=pts[0].v;c.strokeStyle='#4fc3f7';c.lineWidth=1.4;c.beginPath();c.moveTo(X(pts[0].t),Y(rh));
+  pts.forEach(p=>{rh=Math.max(rh,p.v);c.lineTo(X(p.t),Y(rh));});c.stroke();
+  // now dot
+  const last=pts[pts.length-1];
+  c.fillStyle='#4fc3f7';c.beginPath();c.arc(X(last.t),Y(last.v),4.5,0,7);c.fill();
+}
+
+load();
+setInterval(load,5*60*1000); // refresh every 5 min
+</script>
+</body>
+</html>
