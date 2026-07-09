@@ -3,16 +3,31 @@ Authenticates with Kalshi, pulls high-temp markets for our cities,
 compares prices to our NWS forecast, logs edges to edges.csv.
 Places NO orders."""
 
-import base64, csv, json, math, os, time, urllib.request
+import base64, csv, json, math, os, re, time, urllib.request
 from datetime import datetime, timezone
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
 BASE = "https://api.elections.kalshi.com"
-KEY_ID = os.environ["KALSHI_API_KEY_ID"]
-PRIV_PEM = os.environ["KALSHI_PRIVATE_KEY"].encode()
+KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
 
-# Kalshi series tickers for daily high temp, per city
+def load_key():
+    """Rebuild a clean PEM no matter how the paste mangled it."""
+    raw = os.environ["KALSHI_PRIVATE_KEY"]
+    raw = raw.replace("\\n", "\n").strip()
+    m = re.search(r"-----BEGIN ([A-Z ]+)-----(.*?)-----END \1-----",
+                  raw, re.DOTALL)
+    if not m:
+        raise ValueError("No BEGIN/END block found in KALSHI_PRIVATE_KEY")
+    label, body = m.group(1), m.group(2)
+    b64 = re.sub(r"[^A-Za-z0-9+/=]", "", body)
+    lines = [b64[i:i+64] for i in range(0, len(b64), 64)]
+    pem = (f"-----BEGIN {label}-----\n" + "\n".join(lines)
+           + f"\n-----END {label}-----\n").encode()
+    return serialization.load_pem_private_key(pem, password=None)
+
+key = load_key()
+
 SERIES = {
     "KXHIGHNY":   "New York City",
     "KXHIGHMIA":  "Miami",
@@ -23,10 +38,8 @@ SERIES = {
     "KXHIGHCHI":  "Chicago",
 }
 
-SIGMA = 3.0  # assumed forecast error (deg F) until calibration says better
+SIGMA = 3.0
 OUT = "edges.csv"
-
-key = serialization.load_pem_private_key(PRIV_PEM, password=None)
 
 def signed_get(path):
     ts = str(int(time.time() * 1000))
@@ -62,7 +75,7 @@ def latest_forecasts():
         for row in csv.DictReader(f):
             if row["forecast_high_f"] not in ("", "ERROR"):
                 fcs[row["city"]] = float(row["forecast_high_f"])
-    return fcs  # last row per city wins
+    return fcs
 
 def main():
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -108,3 +121,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
