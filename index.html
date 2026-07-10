@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WEATHER_DESK // Live Stations</title>
+<title>WEATHER_DESK // Live Stations + Edges</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&family=Chakra+Petch:wght@700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0c0e;--panel:#101418;--line:#232b33;--txt:#e8edf2;--dim:#7d8a96;
---faint:#4a5560;--wx:#4fc3f7;--up:#2fe6a7}
+:root{--bg:#0a0c0e;--panel:#101418;--panel2:#151a20;--line:#232b33;--txt:#e8edf2;--dim:#7d8a96;
+--faint:#4a5560;--wx:#4fc3f7;--up:#2fe6a7;--down:#ff5a6e;--gold:#f5a623}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--bg);color:var(--txt);font-family:'JetBrains Mono',monospace;font-size:14px}
 .topbar{display:flex;align-items:center;gap:16px;padding:14px 20px;border-bottom:1px solid var(--line);
@@ -20,6 +20,7 @@ position:sticky;top:0;background:rgba(10,12,14,.94);backdrop-filter:blur(8px);z-
 #clock{color:var(--txt);font-weight:700}
 .wrap{max-width:1400px;margin:0 auto;padding:20px}
 .sub{font-size:11px;color:var(--dim);margin-bottom:16px}
+h2{font-family:'Chakra Petch',sans-serif;font-size:15px;letter-spacing:.12em;margin:26px 0 12px}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:15px;position:relative;overflow:hidden}
 .card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;
@@ -31,10 +32,22 @@ background:linear-gradient(90deg,var(--wx),transparent)}
 .temp{font-size:26px;font-weight:800}
 .temp small{font-size:13px;color:var(--dim)}
 .hi{font-size:10px;color:var(--wx);letter-spacing:.08em}
+.fc{font-size:10px;color:var(--gold);letter-spacing:.08em}
 canvas{width:100%;height:95px;display:block;margin:8px 0 6px}
 .foot{display:flex;justify-content:space-between;font-size:10px;color:var(--dim)}
 .err{padding:30px;text-align:center;color:var(--dim)}
+table{width:100%;border-collapse:collapse;font-size:11.5px;background:var(--panel);
+border:1px solid var(--line);border-radius:10px;overflow:hidden}
+th{background:var(--panel2);padding:9px 10px;text-align:left;font-size:10px;
+letter-spacing:.12em;color:var(--dim);font-weight:700}
+td{padding:8px 10px;border-top:1px solid var(--line)}
+.pos{color:var(--up);font-weight:700}
+.neg{color:var(--down)}
+.yes{background:rgba(47,230,167,.13);color:var(--up);font-weight:800;
+padding:2px 8px;border-radius:3px;font-size:10px;letter-spacing:.08em}
+.tbl-wrap{overflow-x:auto;border-radius:10px}
 footer{padding:22px;text-align:center;font-size:10px;color:var(--faint);letter-spacing:.12em}
+@media(max-width:640px){td,th{padding:6px 6px;font-size:10.5px}}
 </style>
 </head>
 <body>
@@ -43,10 +56,18 @@ footer{padding:22px;text-align:center;font-size:10px;color:var(--faint);letter-s
   <div class="sys"><span class="dot"></span><span>SYS_ONLINE</span><span id="clock">--:--</span></div>
 </div>
 <div class="wrap">
-  <div class="sub">NWS SETTLEMENT STATIONS · POLLED EVERY 15 MIN BY WEATHER-BOT · LAST READING <span id="last">—</span></div>
+  <div class="sub">NWS STATIONS · 15-MIN POLL · NIGHTLY FORECASTS 7PM ET · KALSHI SCAN 7:30PM ET · LAST READING <span id="last">—</span></div>
+
+  <h2 style="color:var(--up)">⚡ BOT PICKS — LATEST SCAN <span id="scanTime" style="color:var(--faint);font-size:10px"></span></h2>
+  <div class="tbl-wrap"><table id="picks"><tbody><tr><td class="err">Loading scan…</td></tr></tbody></table></div>
+
+  <h2 style="color:var(--wx)">🌡️ LIVE STATIONS</h2>
   <div class="grid" id="grid"><div class="err">Loading station data…</div></div>
+
+  <h2 style="color:var(--gold)">📋 FULL EDGE BOARD — TOMORROW'S MARKETS</h2>
+  <div class="tbl-wrap"><table id="board"><tbody><tr><td class="err">Loading…</td></tr></tbody></table></div>
 </div>
-<footer>WEATHER-BOT v0.2 · DATA: api.weather.gov · RUNS ON GITHUB ACTIONS</footer>
+<footer>WEATHER-BOT v0.3 · DATA: api.weather.gov + kalshi · RUNS ON GITHUB ACTIONS</footer>
 <script>
 const clock=document.getElementById('clock');
 setInterval(()=>{clock.textContent=new Date().toLocaleTimeString('en-US',{hour12:false})},1000);
@@ -59,86 +80,112 @@ function parseCSV(text){
     head.forEach((h,i)=>o[h]=cells[i]);return o;
   });
 }
-
-async function load(){
-  try{
-    const [tRes,hRes]=await Promise.all([
-      fetch('temps_log.csv',{cache:'no-store'}),
-      fetch('daily_highs.csv',{cache:'no-store'})
-    ]);
-    const temps=parseCSV(await tRes.text());
-    const highs=hRes.ok?parseCSV(await hRes.text()):[];
-    render(temps,highs);
-  }catch(e){
-    document.getElementById('grid').innerHTML=
-      '<div class="err">Could not load data yet — check back after the next poll.</div>';
-  }
+async function grab(name){
+  try{const r=await fetch(name,{cache:'no-store'});
+    if(!r.ok)return[];return parseCSV(await r.text());}
+  catch(e){return[];}
 }
 
-function render(temps,highs){
+async function load(){
+  const [temps,highs,fcs,edges]=await Promise.all([
+    grab('temps_log.csv'),grab('daily_highs.csv'),
+    grab('forecasts.csv'),grab('edges.csv')]);
+  stations(temps,highs,fcs);
+  edgeTables(edges);
+}
+
+/* ---- station cards ---- */
+function stations(temps,highs,fcs){
   const byStation={};
   temps.forEach(r=>{
     if(r.temp_f==='ERROR'||r.temp_f==='')return;
     (byStation[r.station]=byStation[r.station]||[]).push(r);
   });
   const today=new Date().toISOString().slice(0,10);
-  const highMap={};
+  const highMap={},fcMap={};
   highs.forEach(r=>{if(r.date===today)highMap[r.station]=r;});
-
-  const grid=document.getElementById('grid');
-  grid.innerHTML='';
+  fcs.forEach(r=>{fcMap[r.city]=r;}); // last row per city wins
+  const grid=document.getElementById('grid');grid.innerHTML='';
   let lastStamp='';
   Object.keys(byStation).forEach(sid=>{
-    const rows=byStation[sid];
-    const city=rows[0].city;
-    // keep last 24h of points
+    const rows=byStation[sid],city=rows[0].city;
     const cutoff=Date.now()-24*3600*1000;
     const pts=rows.map(r=>({t:new Date(r.utc_time).getTime(),v:parseFloat(r.temp_f)}))
-                  .filter(p=>!isNaN(p.v)&&p.t>cutoff)
-                  .sort((a,b)=>a.t-b.t);
+                  .filter(p=>!isNaN(p.v)&&p.t>cutoff).sort((a,b)=>a.t-b.t);
     if(!pts.length)return;
     const cur=pts[pts.length-1];
     lastStamp=new Date(cur.t).toLocaleString();
     const hi=highMap[sid]?parseFloat(highMap[sid].high_f):Math.max(...pts.map(p=>p.v));
-
+    const fc=fcMap[city]?parseFloat(fcMap[city].forecast_high_f):null;
     const card=document.createElement('div');card.className='card';
     card.innerHTML=`<div class="top">
         <div><div class="city">${city}</div><div class="stn">${sid} · NWS</div></div>
         <div class="now"><div class="temp">${cur.v.toFixed(1)}<small>°F</small></div>
-        <div class="hi">TODAY'S HIGH ${hi.toFixed(1)}°</div></div></div>
+        <div class="hi">HIGH ${hi.toFixed(1)}°</div>
+        ${fc!==null?`<div class="fc">NWS FC ${fc.toFixed(0)}°</div>`:''}</div></div>
       <canvas width="640" height="190"></canvas>
       <div class="foot"><span>LAST 24H</span><span>${pts.length} READINGS</span></div>`;
     grid.appendChild(card);
-    draw(card.querySelector('canvas'),pts,hi);
+    draw(card.querySelector('canvas'),pts,hi,fc);
   });
   document.getElementById('last').textContent=lastStamp||'—';
   if(!grid.children.length)
-    grid.innerHTML='<div class="err">No readings in the last 24h yet — the bot is young. Give it time.</div>';
+    grid.innerHTML='<div class="err">No readings yet.</div>';
 }
-
-function draw(cv,pts,hi){
+function draw(cv,pts,hi,fc){
   const c=cv.getContext('2d'),W=cv.width,H=cv.height,P=12;
   const vs=pts.map(p=>p.v);
-  const min=Math.min(...vs,hi)-2,max=Math.max(...vs,hi)+2;
+  const all=[...vs,hi];if(fc!==null)all.push(fc);
+  const min=Math.min(...all)-2,max=Math.max(...all)+2;
   const t0=pts[0].t,t1=pts[pts.length-1].t||t0+1;
   const X=t=>P+(t-t0)/((t1-t0)||1)*(W-2*P);
   const Y=v=>H-P-(v-min)/(max-min)*(H-2*P);
-  // high line
+  if(fc!==null){c.strokeStyle='rgba(245,166,35,.55)';c.setLineDash([2,4]);c.lineWidth=1.4;
+    c.beginPath();c.moveTo(P,Y(fc));c.lineTo(W-P,Y(fc));c.stroke();c.setLineDash([]);}
   c.strokeStyle='rgba(79,195,247,.5)';c.setLineDash([5,4]);c.lineWidth=1;
   c.beginPath();c.moveTo(P,Y(hi));c.lineTo(W-P,Y(hi));c.stroke();c.setLineDash([]);
-  // temp line
   c.strokeStyle='#e8edf2';c.lineWidth=2.2;c.beginPath();
   pts.forEach((p,i)=>i?c.lineTo(X(p.t),Y(p.v)):c.moveTo(X(p.t),Y(p.v)));c.stroke();
-  // running-high ratchet
   let rh=pts[0].v;c.strokeStyle='#4fc3f7';c.lineWidth=1.4;c.beginPath();c.moveTo(X(pts[0].t),Y(rh));
   pts.forEach(p=>{rh=Math.max(rh,p.v);c.lineTo(X(p.t),Y(rh));});c.stroke();
-  // now dot
   const last=pts[pts.length-1];
   c.fillStyle='#4fc3f7';c.beginPath();c.arc(X(last.t),Y(last.v),4.5,0,7);c.fill();
 }
 
+/* ---- edge tables ---- */
+function edgeTables(edges){
+  if(!edges.length){return;}
+  // newest scan only
+  const lastStamp=edges[edges.length-1].scanned_utc;
+  const fresh=edges.filter(r=>r.scanned_utc===lastStamp&&!(''+r.subtitle).startsWith('FETCH'));
+  document.getElementById('scanTime').textContent=
+    '· '+new Date(lastStamp).toLocaleString();
+  // tomorrow's markets = latest date code in tickers
+  const dates=[...new Set(fresh.map(r=>(r.market||'').split('-')[1]))].sort();
+  const tomorrow=dates[dates.length-1];
+  const rows=fresh.filter(r=>(r.market||'').includes(tomorrow||''));
+  rows.sort((a,b)=>(parseFloat(b.edge_yes)||-999)-(parseFloat(a.edge_yes)||-999));
+
+  const picks=rows.filter(r=>r.would_bet==='YES');
+  fill('picks',picks.length?picks:rows.slice(0,5),true);
+  fill('board',rows,false);
+}
+function fill(id,rows,picksMode){
+  const t=document.getElementById(id);
+  let html='<tr><th>CITY</th><th>BRACKET</th><th>ASK¢</th><th>MODEL%</th><th>EDGE</th><th></th></tr>';
+  rows.forEach(r=>{
+    const e=parseFloat(r.edge_yes);
+    html+=`<tr><td>${r.city}</td><td>${r.subtitle||''}</td>
+      <td>${r.yes_ask||'—'}</td><td>${r.model_prob_pct||'—'}</td>
+      <td class="${e>=0?'pos':'neg'}">${isNaN(e)?'—':(e>0?'+':'')+e.toFixed(1)}</td>
+      <td>${r.would_bet==='YES'?'<span class="yes">YES</span>':''}</td></tr>`;
+  });
+  if(!rows.length)html+='<tr><td colspan="6" class="err">No rows in latest scan.</td></tr>';
+  t.innerHTML=html;
+}
+
 load();
-setInterval(load,5*60*1000); // refresh every 5 min
+setInterval(load,5*60*1000);
 </script>
 </body>
 </html>
