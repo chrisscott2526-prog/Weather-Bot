@@ -2,12 +2,12 @@
 buys 1 contract on top YES picks (max 5), logs to trades.csv.
 HARD CAPS: 1 contract/market, 5 orders/run, ask 3-70c only."""
 
-import base64, csv, json, os, re, time, urllib.request, uuid
+import base64, csv, json, os, re, time, urllib.request, urllib.error, uuid
 from datetime import datetime, timezone
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
-LIVE = True          # False = log picks only, place nothing
+LIVE = True            # False = log picks only, place nothing
 MAX_ORDERS = 5
 CONTRACTS = 1
 MIN_ASK, MAX_ASK = 3, 70
@@ -86,14 +86,19 @@ def main():
             if LIVE:
                 body = {"ticker": r["market"],
                         "client_order_id": str(uuid.uuid4()),
-                        "side": "yes", "action": "buy",
-                        "count": CONTRACTS, "type": "limit",
-                        "yes_price": price}
+                        "side": "bid",
+                        "count": f"{CONTRACTS:.2f}",
+                        "price": f"{price / 100:.4f}",
+                        "time_in_force": "good_till_canceled",
+                        "self_trade_prevention_type": "taker_at_cross"}
                 try:
-                    resp = api("POST", "/trade-api/v2/portfolio/orders", body)
-                    o = resp.get("order", {})
-                    status = o.get("status", "submitted")
-                    oid = o.get("order_id", "")
+                    resp = api("POST",
+                               "/trade-api/v2/portfolio/events/orders",
+                               body)
+                    oid = resp.get("order_id", "")
+                    status = "submitted" if oid else f"ODD {resp}"
+                except urllib.error.HTTPError as e:
+                    status = f"ERROR {e.code} {e.read().decode()[:150]}"
                 except Exception as e:
                     status = f"ERROR {e}"
             print(f"{r['city']} {r['subtitle']} @{price}c -> {status}")
