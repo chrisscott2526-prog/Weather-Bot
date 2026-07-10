@@ -1,0 +1,37 @@
+name: Place trades
+
+on:
+  workflow_run:
+    workflows: ["Scan Kalshi markets"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  trade:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Install crypto library
+        run: pip install cryptography
+
+      - name: Place orders
+        env:
+          KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
+          KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
+        run: python trader.py
+
+      - name: Commit the log
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git pull --rebase
+          git add trades.csv
+          git diff --cached --quiet || git commit -m "trades $(date -u +'%F %H:%M')"
+          git push
