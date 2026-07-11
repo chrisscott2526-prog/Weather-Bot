@@ -1,7 +1,7 @@
 """Weather-Bot: Kalshi market scanner (READ-ONLY).
 Authenticates with Kalshi, pulls high-temp markets for our cities,
 compares prices to our NWS forecast, logs edges to edges.csv.
-Places NO orders."""
+Places NO orders. Forecasts are matched to each market's date."""
 
 import base64, csv, json, math, os, re, time, urllib.request
 from datetime import datetime, timezone
@@ -74,23 +74,34 @@ def norm_cdf(x, mu, sd):
     return 0.5 * (1 + math.erf((x - mu) / (sd * math.sqrt(2))))
 
 def bracket_prob(fc, floor_s, cap_s):
-    lo = norm_cdf(floor_s - 0.5, fc, SIGMA) if floor_s is not None else 0.0
-    hi = norm_cdf(cap_s + 0.5, fc, SIGMA) if cap_s is not None else 1.0
+    lo = norm_cdf(float(floor_s) - 0.5, fc, SIGMA) if floor_s is not None else 0.0
+    hi = norm_cdf(float(cap_s) + 0.5, fc, SIGMA) if cap_s is not None else 1.0
     return max(0.0, hi - lo)
 
-def latest_forecasts():
+def forecasts_by_date():
+    """Return {(city, 'YYYY-MM-DD'): forecast_high} using the most
+    recently fetched forecast for each city+date."""
     fcs = {}
     if not os.path.exists("forecasts.csv"):
         return fcs
     with open("forecasts.csv") as f:
         for row in csv.DictReader(f):
             if row["forecast_high_f"] not in ("", "ERROR"):
-                fcs[row["city"]] = float(row["forecast_high_f"])
+                fcs[(row["city"], row["forecast_date"])] = \
+                    float(row["forecast_high_f"])
     return fcs
+
+def ticker_date(ticker):
+    """KXHIGHPHIL-26JUL10-T93 -> '2026-07-10', or None if unparseable."""
+    try:
+        code = (ticker or "").split("-")[1]
+        return datetime.strptime(code, "%y%b%d").date().isoformat()
+    except (IndexError, ValueError):
+        return None
 
 def main():
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    fcs = latest_forecasts()
+    fcs = forecasts_by_date()
     print("Forecasts loaded:", fcs)
 
     new = not os.path.exists(OUT)
@@ -101,7 +112,6 @@ def main():
                         "floor", "cap", "yes_ask", "no_ask",
                         "model_prob_pct", "edge_yes", "would_bet"])
         for series, city in SERIES.items():
-            fc = fcs.get(city)
             try:
                 data = signed_get(
                     f"/trade-api/v2/markets?series_ticker={series}"
@@ -114,6 +124,9 @@ def main():
             mkts = data.get("markets", [])
             print(f"{city}: {len(mkts)} open markets")
             for m in mkts:
+                ticker = m.get("ticker")
+                mdate = ticker_date(ticker)
+                fc = fcs.get((city, mdate)) if mdate else None
                 floor_s = m.get("floor_strike")
                 cap_s = m.get("cap_strike")
                 yes_ask = cents(m, "yes_ask_dollars")
@@ -124,13 +137,15 @@ def main():
                         if prob is not None and yes_ask else None)
                 bet = ("YES" if edge is not None and edge >= 10
                        and yes_ask and 3 <= yes_ask <= 70 else "")
-                w.writerow([stamp, city, m.get("ticker"),
+                w.writerow([stamp, city, ticker,
                             m.get("yes_sub_title") or m.get("subtitle", ""),
                             floor_s, cap_s,
                             round(yes_ask, 1) if yes_ask else "",
                             round(no_ask, 1) if no_ask else "",
                             round(prob, 1) if prob is not None else "",
                             edge if edge is not None else "", bet])
+
+    print("Scan complete.")
 
 if __name__ == "__main__":
     main()
