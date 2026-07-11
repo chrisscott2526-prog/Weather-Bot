@@ -1,6 +1,7 @@
 """Weather-Bot: LIVE trader. Reads latest scan from edges.csv,
 buys 1 contract on top YES picks (max 5), logs to trades.csv.
-HARD CAPS: 1 contract/market, 5 orders/run, ask 3-70c only."""
+HARD CAPS: 1 contract/market, 5 orders/run, ask 3-70c only.
+Skips any market already bought (tracked in trades.csv)."""
 
 import base64, csv, json, os, re, time, urllib.request, urllib.error, uuid
 from datetime import datetime, timezone
@@ -55,6 +56,17 @@ def balance():
     except Exception as e:
         return f"ERR {e}"
 
+def already_bought():
+    """Tickers we already submitted successfully, from trades.csv."""
+    owned = set()
+    if not os.path.exists("trades.csv"):
+        return owned
+    with open("trades.csv") as f:
+        for row in csv.DictReader(f):
+            if row.get("status") == "submitted" and row.get("ticker"):
+                owned.add(row["ticker"])
+    return owned
+
 def main():
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
     rows = list(csv.DictReader(open("edges.csv")))
@@ -65,12 +77,15 @@ def main():
     dates = sorted({(r["market"] or "").split("-")[1] for r in fresh if r["market"]})
     if dates:
         fresh = [r for r in fresh if dates[-1] in r["market"]]
+    owned = already_bought()
+    fresh = [r for r in fresh if r["market"] not in owned]
     fresh.sort(key=lambda r: float(r["edge_yes"] or 0), reverse=True)
     picks = [r for r in fresh
              if r["yes_ask"] and MIN_ASK <= float(r["yes_ask"]) <= MAX_ASK
              ][:MAX_ORDERS]
 
-    print(f"Scan {latest}: {len(picks)} orders to place. LIVE={LIVE}")
+    print(f"Scan {latest}: {len(picks)} orders to place "
+          f"({len(owned)} markets already owned). LIVE={LIVE}")
     print("Balance before:", balance())
 
     new = not os.path.exists("trades.csv")
