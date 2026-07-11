@@ -25,11 +25,17 @@ def get(url):
         return json.load(r)
 
 def forecast_high(lat, lon):
+    """Return (date, temp) for TOMORROW's daytime period.
+    'Tomorrow' = first daytime period dated after the location's
+    current local date (taken from the first period's startTime)."""
     point = get(f"https://api.weather.gov/points/{lat},{lon}")
     fc = get(point["properties"]["forecast"])
-    # find the first daytime period that's tomorrow or later
-    for p in fc["properties"]["periods"]:
-        if p["isDaytime"]:
+    periods = fc["properties"]["periods"]
+    if not periods:
+        return None, None
+    today_local = periods[0]["startTime"][:10]
+    for p in periods:
+        if p["isDaytime"] and p["startTime"][:10] > today_local:
             return p["startTime"][:10], p["temperature"]
     return None, None
 
@@ -44,6 +50,8 @@ def main():
         for sid, (city, lat, lon) in SITES.items():
             try:
                 d, hi = forecast_high(lat, lon)
+                if d is None:
+                    raise ValueError("no tomorrow daytime period found")
                 w.writerow([d, sid, city, hi, fetched])
                 print(f"{city}: {hi}F for {d}")
             except Exception as e:
@@ -52,3 +60,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
