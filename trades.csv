@@ -18,3 +18,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-07-11T15:06:49+00:00,KXHIGHAUS-26JUL11-B95.5,95° to 96°,yes,1,11,23.1,12.1,True,submitted,8649e162-d42f-433f-a986-7b62a0a3ee8c
 2026-07-11T15:17:18+00:00,KXHIGHNY-26JUL11-B81.5,81° to 82°,yes,1,10,23.1,13.1,True,submitted,46bebee4-d943-498f-a172-b7bb9a922d34
 2026-07-11T15:17:18+00:00,KXHIGHAUS-26JUL11-B95.5,95° to 96°,yes,1,11,23.1,12.1,True,submitted,912e6b75-e911-4e9a-a6b5-cf5bad5e1833
+2026-07-11T15:23:36+00:00,KXHIGHMIA-26JUL11-B93.5,93° to 94°,yes,1,14,25.8,11.8,True,submitted,baa8ff38-c63d-42a9-b455-5168ae96ce44
