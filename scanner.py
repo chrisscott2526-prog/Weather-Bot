@@ -1,7 +1,7 @@
-"""Weather-Bot: Kalshi market scanner (READ-ONLY).
+"""Weather-Bot: Kalshi market scanner (READ-ONLY, v2 ensemble).
 Authenticates with Kalshi, pulls high-temp markets for our cities,
-compares prices to our NWS forecast, logs edges to edges.csv.
-Places NO orders. Forecasts are matched to each market's date."""
+computes bracket probability by counting GFS ensemble members,
+logs edges to edges.csv. Places NO orders."""
 
 import base64, csv, json, math, os, re, time, urllib.request
 from datetime import datetime, timezone
@@ -38,7 +38,7 @@ SERIES = {
     "KXHIGHCHI":  "Chicago",
 }
 
-SIGMA = 2.5
+MIN_EDGE = 8.0
 OUT = "edges.csv"
 
 def cents(m, field):
@@ -70,26 +70,27 @@ def signed_get(path):
     with urllib.request.urlopen(req, timeout=30) as r:
         return json.load(r)
 
-def norm_cdf(x, mu, sd):
-    return 0.5 * (1 + math.erf((x - mu) / (sd * math.sqrt(2))))
-
-def bracket_prob(fc, floor_s, cap_s):
-    lo = norm_cdf(float(floor_s) - 0.5, fc, SIGMA) if floor_s is not None else 0.0
-    hi = norm_cdf(float(cap_s) + 0.5, fc, SIGMA) if cap_s is not None else 1.0
-    return max(0.0, hi - lo)
-
-def forecasts_by_date():
-    """Return {(city, 'YYYY-MM-DD'): forecast_high} using the most
-    recently fetched forecast for each city+date."""
-    fcs = {}
+def ensembles_by_date():
+    """Return {(city, 'YYYY-MM-DD'): [member temps]} from the most
+    recent fetch for each city+date."""
+    ens = {}
     if not os.path.exists("forecasts.csv"):
-        return fcs
+        return ens
     with open("forecasts.csv") as f:
         for row in csv.DictReader(f):
-            if row["forecast_high_f"] not in ("", "ERROR"):
-                fcs[(row["city"], row["forecast_date"])] = \
-                    float(row["forecast_high_f"])
-    return fcs
+            mstr = row.get("members", "")
+            if row["forecast_high_f"] not in ("", "ERROR") and mstr:
+                members = [float(x) for x in mstr.split("|") if x]
+                if members:
+                    ens[(row["city"], row["forecast_date"])] = members
+    return ens
+
+def bracket_prob(members, floor_s, cap_s):
+    """Fraction of ensemble members inside (floor, cap]."""
+    lo = float(floor_s) - 0.5 if floor_s is not None else -999.0
+    hi = float(cap_s) + 0.5 if cap_s is not None else 999.0
+    n = sum(1 for t in members if lo <= t <= hi)
+    return n / len(members)
 
 def ticker_date(ticker):
     """KXHIGHPHIL-26JUL10-T93 -> '2026-07-10', or None if unparseable."""
@@ -101,8 +102,8 @@ def ticker_date(ticker):
 
 def main():
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    fcs = forecasts_by_date()
-    print("Forecasts loaded:", fcs)
+    ens = ensembles_by_date()
+    print("Ensemble dates loaded:", sorted({k[1] for k in ens}))
 
     new = not os.path.exists(OUT)
     with open(OUT, "a", newline="") as f:
@@ -126,16 +127,16 @@ def main():
             for m in mkts:
                 ticker = m.get("ticker")
                 mdate = ticker_date(ticker)
-                fc = fcs.get((city, mdate)) if mdate else None
+                members = ens.get((city, mdate)) if mdate else None
                 floor_s = m.get("floor_strike")
                 cap_s = m.get("cap_strike")
                 yes_ask = cents(m, "yes_ask_dollars")
                 no_ask = cents(m, "no_ask_dollars")
-                prob = (bracket_prob(fc, floor_s, cap_s) * 100
-                        if fc is not None else None)
+                prob = (bracket_prob(members, floor_s, cap_s) * 100
+                        if members else None)
                 edge = (round(prob - yes_ask, 1)
                         if prob is not None and yes_ask else None)
-                bet = ("YES" if edge is not None and edge >= 10
+                bet = ("YES" if edge is not None and edge >= MIN_EDGE
                        and yes_ask and 3 <= yes_ask <= 70 else "")
                 w.writerow([stamp, city, ticker,
                             m.get("yes_sub_title") or m.get("subtitle", ""),
