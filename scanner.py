@@ -38,7 +38,7 @@ SERIES = {
     "KXHIGHCHI":  "Chicago",
 }
 
-SIGMA = 3.0
+SIGMA = 2.5
 OUT = "edges.csv"
 
 def cents(m, field):
