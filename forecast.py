@@ -59,6 +59,7 @@ def main():
                 d, members = ensemble_highs(lat, lon)
                 if not d or not members:
                     raise ValueError("no ensemble data returned")
+               members, bias = calibrate_members(sid, members)
                 srt = sorted(members)
                 median = srt[len(srt) // 2]
                 w.writerow([d, sid, city, median, fetched,
