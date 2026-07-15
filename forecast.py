@@ -5,7 +5,7 @@ Column forecast_high_f = ensemble median (backward compatible)."""
 
 import csv, json, os, urllib.request
 from datetime import datetime, timezone, timedelta
-from calibration import calibration_members
+from calibration import calibrate_members
 # station: (city, lat, lon)
 SITES = {
     "KNYC": ("New York City", 40.7794, -73.9692),
