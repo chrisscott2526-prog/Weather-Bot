@@ -1,105 +1,171 @@
 """
-calibration.py — drop-in calibration for Weather-Bot (chrisscott2526-prog/Weather-Bot)
+calibration.py — Weather-Bot calibration (stdlib only, no pip installs needed).
+Matched to forecast.py's SITES keys (KNYC, KMIA, KDEN, KLAX, KPHL, KAUS, KMDW).
 
-Fixes two documented, replicated problems with raw GFS ensembles:
-  1) Systematic station bias (your observed slight warm bias) —
-     corrected with a rolling mean(forecast - actual) over the last
-     14 matched days, actuals pulled from Open-Meteo's archive at the
-     EXACT Kalshi settlement stations (Central Park, Midway, Camp
-     Mabry, etc. — not "the city").
-  2) Underdispersion (31 members cluster too tight, making the
-     scanner overconfident on center brackets) — corrected by
-     inflating member spread around the median by SPREAD_INFLATE.
+Fix 1: rolling per-station bias (mean forecast - actual, last 14 days).
+       Actuals come from daily_highs.csv if usable, else Open-Meteo archive.
+Fix 2: ensemble spread inflation (raw GFS is underdispersive).
 
-No other file changes needed. scanner.py automatically inherits the
-calibrated members. Bias engages once >= MIN_MATCHED_DAYS of logged
-forecasts can be matched to observed highs (your week of logs means
-it engages on first run).
+Fails safe: any missing file, missing column, or network error -> bias 0.0,
+spread inflation still applies. Can never crash the nightly run.
 """
 
-import requests
-import pandas as pd
-import numpy as np
+import csv, json, urllib.request
 from datetime import date, timedelta
+from statistics import median, mean
 
-# Kalshi settlement stations (NWS CLI sites). Exact coords matter —
-# your $20 NYC loss was a settlement-source mismatch. These are the
-# stations Kalshi actually settles on.
 STATIONS = {
-    "NYC":  (40.779, -73.969),   # Central Park (KNYC)
-    "MIA":  (25.791, -80.316),   # Miami Intl (KMIA)
-    "DEN":  (39.847, -104.656),  # Denver Intl (KDEN)
-    "LAX":  (33.938, -118.389),  # Los Angeles Intl (KLAX)
-    "PHIL": (39.873, -75.227),   # Philadelphia Intl (KPHL)
-    "AUS":  (30.321, -97.760),   # Camp Mabry (KATT)
-    "CHI":  (41.786, -87.752),   # Midway (KMDW)
+    "KNYC": (40.7794, -73.9692),
+    "KMIA": (25.7906, -80.3164),
+    "KDEN": (39.8467, -104.6562),
+    "KLAX": (33.9382, -118.3866),
+    "KPHL": (39.8683, -75.2311),
+    "KAUS": (30.1945, -97.6699),
+    "KMDW": (41.7842, -87.7553),
+}
+NAMES = {
+    "KNYC": "New York City", "KMIA": "Miami", "KDEN": "Denver",
+    "KLAX": "Los Angeles", "KPHL": "Philadelphia", "KAUS": "Austin",
+    "KMDW": "Chicago",
 }
 
-BIAS_WINDOW_DAYS = 14      # rolling window for bias estimate
-MIN_MATCHED_DAYS = 5       # minimum matched days before trusting bias
-MAX_ABS_BIAS     = 4.0     # sanity clamp on correction, degrees F
-SPREAD_INFLATE   = 1.30    # standard inflation for underdispersive GFS
-
-# ---- Adjust ONLY these three lines if your log differs ----
+BIAS_WINDOW_DAYS = 14
+MIN_MATCHED_DAYS = 5
+MAX_ABS_BIAS = 4.0
+SPREAD_INFLATE = 1.30
 FORECAST_LOG = "forecasts.csv"
-COL_DATE, COL_CITY, COL_FCST = "date", "city", "forecast_high_f"
-# -----------------------------------------------------------
+ACTUALS_LOG = "daily_highs.csv"
+UA = {"User-Agent": "weather-bot-personal"}
+
+DATE_COLS = ("date", "target_date", "forecast_date", "day")
+SITE_COLS = ("station", "site", "city", "location", "ticker")
+FCST_COLS = ("forecast_high_f",)
+HIGH_COLS = ("high_f", "actual_high_f", "high", "tmax_f", "temp_high_f")
 
 
-def _actual_highs(city, start, end):
-    """Observed daily max temps (F) from Open-Meteo archive, {date: temp}."""
-    lat, lon = STATIONS[city]
-    url = (
-        "https://archive-api.open-meteo.com/v1/archive"
-        f"?latitude={lat}&longitude={lon}"
-        f"&start_date={start}&end_date={end}"
-        "&daily=temperature_2m_max&temperature_unit=fahrenheit&timezone=auto"
-    )
-    r = requests.get(url, timeout=30)
-    r.raise_for_status()
-    d = r.json().get("daily", {})
-    return dict(zip(d.get("time", []), d.get("temperature_2m_max", [])))
-
-
-def station_bias(city):
-    """Rolling mean(forecast - actual) in F. Positive = warm bias. 0.0 if not enough data."""
+def _rows(path):
     try:
-        log = pd.read_csv(FORECAST_LOG)
-    except FileNotFoundError:
-        return 0.0
-    log = log[log[COL_CITY] == city].copy()
-    if log.empty:
-        return 0.0
-    log[COL_DATE] = pd.to_datetime(log[COL_DATE]).dt.date
-    cutoff = date.today() - timedelta(days=BIAS_WINDOW_DAYS)
-    log = log[(log[COL_DATE] >= cutoff) & (log[COL_DATE] < date.today())]
-    if log.empty:
-        return 0.0
-    start, end = min(log[COL_DATE]), max(log[COL_DATE])
-    try:
-        actuals = _actual_highs(city, str(start), str(end))
+        with open(path, newline="") as f:
+            return list(csv.DictReader(f))
     except Exception:
-        return 0.0  # never let a network hiccup kill the nightly run
-    errs = []
-    for _, row in log.iterrows():
-        a = actuals.get(str(row[COL_DATE]))
-        if a is not None:
-            errs.append(float(row[COL_FCST]) - float(a))
-    if len(errs) < MIN_MATCHED_DAYS:
+        return []
+
+
+def _pick(row_keys, options):
+    for o in options:
+        if o in row_keys:
+            return o
+    return None
+
+
+def _iso(d):
+    try:
+        return date.fromisoformat(str(d).strip()[:10])
+    except Exception:
+        return None
+
+
+def _matches(value, station):
+    v = str(value).strip()
+    return v.upper() == station or v == NAMES.get(station, "")
+
+
+def _local_actuals(station):
+    """{date: high_f} from daily_highs.csv, if columns are recognizable."""
+    rows = _rows(ACTUALS_LOG)
+    if not rows:
+        return {}
+    keys = rows[0].keys()
+    dc, sc, hc = _pick(keys, DATE_COLS), _pick(keys, SITE_COLS), _pick(keys, HIGH_COLS)
+    if not (dc and hc):
+        return {}
+    out = {}
+    for r in rows:
+        if sc and not _matches(r.get(sc, ""), station):
+            continue
+        d = _iso(r.get(dc))
+        try:
+            out[d] = float(r.get(hc))
+        except (TypeError, ValueError):
+            continue
+    out.pop(None, None)
+    return out
+
+
+def _api_actuals(station, start, end):
+    """{date: high_f} from Open-Meteo archive at the station coords."""
+    lat, lon = STATIONS[station]
+    url = ("https://archive-api.open-meteo.com/v1/archive"
+           f"?latitude={lat}&longitude={lon}"
+           f"&start_date={start}&end_date={end}"
+           "&daily=temperature_2m_max&temperature_unit=fahrenheit&timezone=auto")
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=30) as r:
+        d = json.load(r).get("daily", {})
+    out = {}
+    for t, v in zip(d.get("time", []), d.get("temperature_2m_max", [])):
+        if v is not None:
+            out[_iso(t)] = float(v)
+    out.pop(None, None)
+    return out
+
+
+def station_bias(station):
+    """Rolling mean(forecast - actual) F. Positive = warm bias. 0.0 if unsure."""
+    rows = _rows(FORECAST_LOG)
+    if not rows:
         return 0.0
-    b = float(np.mean(errs))
+    keys = rows[0].keys()
+    dc, sc, fc = _pick(keys, DATE_COLS), _pick(keys, SITE_COLS), _pick(keys, FCST_COLS)
+    if not (dc and fc):
+        return 0.0
+    cutoff = date.today() - timedelta(days=BIAS_WINDOW_DAYS)
+    fcsts = {}
+    for r in rows:
+        if sc and not _matches(r.get(sc, ""), station):
+            continue
+        d = _iso(r.get(dc))
+        if d is None or d < cutoff or d >= date.today():
+            continue
+        try:
+            fcsts[d] = float(r.get(fc))
+        except (TypeError, ValueError):
+            continue
+    if not fcsts:
+        return 0.0
+    actuals = _local_actuals(station)
+    matched = [(fcsts[d], actuals[d]) for d in fcsts if d in actuals]
+    if len(matched) < MIN_MATCHED_DAYS:
+        try:
+            api = _api_actuals(station, min(fcsts), max(fcsts))
+        except Exception:
+            api = {}
+        actuals = {**api, **actuals}
+        matched = [(fcsts[d], actuals[d]) for d in fcsts if d in actuals]
+    if len(matched) < MIN_MATCHED_DAYS:
+        return 0.0
+    b = mean(f - a for f, a in matched)
     return max(-MAX_ABS_BIAS, min(MAX_ABS_BIAS, b))
 
 
-def calibrate_members(city, members):
+def calibrate_members(station, members):
     """
-    Full calibration for one city's raw ensemble members.
-    Input:  list of floats (F), the 31 raw GFS members.
-    Output: (calibrated_members_list, bias_applied)
+    station: SITES key, e.g. "KNYC".
+    members: list of raw ensemble highs (floats or strings).
+    Returns (calibrated_members, bias_applied).
     """
-    m = np.asarray(members, dtype=float)
-    bias = station_bias(city)
-    m = m - bias                            # step 1: remove station bias
-    med = float(np.median(m))
-    m = med + (m - med) * SPREAD_INFLATE    # step 2: widen spread around median
-    return m.round(1).tolist(), bias
+    try:
+        m = [float(x) for x in members]
+    except (TypeError, ValueError):
+        return members, 0.0
+    if not m:
+        return members, 0.0
+    try:
+        bias = station_bias(station)
+    except Exception:
+        bias = 0.0
+    m = [x - bias for x in m]
+    med = median(m)
+    m = [round(med + (x - med) * SPREAD_INFLATE, 1) for x in m]
+    return m, bias
+
