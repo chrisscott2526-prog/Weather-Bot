@@ -228,7 +228,8 @@ async function loadCSV(name){
 const norm=s=>String(s||"").trim().toUpperCase();
 function matches(row,sid){
   const nm=norm(CITIES[sid].name), alt=norm({KNYC:"NEW YORK CITY",KMDW:"CHICAGO"}[sid]||"");
-  return Object.values(row).some(v=>{const x=norm(v);return x===sid||x===nm||x===alt||x.includes(sid);});
+  return Object.values(row).some(v=>{const x=norm(v);if(!x)return false;
+    return x===sid||x===nm||(alt&&x===alt)||x.includes(sid);});
 }
 
 /* ================= live temps ================= */
@@ -257,7 +258,7 @@ function buildCard(sid,fRow,edgeRows,tradeRows){
   if(fRow){
     const med=fRow.forecast_high_f||"—";
     fx=med+"°F";
-    const mems=(fRow.members||"").split("|").map(Number).filter(n=>!isNaN(n));
+    const mems=(fRow.members||"").split("|").map(s=>s.trim()).filter(s=>s!=="").map(Number).filter(n=>!isNaN(n));
     if(mems.length){
       const lo=Math.min(...mems),hi=Math.max(...mems);
       spread=`${mems.length} members · range ${lo}°–${hi}°`;
@@ -338,7 +339,7 @@ function wireCalc(sid){
   const grid=document.getElementById("grid");
   let newest="";
   for(const sid of Object.keys(CITIES)){
-    const mine=forecasts.filter(r=>matches(r,sid));
+    const mine=forecasts.filter(r=>matches(r,sid)&&!isNaN(parseFloat(r.forecast_high_f)));
     const fRow=mine.length?mine[mine.length-1]:null;
     if(fRow&&fRow.forecast_date>newest)newest=fRow.forecast_date;
     const card=buildCard(sid,fRow,
@@ -359,3 +360,4 @@ function wireCalc(sid){
 </script>
 </body>
 </html>
+
