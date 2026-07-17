@@ -73,13 +73,18 @@ def signed_get(path):
 def ensembles_by_date():
     """Return {(city, 'YYYY-MM-DD'): [member temps]} from the most
     recent fetch for each city+date."""
+    # Sync fix: this job can check out the repo seconds BEFORE the
+    # nightly forecast commit lands (cron race). Pull the freshest
+    # commit so tonight's members are always available. Fails safe:
+    # if the pull errors, we just use the checkout copy as before.
+    os.system("git pull --rebase --quiet 2>/dev/null")
     ens = {}
     if not os.path.exists("forecasts.csv"):
         return ens
     with open("forecasts.csv") as f:
         for row in csv.DictReader(f):
-            mstr = row.get("members", "")
-            if row["forecast_high_f"] not in ("", "ERROR") and mstr:
+            mstr = row.get("members") or ""
+            if (row.get("forecast_high_f") or "") not in ("", "ERROR") and mstr:
                 members = [float(x) for x in mstr.split("|") if x]
                 if members:
                     ens[(row["city"], row["forecast_date"])] = members
@@ -145,10 +150,10 @@ def main():
                             round(no_ask, 1) if no_ask else "",
                             round(prob, 1) if prob is not None else "",
                             edge if edge is not None else "", bet])
-
     print("Scan complete.")
 
 if __name__ == "__main__":
     main()
+
 
 
