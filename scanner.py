@@ -195,22 +195,6 @@ def _find_col(fieldnames, *cands):
 
 # ---------- data loading ----------
 
-def ensembles_by_date():
-    """{(city, 'YYYY-MM-DD'): [member temps]} - last row wins per key.
-    Keeps the git-pull race fix from v2."""
-    os.system("git pull --rebase --quiet 2>/dev/null")
-    ens = {}
-    if not os.path.exists("forecasts.csv"):
-        return ens
-    with open("forecasts.csv") as f:
-        for row in csv.DictReader(f):
-            mstr = row.get("members") or ""
-            if (row.get("forecast_high_f") or "") not in ("", "ERROR") and mstr:
-                members = [float(x) for x in mstr.split("|") if x]
-                if members:
-                    ens[(row["city"], row["forecast_date"])] = members
-    return ens
-
 def actual_highs():
     """{(city, 'YYYY-MM-DD'): actual_high_f} from daily_highs.csv.
     Column names are sniffed so this works with your existing file."""
