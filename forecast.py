@@ -6,16 +6,8 @@ Column forecast_high_f = ensemble median (backward compatible)."""
 import csv, json, os, urllib.request
 from datetime import datetime, timezone, timedelta
 from calibration import calibrate_members
-# station: (city, lat, lon)
-SITES = {
-    "KNYC": ("New York City", 40.7794, -73.9692),
-    "KMIA": ("Miami", 25.7906, -80.3164),
-    "KDEN": ("Denver", 39.8467, -104.6562),
-    "KLAX": ("Los Angeles", 33.9382, -118.3866),
-    "KPHL": ("Philadelphia", 39.8683, -75.2311),
-    "KAUS": ("Austin", 30.1945, -97.6699),
-    "KMDW": ("Chicago", 41.7842, -87.7553),
-}
+from cities import SITES
+
 
 OUT = "forecasts.csv"
 UA = {"User-Agent": "weather-bot-personal"}
