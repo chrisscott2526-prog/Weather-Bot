@@ -5,15 +5,8 @@ daily high (in station-local terms we use UTC date for now)."""
 import csv, json, os, urllib.request
 from datetime import datetime, timezone
 
-STATIONS = {
-    "KNYC": "New York City",
-    "KMIA": "Miami",
-    "KDEN": "Denver",
-    "KLAX": "Los Angeles",
-    "KPHL": "Philadelphia",
-    "KAUS": "Austin",
-    "KMDW": "Chicago",
-}
+from cities import STATIONS
+
 
 LOG = "temps_log.csv"
 HIGHS = "daily_highs.csv"
