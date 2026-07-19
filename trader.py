@@ -73,9 +73,24 @@ def balance():
 
 # ---------- book-keeping ----------
 
+def bot_order_ids():
+    """Order IDs this bot placed, from trades.csv. Used so we only
+    ever cancel our own orders - never the owner's manual app orders."""
+    ids = set()
+    if os.path.exists("trades.csv"):
+        with open("trades.csv") as f:
+            for row in csv.DictReader(f):
+                if row.get("order_id"):
+                    ids.add(row["order_id"])
+    return ids
+
 def cancel_resting_orders():
-    """Kill unfilled GTC orders from prior runs so stale prices
-    can't get picked off after the forecast moves."""
+    """Kill unfilled GTC orders from prior BOT runs so stale prices
+    can't get picked off. Manual orders placed in the Kalshi app are
+    left untouched."""
+    mine = bot_order_ids()
+    if not mine:
+        return
     try:
         resp = api("GET", "/trade-api/v2/portfolio/orders?status=resting")
     except Exception as e:
@@ -83,8 +98,8 @@ def cancel_resting_orders():
         return
     for o in resp.get("orders", []):
         oid = o.get("order_id")
-        if not oid:
-            continue
+        if not oid or oid not in mine:
+            continue  # not ours - leave it alone
         for path in (f"/trade-api/v2/portfolio/events/orders/{oid}",
                      f"/trade-api/v2/portfolio/orders/{oid}"):
             try:
@@ -101,20 +116,29 @@ def cancel_resting_orders():
                 break
 
 def owned_tickers():
-    """Markets we actually hold, from live positions; fall back to
-    trades.csv 'submitted' rows if the API call fails."""
+    """Markets we hold. Robust: checks several possible field names
+    in the positions API, and ALWAYS unions with trades.csv history,
+    so a quiet API change can't make us double-dip a market."""
+    owned = set()
     try:
         resp = api("GET", "/trade-api/v2/portfolio/positions")
-        return {p["ticker"] for p in resp.get("market_positions", [])
-                if p.get("ticker") and float(p.get("position") or 0) != 0}
+        for p in resp.get("market_positions", []) or []:
+            qty = 0
+            for field in ("position", "total_traded", "quantity",
+                          "resting_orders_count"):
+                try:
+                    qty = qty or abs(float(p.get(field) or 0))
+                except (TypeError, ValueError):
+                    pass
+            if p.get("ticker") and qty:
+                owned.add(p["ticker"])
+        print(f"positions API: {len(owned)} held markets")
     except Exception as e:
-        print(f"positions unavailable ({e}); falling back to trades.csv")
-    owned = set()
+        print(f"positions unavailable ({e})")
     if os.path.exists("trades.csv"):
-        with open("trades.csv") as f:
-            for row in csv.DictReader(f):
-                if row.get("status") == "submitted" and row.get("ticker"):
-                    owned.add(row["ticker"])
+        for row in csv.DictReader(open("trades.csv")):
+            if row.get("status") == "submitted" and row.get("ticker"):
+                owned.add(row["ticker"])
     return owned
 
 def ticker_day(ticker):
@@ -151,6 +175,17 @@ def main():
         return
     target = max(d for d, _ in dated)
     fresh = [r for d, r in dated if d == target]
+
+    # FRESHNESS GUARD: our ensembles are pulled once nightly. Trading
+    # TODAY's markets late morning/afternoon pits a stale overnight
+    # forecast against a market that has watched real temps all day -
+    # the huge "edges" that produces are mirages. Same-day trades are
+    # only allowed in the early UTC hours; tomorrow's markets always ok.
+    now_utc = datetime.now(timezone.utc)
+    if target == now_utc.date() and now_utc.hour >= 13:  # ~8-9am US
+        print(f"Target {target} is today and it's {now_utc.hour}:00 UTC"
+              f" - overnight forecast too stale vs live market. No bets.")
+        return
 
     owned = owned_tickers()
     fresh = [r for r in fresh if r["market"] not in owned]
