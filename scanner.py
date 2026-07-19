@@ -13,7 +13,7 @@ Changes vs v2:
 Places NO orders. trader.py v3 consumes this output.
 """
 
-import base64, csv, json, math, os, re, time, urllib.request
+import base64, csv, json, math, os, re, time, urllib.parse, urllib.request
 from collections import defaultdict
 from datetime import datetime, timezone, date
 from statistics import mean, pstdev
@@ -23,42 +23,88 @@ from cryptography.hazmat.primitives.asymmetric import padding
 BASE = "https://api.elections.kalshi.com"
 KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
 
-from cities import SERIES_TO_CITY
+from cities import SERIES_TO_CITY, CITY_TO_STATION
+
+def ensembles_by_date():
+    """{(city, 'YYYY-MM-DD'): [member temps]} - HEADER-AGNOSTIC.
+    forecasts.csv may predate the 'members' column, so we find the
+    date / city / members fields in each row by content instead of
+    trusting the header. Last row wins per (city, date)."""
+    os.system("git pull --rebase --quiet 2>/dev/null")
+    ens = {}
+    if not os.path.exists("forecasts.csv"):
+        return ens
+    known = set(CITY_TO_STATION)
+    with open("forecasts.csv") as f:
+        for row in csv.reader(f):
+            d = city = members = None
+            for cell in row:
+                cell = (cell or "").strip()
+                if d is None and re.fullmatch(r"\d{4}-\d{2}-\d{2}", cell):
+                    d = cell
+                elif cell in known:
+                    city = cell
+                elif "|" in cell:
+                    try:
+                        m = [float(x) for x in cell.split("|") if x]
+                        if m:
+                            members = m
+                    except ValueError:
+                        pass
+            if d and city and members:
+                ens[(city, d)] = members
+    return ens
+
+VERIFIED = {"KXHIGHNY", "KXHIGHMIA", "KXHIGHDEN", "KXHIGHLAX",
+            "KXHIGHPHIL", "KXHIGHAUS", "KXHIGHCHI"}  # known-good 7
+
+def _match_city(title):
+    """Map a series/market title like 'Highest temperature in NYC
+    today?' to one of our 20 city names."""
+    t = " " + re.sub(r"[^a-z]+", " ", (title or "").lower()) + " "
+    for city in CITY_TO_STATION:
+        if " " + city.lower() + " " in t or city.lower() in t:
+            return city
+    for alias, city in (("nyc", "New York City"),
+                        ("new york", "New York City"),
+                        ("washington d c", "Washington DC"),
+                        ("washington dc", "Washington DC"),
+                        (" la ", "Los Angeles"),
+                        (" sf ", "San Francisco"),
+                        (" dc ", "Washington DC")):
+        if alias in t:
+            return city
+    return None
 
 def discover_series():
-    """Find every open KXHIGH* series live from the API, so new
-    cities appear automatically. Unknown series are printed so you
-    can add them to cities.py; known ones trade immediately."""
-    found, cursor = set(), ""
-    for _ in range(20):  # paginate, hard stop at 20 pages
-        path = "/trade-api/v2/markets?status=open&limit=1000"
-        if cursor:
-            path += f"&cursor={cursor}"
-        try:
-            data = signed_get(path)
-        except Exception as e:
-            print(f"series discovery failed ({e}); using cities.py list")
-            return dict(SERIES_TO_CITY)
-        for m in data.get("markets", []):
-            t = (m.get("ticker") or "").split("-")[0]
-            if t.startswith("KXHIGH"):
-                found.add(t)
-        cursor = data.get("cursor") or ""
-        if not cursor:
-            break
+    """Find every live KXHIGH* series and map ticker -> city by the
+    series TITLE, so wrong ticker guesses fix themselves. Falls back
+    to the static cities.py list if the API misbehaves."""
     series = {}
-    for t in sorted(found):
-        if t in SERIES_TO_CITY:
-            series[t] = SERIES_TO_CITY[t]
-        else:
-            print(f"UNKNOWN SERIES {t} - live on Kalshi but not in "
-                  f"cities.py; add it (with its settlement station) "
-                  f"to start trading it")
-    missing = set(SERIES_TO_CITY) - found
-    if missing:
-        print(f"In cities.py but not open on Kalshi right now: "
-              f"{sorted(missing)} (ticker guess may be wrong)")
-    return series or dict(SERIES_TO_CITY)
+    try:
+        q = urllib.parse.quote("Climate and Weather")
+        data = signed_get(f"/trade-api/v2/series/?category={q}")
+        for s in data.get("series", []):
+            tick = s.get("ticker") or ""
+            if not tick.startswith("KXHIGH"):
+                continue
+            city = _match_city(s.get("title", ""))
+            if city:
+                series[tick] = city
+                print(f"discovered {tick} -> {city}")
+            else:
+                print(f"KXHIGH series {tick} "
+                      f"({s.get('title')!r}) - no city match")
+    except Exception as e:
+        print(f"series endpoint failed ({e})")
+    # always keep the verified originals
+    for tick in VERIFIED:
+        series.setdefault(tick, SERIES_TO_CITY[tick])
+    if len(series) <= len(VERIFIED):
+        print("discovery added nothing; also trying cities.py guesses")
+        for tick, city in SERIES_TO_CITY.items():
+            series.setdefault(tick, city)
+    return series
 
 
 MIN_EDGE = 8.0            # NET edge (after fees) required, in cents
