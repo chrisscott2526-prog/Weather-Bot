@@ -79,3 +79,8 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-07-20T08:26:46+00:00,KXHIGHTSATX-26JUL20-B97.5,97° to 98°,no,1,48,22.6,27.4,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance"",""service"":""exchange""}}",
 2026-07-20T08:26:46+00:00,KXHIGHTSATX-26JUL20-T100,101° or above,yes,1,5,32.3,26.3,True,submitted,f82be114-220c-41b1-b34d-a2df04788486
 2026-07-20T08:26:46+00:00,KXHIGHAUS-26JUL20-T100,101° or above,yes,1,3,29.0,25.0,True,submitted,43709eac-22eb-4dcd-9d81-31819f341346
+2026-07-20T23:56:34+00:00,KXHIGHAUS-26JUL21-T102,103° or above,yes,1,7,64.5,56.5,True,submitted,f225d879-0dc6-44cd-80aa-e3362f9d1679
+2026-07-20T23:56:34+00:00,KXHIGHTSFO-26JUL21-T82,83° or above,yes,1,28,83.9,53.9,True,submitted,cd49d83d-014e-441f-ad25-c3fc00c88fb5
+2026-07-20T23:56:34+00:00,KXHIGHLAX-26JUL21-B79.5,79° to 80°,yes,1,20,74.2,52.2,True,submitted,f4fa9bf0-87be-4e0c-9569-6edac8dfbc81
+2026-07-20T23:56:34+00:00,KXHIGHTPHX-26JUL21-T100,99° or below,yes,1,9,61.3,51.3,True,submitted,7b7506b8-a485-40dd-ac9f-2ef6afb12047
+2026-07-20T23:56:34+00:00,KXHIGHTOKC-26JUL21-B103.5,103° to 104°,no,1,51,0.0,47.0,True,submitted,72b01da2-bf48-4a6b-8402-0ac8039f9172
