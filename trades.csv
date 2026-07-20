@@ -64,3 +64,8 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-07-20T04:51:57+00:00,KXHIGHDEN-26JUL20-B99.5,99° to 100°,no,1,36,25.8,36.2,True,submitted,d9396425-6898-49bc-a1e8-d3664cea2176
 2026-07-20T04:51:57+00:00,KXHIGHTSFO-26JUL20-B71.5,71° to 72°,no,1,65,0.0,33.0,True,submitted,c6441efe-1aa9-48b7-ac61-1b6a36d6e50e
 2026-07-20T04:51:57+00:00,KXHIGHTSFO-26JUL20-B69.5,69° to 70°,no,1,67,0.0,31.0,True,submitted,a9baaf67-9eea-492d-85e8-2d9224b2af5c
+2026-07-20T05:09:59+00:00,KXHIGHTMIN-26JUL20-B94.5,94° to 95°,no,1,55,12.9,30.1,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance"",""service"":""exchange""}}",
+2026-07-20T05:09:59+00:00,KXHIGHTMIN-26JUL20-B92.5,92° to 93°,no,1,65,3.2,29.8,True,submitted,f6f38a20-a7a5-4799-9044-e8869b8f77e0
+2026-07-20T05:09:59+00:00,KXHIGHTSATX-26JUL20-B97.5,97° to 98°,no,1,47,22.6,28.4,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance"",""service"":""exchange""}}",
+2026-07-20T05:09:59+00:00,KXHIGHTOKC-26JUL20-B102.5,102° to 103°,yes,1,3,32.3,28.3,True,submitted,c03d011f-edee-461d-b0f5-74c181ad6c48
+2026-07-20T05:09:59+00:00,KXHIGHTHOU-26JUL20-B95.5,95° to 96°,no,1,64,6.5,27.5,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance"",""service"":""exchange""}}",
