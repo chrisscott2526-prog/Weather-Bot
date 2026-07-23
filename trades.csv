@@ -193,3 +193,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-07-23T20:38:39+00:00,KXHIGHTMIN-26JUL23-B82.5,82° to 83°,yes,1,10,29.0,18.0,True,submitted,e12a7be2-b49a-4661-8986-282693924544
 2026-07-23T20:38:39+00:00,KXHIGHTBOS-26JUL23-B82.5,82° to 83°,yes,1,7,22.6,14.6,True,submitted,6f09e1af-dd6a-47f4-b6e5-4fb852332d7e
 2026-07-23T20:38:39+00:00,KXHIGHCHI-26JUL23-B80.5,80° to 81°,yes,1,3,12.9,8.9,True,submitted,3cd9a996-57ed-4999-89dd-d19176ea8e78
+2026-07-23T22:14:13+00:00,KXHIGHPHIL-26JUL23-B85.5,85° to 86°,yes,1,6,19.4,12.4,True,submitted,66952157-c41c-41ae-9a68-27e3ea6825a9
