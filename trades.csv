@@ -184,3 +184,8 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-07-23T07:58:55+00:00,KXHIGHTBOS-26JUL23-T78,77° or below,yes,1,12,32.3,19.3,True,"ERROR 503 {""error"":{""code"":""service_unavailable"",""message"":""service_unavailable"",""service"":""exchange""}}",
 2026-07-23T07:58:55+00:00,KXHIGHTATL-26JUL23-B90.5,90° to 91°,no,1,54,25.8,18.2,True,"ERROR 503 {""error"":{""code"":""service_unavailable"",""message"":""service_unavailable"",""service"":""exchange""}}",
 2026-07-23T07:58:55+00:00,KXHIGHTNOLA-26JUL23-T89,88° or below,yes,1,17,35.5,17.5,True,"ERROR 503 {""error"":{""code"":""service_unavailable"",""message"":""service_unavailable"",""service"":""exchange""}}",
+2026-07-23T20:19:56+00:00,KXHIGHTSEA-26JUL23-T76,75° or below,yes,1,8,38.7,29.7,True,submitted,9146f409-cfda-495c-bc9e-313ee1a95628
+2026-07-23T20:19:56+00:00,KXHIGHTSEA-26JUL23-B80.5,80° to 81°,yes,1,6,32.3,25.3,True,submitted,ef2b3a0b-e187-478e-8e17-8949fd7af6b8
+2026-07-23T20:19:56+00:00,KXHIGHTHOU-26JUL23-B94.5,94° to 95°,yes,1,3,29.0,25.0,True,submitted,0fd10aa0-332c-4e27-b53b-c1aaf3c03a4c
+2026-07-23T20:19:56+00:00,KXHIGHTHOU-26JUL23-B92.5,92° to 93°,yes,1,4,29.0,24.0,True,submitted,2cf95cd7-6a11-433e-8e63-2ed356838bf8
+2026-07-23T20:19:56+00:00,KXHIGHTATL-26JUL23-B92.5,92° to 93°,yes,1,6,29.0,22.0,True,submitted,9575325a-89ff-40c0-8259-cb29e8752968
