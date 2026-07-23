@@ -174,3 +174,8 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-07-23T04:56:34+00:00,KXHIGHTMIN-26JUL23-B84.5,84° to 85°,yes,1,4,25.8,20.8,True,submitted,872b2138-bc36-47a5-84d3-064d97c30aa3
 2026-07-23T04:56:34+00:00,KXHIGHTDAL-26JUL23-B100.5,100° to 101°,no,1,68,9.7,20.3,True,submitted,097029f8-0a04-4d2c-bd26-6639dd9bcaed
 2026-07-23T04:56:34+00:00,KXHIGHCHI-26JUL23-B78.5,78° to 79°,yes,1,49,71.0,20.0,True,submitted,d56d508f-3fd5-48d6-9734-b991991c699e
+2026-07-23T07:44:38+00:00,KXHIGHTMIN-26JUL23-T82,81° or below,no,1,26,51.6,20.4,True,"ERROR 503 {""error"":{""code"":""service_unavailable"",""message"":""service_unavailable"",""service"":""exchange""}}",
+2026-07-23T07:44:38+00:00,KXHIGHTSEA-26JUL23-B80.5,80° to 81°,yes,1,11,32.3,20.3,True,"ERROR 503 {""error"":{""code"":""service_unavailable"",""message"":""service_unavailable"",""service"":""exchange""}}",
+2026-07-23T07:44:38+00:00,KXHIGHTBOS-26JUL23-T78,77° or below,yes,1,12,32.3,19.3,True,"ERROR 503 {""error"":{""code"":""service_unavailable"",""message"":""service_unavailable"",""service"":""exchange""}}",
+2026-07-23T07:44:38+00:00,KXHIGHTATL-26JUL23-B90.5,90° to 91°,no,1,54,25.8,18.2,True,"ERROR 503 {""error"":{""code"":""service_unavailable"",""message"":""service_unavailable"",""service"":""exchange""}}",
+2026-07-23T07:44:38+00:00,KXHIGHTNOLA-26JUL23-T89,88° or below,yes,1,17,35.5,17.5,True,"ERROR 503 {""error"":{""code"":""service_unavailable"",""message"":""service_unavailable"",""service"":""exchange""}}",
