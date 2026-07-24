@@ -204,3 +204,8 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-07-24T00:10:31+00:00,KXHIGHTSEA-26JUL24-B88.5,88° to 89°,yes,1,3,29.0,25.0,True,submitted,7633bc2d-2bcc-42d2-9d89-1e7bbd9f32af
 2026-07-24T00:10:31+00:00,KXHIGHTDAL-26JUL24-B99.5,99° to 100°,yes,1,16,41.9,24.9,True,submitted,38f2964b-2eef-46dc-924d-6a27bdbc5d4b
 2026-07-24T00:10:31+00:00,KXHIGHDEN-26JUL24-T96,97° or above,yes,1,27,51.6,22.6,True,submitted,94daa80b-71bb-43a2-b43d-e081dc3e0d5e
+2026-07-24T01:01:23+00:00,KXHIGHLAX-26JUL24-B86.5,86° to 87°,yes,1,6,29.0,22.0,True,submitted,ede8e4b5-84df-4e5b-a2b5-00d42b90f1d1
+2026-07-24T01:01:23+00:00,KXHIGHTBOS-26JUL24-B85.5,85° to 86°,yes,1,4,25.8,20.8,True,submitted,0d687bea-73a5-425c-9eb3-2ce6087acf52
+2026-07-24T01:01:23+00:00,KXHIGHTMIN-26JUL24-B86.5,86° to 87°,yes,1,5,22.6,16.6,True,submitted,16dc3247-22c2-4250-a5d0-99be3dc08cc8
+2026-07-24T01:01:23+00:00,KXHIGHTDC-26JUL24-B81.5,81° to 82°,yes,1,18,35.5,15.5,True,submitted,89c95bb1-3518-4be4-bacc-e4fbd76e81b9
+2026-07-24T01:01:23+00:00,KXHIGHTSATX-26JUL24-B97.5,97° to 98°,yes,1,8,22.6,13.6,True,submitted,248e1739-e560-4bbf-a2a2-1dcaa674023d
