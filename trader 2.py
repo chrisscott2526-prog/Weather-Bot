@@ -32,7 +32,7 @@ BET_DOLLARS = 1      # $ per bet. THE sizing knob: 1 = ~1 contract now;
                      # 20 = ~$20 per bet later. Change ONLY after 100+
                      # settled bets show positive P&L.
 MAX_RUN_DOLLARS = 10  # hard ceiling on total $ placed in one run
-MIN_COST, MAX_COST = 3, 70   # cents you pay per contract, either side
+MIN_COST, MAX_COST = 15, 70   # cents you pay per contract, either side
 MAX_PER_CITY_DAY = 1         # ONE position per city per day: two YES
                              # brackets of the same city can't both win
 SANITY_GAP = 40              # skip if model% vs implied price gap > this
