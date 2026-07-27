@@ -1,16 +1,21 @@
-"""Weather-Bot: LIVE trader v3. Reads latest scan from edges.csv,
+"""Weather-Bot: LIVE trader v4. Reads latest scan from edges.csv,
 trades top picks (YES or NO), logs to trades.csv.
 
-Changes vs v2:
-  1. DATE FIX: ticker dates parsed properly (v2 sorted "26AUG01"
-     before "26JUL19" alphabetically -> wrong day at month ends).
-  2. Cancels resting unfilled orders at the start of each run, so
-     stale bids can't sit on the book after the forecast moves.
-  3. Ownership from real Kalshi positions (API), with trades.csv
-     as a fallback, instead of trusting "submitted" == owned.
-  4. NO-side orders: a NO buy at price c is placed as an "ask" on
-     the single YES book at (100 - c) cents.
+Changes vs v3 (safety release -- trading logic untouched):
+  1. Skips Kalshi's daily maintenance window (~07:00 UTC): no more
+     503 batches and blind retries into a down exchange.
+  2. FAIL CLOSED ownership: markets owned = live API positions
+     + resting orders + trades.csv 'submitted' rows, combined.
+     If the API check fails, the run places NOTHING (previously it
+     fell back to trades.csv alone, which can't see manual trades).
+  3. Per-city daily cap (default 2): stops stacking multiple
+     brackets of the same city/day, which is one correlated bet.
+  4. Sanity guard: skips picks where the model and the market
+     disagree by more than SANITY_GAP points -- those are almost
+     always model/calibration bugs, not real edge. Skips are logged.
 
+v3 features kept: proper ticker-date parsing, cancel own resting
+orders each run, YES=bid / NO=ask-at-(100-c) on the single book.
 HARD CAPS unchanged: 1 contract/market, 5 orders/run, cost 3-70c.
 Run once with LIVE = False after upgrading to sanity-check output.
 """
@@ -25,6 +30,9 @@ TRADE_NO = True      # set False to keep old YES-only behavior
 MAX_ORDERS = 5
 CONTRACTS = 1
 MIN_COST, MAX_COST = 3, 70   # cents you pay per contract, either side
+MAX_PER_CITY_DAY = 2         # max positions per city per market day
+SANITY_GAP = 40              # skip if model% vs implied price gap > this
+MAINT_START, MAINT_END = (6, 45), (8, 15)  # UTC window to skip (Kalshi 503s)
 BASE = "https://api.elections.kalshi.com"
 KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
 
@@ -71,6 +79,13 @@ def balance():
         return f"ERR {e}"
 
 
+# ---------- safety ----------
+
+def in_maintenance_window(now):
+    """Kalshi daily maintenance ~07:00 UTC returns 503s. Skip it."""
+    return MAINT_START <= (now.hour, now.minute) <= MAINT_END
+
+
 # ---------- book-keeping ----------
 
 def bot_order_ids():
@@ -115,22 +130,26 @@ def cancel_resting_orders():
                 print(f"cancel {oid[:8]}: {e}")
                 break
 
-def owned_tickers():
-    """Markets we actually hold, from live positions; fall back to
-    trades.csv 'submitted' rows if the API call fails."""
-    try:
-        resp = api("GET", "/trade-api/v2/portfolio/positions")
-        return {p["ticker"] for p in resp.get("market_positions", [])
-                if p.get("ticker") and float(p.get("position") or 0) != 0}
-    except Exception as e:
-        print(f"positions unavailable ({e}); falling back to trades.csv")
-    owned = set()
+def exposure_tickers():
+    """Every market we are exposed to RIGHT NOW: live positions plus
+    resting orders (manual ones included) plus trades.csv history.
+    Raises on API failure -- caller must FAIL CLOSED (trade nothing),
+    because trades.csv alone cannot see manual positions."""
+    tickers = set()
+    resp = api("GET", "/trade-api/v2/portfolio/positions")
+    for p in resp.get("market_positions", []):
+        if p.get("ticker") and float(p.get("position") or 0) != 0:
+            tickers.add(p["ticker"])
+    resp = api("GET", "/trade-api/v2/portfolio/orders?status=resting")
+    for o in resp.get("orders", []):
+        if o.get("ticker"):
+            tickers.add(o["ticker"])
     if os.path.exists("trades.csv"):
         with open("trades.csv") as f:
             for row in csv.DictReader(f):
                 if row.get("status") == "submitted" and row.get("ticker"):
-                    owned.add(row["ticker"])
-    return owned
+                    tickers.add(row["ticker"])
+    return tickers
 
 def ticker_day(ticker):
     """KXHIGHNY-26JUL19-B82.5 -> datetime.date, or None."""
@@ -140,11 +159,22 @@ def ticker_day(ticker):
     except (IndexError, ValueError):
         return None
 
+def city_key(ticker):
+    """KXHIGHLAX-26JUL23-B85.5 -> KXHIGHLAX (series prefix = city)."""
+    return (ticker or "").split("-")[0]
+
 
 # ---------- main ----------
 
 def main():
-    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    now = datetime.now(timezone.utc)
+    stamp = now.isoformat(timespec="seconds")
+
+    if in_maintenance_window(now):
+        print(f"{stamp}: inside Kalshi maintenance window "
+              f"({MAINT_START}-{MAINT_END} UTC). Skipping run.")
+        return
+
     if not os.path.exists("edges.csv"):
         print("No edges.csv yet - run scanner first.")
         return
@@ -167,11 +197,23 @@ def main():
     target = max(d for d, _ in dated)
     fresh = [r for d, r in dated if d == target]
 
-    owned = owned_tickers()
+    # ---- FAIL CLOSED: verify real account exposure before anything ----
+    try:
+        owned = exposure_tickers()
+    except Exception as e:
+        print(f"ABORT: could not verify account positions/orders ({e}). "
+              f"Placing no trades this run.")
+        return
     fresh = [r for r in fresh if r["market"] not in owned]
 
+    # positions already held per city for the target day (cap input)
+    per_city = {}
+    for t in owned:
+        if ticker_day(t) == target:
+            per_city[city_key(t)] = per_city.get(city_key(t), 0) + 1
+
     # pick side-specific cost & edge, filter, rank
-    picks = []
+    ranked = []
     for r in fresh:
         side = r["would_bet"]
         try:
@@ -180,12 +222,33 @@ def main():
         except (TypeError, ValueError):
             continue
         if MIN_COST <= cost <= MAX_COST:
-            picks.append((edge, cost, side, r))
-    picks.sort(key=lambda p: p[0], reverse=True)
-    picks = picks[:MAX_ORDERS]
+            ranked.append((edge, cost, side, r))
+    ranked.sort(key=lambda p: p[0], reverse=True)
+
+    picks = []
+    for edge, cost, side, r in ranked:
+        # sanity guard: model YES% vs the YES price this trade implies
+        try:
+            model = float(r.get("model_prob_pct") or 0)
+        except (TypeError, ValueError):
+            model = 0.0
+        implied_yes = cost if side == "YES" else 100 - cost
+        if abs(model - implied_yes) > SANITY_GAP:
+            print(f"SKIP {r['market']} {side}: sanity gap "
+                  f"(model {model:.0f}% vs implied {implied_yes:.0f}c)")
+            continue
+        # per-city daily cap
+        ck = city_key(r["market"])
+        if per_city.get(ck, 0) >= MAX_PER_CITY_DAY:
+            print(f"SKIP {r['market']} {side}: city cap ({ck})")
+            continue
+        per_city[ck] = per_city.get(ck, 0) + 1
+        picks.append((edge, cost, side, r))
+        if len(picks) >= MAX_ORDERS:
+            break
 
     print(f"Scan {latest} -> {target}: {len(picks)} orders "
-          f"({len(owned)} markets owned). LIVE={LIVE}")
+          f"({len(owned)} markets owned/exposed). LIVE={LIVE}")
     if LIVE:
         cancel_resting_orders()
     print("Balance before:", balance())
