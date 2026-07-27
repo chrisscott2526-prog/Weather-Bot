@@ -28,9 +28,13 @@ from cryptography.hazmat.primitives.asymmetric import padding
 LIVE = True          # False = log picks only, place nothing
 TRADE_NO = True      # set False to keep old YES-only behavior
 MAX_ORDERS = 5
-CONTRACTS = 1
+BET_DOLLARS = 1      # $ per bet. THE sizing knob: 1 = ~1 contract now;
+                     # 20 = ~$20 per bet later. Change ONLY after 100+
+                     # settled bets show positive P&L.
+MAX_RUN_DOLLARS = 10  # hard ceiling on total $ placed in one run
 MIN_COST, MAX_COST = 3, 70   # cents you pay per contract, either side
-MAX_PER_CITY_DAY = 2         # max positions per city per market day
+MAX_PER_CITY_DAY = 1         # ONE position per city per day: two YES
+                             # brackets of the same city can't both win
 SANITY_GAP = 40              # skip if model% vs implied price gap > this
 MAINT_START, MAINT_END = (6, 45), (8, 15)  # UTC window to skip (Kalshi 503s)
 BASE = "https://api.elections.kalshi.com"
@@ -260,8 +264,19 @@ def main():
             w.writerow(["placed_utc", "ticker", "subtitle", "side",
                         "count", "limit_cents", "model_pct", "edge",
                         "live", "status", "order_id"])
+        run_spent = 0.0
         for edge, cost, side, r in picks:
             cost = int(cost)
+            # dollar sizing: how many contracts BET_DOLLARS buys at this
+            # price (min 1). Hard ceiling on total $ placed per run.
+            count = max(1, int(BET_DOLLARS * 100) // cost)
+            bet_cost = count * cost / 100
+            if run_spent + bet_cost > MAX_RUN_DOLLARS:
+                print(f"SKIP {r['market']} {side}: run spend cap "
+                      f"(${run_spent:.2f} + ${bet_cost:.2f} > "
+                      f"${MAX_RUN_DOLLARS})")
+                continue
+            run_spent += bet_cost
             # single YES book: buy YES = bid at cost;
             # buy NO at cost = ask (short YES) at 100 - cost
             book_side = "bid" if side == "YES" else "ask"
@@ -271,7 +286,7 @@ def main():
                 body = {"ticker": r["market"],
                         "client_order_id": str(uuid.uuid4()),
                         "side": book_side,
-                        "count": f"{CONTRACTS:.2f}",
+                        "count": f"{count:.2f}",
                         "price": f"{book_price / 100:.4f}",
                         "time_in_force": "good_till_canceled",
                         "self_trade_prevention_type": "taker_at_cross"}
@@ -285,10 +300,10 @@ def main():
                     status = f"ERROR {e.code} {e.read().decode()[:150]}"
                 except Exception as e:
                     status = f"ERROR {e}"
-            print(f"{r['city']} {r['subtitle']} {side} @{cost}c "
-                  f"(edge {edge:+.1f}) -> {status}")
+            print(f"{r['city']} {r['subtitle']} {side} x{count} @{cost}c "
+                  f"(${bet_cost:.2f}, edge {edge:+.1f}) -> {status}")
             w.writerow([stamp, r["market"], r["subtitle"], side.lower(),
-                        CONTRACTS, cost, r["model_prob_pct"],
+                        count, cost, r["model_prob_pct"],
                         edge, LIVE, status, oid])
     print("Balance after:", balance())
 
