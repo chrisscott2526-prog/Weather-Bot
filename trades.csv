@@ -299,3 +299,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-07-27T04:51:29+00:00,KXHIGHTDC-26JUL27-T87,86° or below,yes,4,21,38.7,15.7,True,submitted,9d37f50e-580f-4f03-b40a-aba0c0a02a4a
 2026-07-27T04:51:29+00:00,KXHIGHTDAL-26JUL27-B101.5,101° to 102°,no,1,54,29.0,15.0,True,submitted,80970d57-322a-49c6-8e03-9e2258b628a5
 2026-07-27T04:51:29+00:00,KXHIGHTPHX-26JUL27-B111.5,111° to 112°,no,1,51,32.3,14.7,True,submitted,3a1945ab-a511-461e-bc36-de691781a13b
+2026-07-27T05:28:48+00:00,KXHIGHDEN-26JUL27-B95.5,95° to 96°,no,1,64,22.6,11.4,True,submitted,14c5288c-07a6-44c1-8e40-253267bb8c5b
