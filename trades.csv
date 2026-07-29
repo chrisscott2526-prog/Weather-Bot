@@ -323,3 +323,5 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-07-29T00:08:41+00:00,KXHIGHTPHX-26JUL29-B112.5,112° to 113°,no,1,52,22.6,23.4,True,submitted,1c79eaba-1a40-49b9-9f6e-7bbe6b1b02c0
 2026-07-29T00:08:41+00:00,KXHIGHTOKC-26JUL29-B101.5,101° to 102°,no,1,53,22.6,22.4,True,submitted,42302037-3c90-48a4-a9e7-0bb2f5368c33
 2026-07-29T00:08:41+00:00,KXHIGHTMIN-26JUL29-B91.5,91° to 92°,no,1,69,9.7,19.3,True,submitted,655e5b63-f0cc-4609-ac2f-0f2c2f5bb497
+2026-07-29T01:02:55+00:00,KXHIGHTDAL-26JUL29-B100.5,100° to 101°,no,2,46,35.5,16.5,True,submitted,7fcf2963-f78e-4686-85ff-26dd3d2c5d00
+2026-07-29T01:02:55+00:00,KXHIGHDEN-26JUL29-B92.5,92° to 93°,yes,3,32,45.2,11.2,True,submitted,4cd6fc1b-47ed-4266-9112-fb91398aad3b
