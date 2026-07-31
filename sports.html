@@ -1,0 +1,82 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Daily Card - Sports Edges</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--felt:#14532d;--felt2:#0e3d21;--paper:#fbf8f1;--ink:#1d2733;
+--dim:#6b7280;--gold:#b8860b;--red:#b3392f;--line:#d8d2c4}
+body{background:#e9e4d8;color:var(--ink);
+font:16px/1.5 "Inter",-apple-system,system-ui,sans-serif}
+.wrap{max-width:680px;margin:0 auto;padding:0 14px 60px}
+header{background:linear-gradient(180deg,var(--felt),var(--felt2));
+color:#f3efe4;padding:26px 18px 20px;border-bottom:6px double var(--gold)}
+header .inner{max-width:680px;margin:0 auto}
+h1{font:700 34px/1 "Barlow Condensed",Impact,sans-serif;
+letter-spacing:.04em;text-transform:uppercase}
+h1 span{color:#e8c766}
+.rec{display:flex;gap:22px;margin-top:12px;font-size:14px}
+.rec b{font:600 22px/1 "Barlow Condensed",sans-serif;display:block}
+.upd{margin-top:8px;font-size:12px;opacity:.75}
+h2{font:600 15px/1 "Barlow Condensed",sans-serif;letter-spacing:.18em;
+text-transform:uppercase;color:var(--dim);margin:28px 2px 12px}
+.slip{background:var(--paper);border:1px solid var(--line);border-radius:6px;
+margin-bottom:16px;position:relative;overflow:hidden;
+box-shadow:0 1px 3px rgba(29,39,51,.12)}
+.slip::before{content:"";position:absolute;top:0;bottom:0;left:52px;
+border-left:2px dashed var(--line)}
+.punch{position:absolute;left:18px;top:50%;width:16px;height:16px;
+transform:translateY(-50%);border-radius:50%;background:#e9e4d8;
+border:1px solid var(--line)}
+.slipbody{padding:16px 16px 14px 72px}
+.tag{display:inline-block;font:600 12px/1 "Barlow Condensed",sans-serif;
+letter-spacing:.14em;background:var(--ink);color:#fff;
+padding:4px 8px;border-radius:3px;margin-right:8px}
+.when{font-size:12px;color:var(--dim)}
+.match{font:600 21px/1.25 "Barlow Condensed",sans-serif;margin:8px 0 2px}
+.pick{font-size:15px;margin:6px 0}
+.pick b{color:var(--felt)}
+.nums{display:flex;gap:18px;font-size:13px;color:var(--dim);
+margin:8px 0 10px;font-variant-numeric:tabular-nums}
+.nums b{color:var(--ink)}
+.why{font-size:14px;border-top:1px solid var(--line);padding-top:10px}
+.stamp{position:absolute;right:12px;top:12px;
+font:700 15px/1 "Barlow Condensed",sans-serif;letter-spacing:.1em;
+border:2.5px solid;border-radius:4px;padding:6px 9px;
+transform:rotate(6deg);text-transform:uppercase}
+.stamp.edge{color:var(--felt);border-color:var(--felt)}
+.stamp.best{color:var(--gold);border-color:var(--gold)}
+.empty{background:var(--paper);border:1px dashed var(--line);border-radius:6px;
+padding:26px 20px;text-align:center;color:var(--dim);font-size:15px}
+.empty b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;background:var(--paper);
+border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:13px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line)}
+th{font:600 12px/1 "Barlow Condensed",sans-serif;letter-spacing:.12em;
+text-transform:uppercase;color:var(--dim)}
+tr:last-child td{border-bottom:none}
+.W{color:var(--felt);font-weight:600}.L{color:var(--red);font-weight:600}
+.foot{margin-top:26px;font-size:12.5px;color:var(--dim);line-height:1.6}
+@media (prefers-reduced-motion:no-preference){
+.slip{transition:transform .12s}.slip:hover{transform:translateY(-2px)}}
+</style></head><body>
+<header><div class="inner">
+<h1>The Daily <span>Card</span></h1>
+<div class="rec"><div><b>0-0</b>record</div>
+<div><b>+0.00</b>P&L ($1 slips)</div>
+<div><b>0</b>plays today</div></div>
+<div class="upd">Scanned Fri Jul 31, 07:18 UTC - picks are suggestions, you place the bets.
+</div>
+</div></header>
+<div class="wrap">
+<h2>Today's plays</h2>
+<div class='empty'><b>No edges on today's board.</b><br>The books and the Kalshi crowd agree on every game we can match. When there's nothing mispriced, the best bet is no bet - the card refreshes at the next scan.</div>
+
+<div class="foot"><b>How to read a slip:</b> "Books say" is the de-vigged
+consensus win probability from US sportsbooks (the sharpest public forecast
+that exists). "Net edge" is that probability minus Kalshi's price minus
+Kalshi's trading fee - the estimated profit per $1 contract if the books are
+right. Slips under +2c never make the card. Every evaluated
+game is logged to sports_picks.csv, shown or not, and every shown play is
+graded against final scores in sports_results.csv.</div>
+</div></body></html>
