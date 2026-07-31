@@ -362,3 +362,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-07-31T04:38:39+00:00,KXHIGHTDC-26JUL31-B88.5,88° to 89°,no,1,60,19.4,18.6,True,submitted,ef513fa7-5f8b-4bf8-85c7-c18fd36d4471
 2026-07-31T04:38:39+00:00,KXHIGHTOKC-26JUL31-T105,106° or above,no,1,67,16.1,14.9,True,submitted,dfeab406-3c69-4a2a-920a-0fbaaf402702
 2026-07-31T04:38:39+00:00,KXHIGHCHI-26JUL31-B82.5,82° to 83°,no,1,66,19.4,12.6,True,submitted,a281b41c-1af1-4c19-90be-3022add43b39
+2026-07-31T08:18:33+00:00,KXHIGHDEN-26JUL31-B91.5,91° to 92°,no,1,63,6.5,28.5,True,submitted,c110815c-54c9-4032-a03f-c3cf3f2a9e8f
