@@ -381,3 +381,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-01T04:58:41+00:00,KXHIGHAUS-26AUG01-B98.5,98° to 99°,no,1,60,25.8,12.2,True,submitted,abcadd37-e390-4f08-95c8-658e0e21ee43
 2026-08-01T04:58:41+00:00,KXHIGHTSFO-26AUG01-B73.5,73° to 74°,no,1,70,16.1,11.9,True,submitted,d3a737f7-8573-4b26-be28-a4a5056f4536
 2026-08-01T04:58:41+00:00,KXHIGHTSEA-26AUG01-B72.5,72° to 73°,no,1,58,29.0,11.0,True,submitted,dc71c859-305d-4eb1-90e6-aff58ba89c95
+2026-08-01T22:10:27+00:00,KXHIGHTLV-26AUG01-B116.5,116° to 117°,no,1,58,29.0,11.0,True,submitted,b400dc26-3dfa-4be0-921c-6d9c4ad127fa
