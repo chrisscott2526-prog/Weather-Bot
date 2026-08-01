@@ -190,23 +190,45 @@ def fetch_kalshi_sports():
     return mkts
 
 
+def team_keys(team):
+    """'San Diego Padres' -> {'padres', 'san diego'}: nickname + city."""
+    words = re.sub(r"[^a-z0-9 ]", "", (team or "").lower()).split()
+    if not words:
+        return set()
+    keys = {words[-1]}
+    if len(words) > 1:
+        keys.add(" ".join(words[:-1]))
+    return keys
+
+
 def match_market(game, mkts):
-    """Find the Kalshi market for this game and which team YES means."""
-    h, a = nickname(game["home"]), nickname(game["away"])
+    """Find the Kalshi market for this game and which team YES means.
+    Strong match: both teams named in the market text. Fallback: only
+    one team named, but that team is the YES subtitle."""
+    hk, ak = team_keys(game["home"]), team_keys(game["away"])
+    fallback = None
     for m in mkts:
-        if h in m["text"] and a in m["text"]:
-            if h in m["yes_hint"] and a not in m["yes_hint"]:
+        h_hit = any(k in m["text"] for k in hk)
+        a_hit = any(k in m["text"] for k in ak)
+        if h_hit and a_hit:
+            if any(k in m["yes_hint"] for k in hk) and \
+               not any(k in m["yes_hint"] for k in ak):
                 return m, game["home"]
-            if a in m["yes_hint"] and h not in m["yes_hint"]:
+            if any(k in m["yes_hint"] for k in ak) and \
+               not any(k in m["yes_hint"] for k in hk):
                 return m, game["away"]
             mm = re.search(r"will the ([a-z0-9 .]+?) (beat|win)", m["text"])
             if mm:
-                who = nickname(mm.group(1))
-                if who == h:
+                who = team_keys(mm.group(1))
+                if who & hk:
                     return m, game["home"]
-                if who == a:
+                if who & ak:
                     return m, game["away"]
-    return None, None
+        elif h_hit and any(k in m["yes_hint"] for k in hk):
+            fallback = fallback or (m, game["home"])
+        elif a_hit and any(k in m["yes_hint"] for k in ak):
+            fallback = fallback or (m, game["away"])
+    return fallback if fallback else (None, None)
 
 
 # ---------- 6: grade past picks ----------
@@ -420,6 +442,7 @@ def main():
               "fee_cents", "edge_cents", "n_books", "shown", "why"]
     new = not os.path.exists(PICKS_CSV)
     shown = []
+    matched = 0
     with open(PICKS_CSV, "a", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         if new:
@@ -427,7 +450,9 @@ def main():
         for g in games:
             m, yes_team = match_market(g, mkts)
             if not m:
+                print(f"no market matched: {g['game']}")
                 continue
+            matched += 1
             other = g["away"] if yes_team == g["home"] else g["home"]
             fair_yes = g["fair"][yes_team] * 100
             for action, team, opp, ask, fair in (
@@ -456,7 +481,13 @@ def main():
                 if is_shown:
                     shown.append(row)
     shown.sort(key=lambda r: -float(r["edge_cents"]))
+    print(f"matched {matched} of {len(games)} games to Kalshi markets")
     print(f"{len(shown)} plays make the card")
+    if games and mkts and matched == 0:
+        print("DEBUG - sample Kalshi market texts (first 5):")
+        for m in mkts[:5]:
+            print(f"  ticker={m['ticker']!r} text={m['text'][:120]!r} "
+                  f"yes_hint={m['yes_hint']!r}")
 
     all_picks = list(csv.DictReader(open(PICKS_CSV))) \
         if os.path.exists(PICKS_CSV) else []
@@ -472,3 +503,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+ 
