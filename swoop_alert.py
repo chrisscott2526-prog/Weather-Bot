@@ -234,7 +234,8 @@ def main():
             if not cursor:
                 break
         def qty_of(p):
-            for f in ("position", "quantity", "contracts", "total_position"):
+            for f in ("position_fp", "position", "quantity", "contracts",
+                      "total_position"):
                 try:
                     v = float(p.get(f) or 0)
                 except (TypeError, ValueError):
@@ -257,7 +258,8 @@ def main():
         if "KXHIGH" not in tick or today_code not in tick:
             continue
         side = "yes"
-        for f in ("position", "quantity", "contracts", "total_position"):
+        for f in ("position_fp", "position", "quantity", "contracts",
+                  "total_position"):
             try:
                 v = float(p.get(f) or 0)
             except (TypeError, ValueError):
@@ -313,4 +315,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
