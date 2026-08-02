@@ -233,10 +233,20 @@ def main():
             cursor = resp.get("cursor") or ""
             if not cursor:
                 break
-        positions = [p for p in raw
-                     if p.get("ticker") and float(p.get("position") or 0) != 0]
+        def qty_of(p):
+            for f in ("position", "quantity", "contracts", "total_position"):
+                try:
+                    v = float(p.get(f) or 0)
+                except (TypeError, ValueError):
+                    v = 0
+                if v != 0:
+                    return v
+            return 0.0
+        positions = [p for p in raw if p.get("ticker") and qty_of(p) != 0]
         print(f"positions API: {len(raw)} rows total, "
               f"{len(positions)} currently open")
+        if raw and not positions:
+            print("DEBUG sample row:", json.dumps(raw[0])[:400])
     except Exception as e:
         positions, note = [], f"Positions unavailable this pass ({e})."
     print(f"{len(positions)} open positions")
@@ -246,7 +256,15 @@ def main():
         tick = p["ticker"]
         if "KXHIGH" not in tick or today_code not in tick:
             continue
-        side = "yes" if float(p.get("position") or 0) > 0 else "no"
+        side = "yes"
+        for f in ("position", "quantity", "contracts", "total_position"):
+            try:
+                v = float(p.get(f) or 0)
+            except (TypeError, ValueError):
+                v = 0
+            if v != 0:
+                side = "yes" if v > 0 else "no"
+                break
         try:
             m = ksigned(f"/trade-api/v2/markets/{tick}").get("market", {})
         except Exception as e:
@@ -295,3 +313,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
