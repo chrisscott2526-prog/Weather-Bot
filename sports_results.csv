@@ -4,3 +4,15 @@ graded_utc,sport,game,commence_utc,ticker,action,pick_team,ask_cents,edge_cents,
 2026-08-02T15:54:31+00:00,MLB,Texas Rangers @ Houston Astros,2026-08-01T23:11:00+00:00,KXNCAAFGAME-26SEP18HOUTTU-TTU,NO,Houston Astros,22.0,23.0,Houston Astros,LOSS,-0.24
 2026-08-02T15:54:31+00:00,MLB,Milwaukee Brewers @ Los Angeles Angels,2026-08-02T01:39:00+00:00,KXMLBF3-26AUG021515MILLAA-MIL,YES,Milwaukee Brewers,51.0,4.9,Milwaukee Brewers,WIN,0.47
 2026-08-02T15:54:31+00:00,MLB,Detroit Tigers @ Athletics,2026-08-02T01:41:00+00:00,KXNBAFIRSTOPPONENT-26BOS-DET,YES,Detroit Tigers,19.0,41.0,Detroit Tigers,WIN,0.79
+2026-08-02T22:50:40+00:00,MLB,Chicago White Sox @ Tampa Bay Rays,2026-08-02T17:41:00+00:00,KXMLBALEAST-26-TB,YES,Tampa Bay Rays,51.0,4.4,Chicago White Sox,LOSS,-0.53
+2026-08-02T22:50:40+00:00,MLB,Miami Marlins @ New York Mets,2026-08-02T17:41:00+00:00,KXMLBF5-26AUG011610MIANYM-NYM,YES,New York Mets,12.0,35.6,Miami Marlins,LOSS,-0.13
+2026-08-02T22:50:40+00:00,MLB,Philadelphia Phillies @ Baltimore Orioles,2026-08-02T17:36:00+00:00,KXMLBF3-26AUG021335PHIBAL-PHI,YES,Philadelphia Phillies,37.0,15.8,Philadelphia Phillies,WIN,0.61
+2026-08-02T22:50:40+00:00,MLB,Texas Rangers @ Houston Astros,2026-08-02T18:11:00+00:00,KXNCAAFGAME-26SEP18HOUTTU-TTU,NO,Houston Astros,22.0,29.5,Houston Astros,LOSS,-0.24
+2026-08-02T22:50:40+00:00,MLB,Washington Nationals @ Atlanta Braves,2026-08-02T17:36:00+00:00,KXMLBF3-26AUG021335WSHATL-WSH,YES,Washington Nationals,39.0,5.9,Atlanta Braves,LOSS,-0.41
+2026-08-02T22:50:40+00:00,MLB,St. Louis Cardinals @ Toronto Blue Jays,2026-08-02T17:38:00+00:00,KXBBALLTEAMUSA-28-JTATUM0,NO,St. Louis Cardinals,24.0,19.3,St. Louis Cardinals,LOSS,-0.26
+2026-08-02T22:50:40+00:00,MLB,Arizona Diamondbacks @ Cleveland Guardians,2026-08-02T17:41:00+00:00,KXMLBF3-26AUG021340AZCLE-CLE,YES,Cleveland Guardians,45.0,14.2,Cleveland Guardians,WIN,0.53
+2026-08-02T22:50:40+00:00,MLB,Chicago White Sox @ Tampa Bay Rays,2026-08-02T17:41:00+00:00,KXMLBSPREAD-26AUG021340CWSTB-TB4,YES,Tampa Bay Rays,21.0,34.3,Chicago White Sox,LOSS,-0.23
+2026-08-02T22:50:40+00:00,MLB,Pittsburgh Pirates @ Cincinnati Reds,2026-08-02T17:41:00+00:00,KXMLBF3-26AUG021340PITCIN-PIT,YES,Pittsburgh Pirates,30.0,12.0,Cincinnati Reds,LOSS,-0.32
+2026-08-02T22:50:40+00:00,MLB,Miami Marlins @ New York Mets,2026-08-02T17:41:00+00:00,KXMLBF3-26AUG021340MIANYM-NYM,YES,New York Mets,36.0,9.4,Miami Marlins,LOSS,-0.38
+2026-08-02T22:50:40+00:00,MLB,Texas Rangers @ Houston Astros,2026-08-02T18:11:00+00:00,KXMLBF3-26AUG021410TEXHOU-TEX,YES,Texas Rangers,37.0,5.5,Houston Astros,LOSS,-0.39
+2026-08-02T22:50:40+00:00,MLB,New York Yankees @ Chicago Cubs,2026-08-02T18:21:00+00:00,KXMLBF3-26AUG021420NYYCHC-NYY,YES,New York Yankees,39.0,11.6,New York Yankees,WIN,0.59
