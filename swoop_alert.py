@@ -222,9 +222,21 @@ def main():
     print(f"observed highs for {len(highs)} cities")
 
     try:
-        pos = ksigned("/trade-api/v2/portfolio/positions?limit=200")
-        positions = [p for p in pos.get("market_positions", [])
+        raw = []
+        cursor = ""
+        for _ in range(25):                     # turn every page
+            path = "/trade-api/v2/portfolio/positions?limit=200"
+            if cursor:
+                path += f"&cursor={cursor}"
+            resp = ksigned(path)
+            raw += resp.get("market_positions", [])
+            cursor = resp.get("cursor") or ""
+            if not cursor:
+                break
+        positions = [p for p in raw
                      if p.get("ticker") and float(p.get("position") or 0) != 0]
+        print(f"positions API: {len(raw)} rows total, "
+              f"{len(positions)} currently open")
     except Exception as e:
         positions, note = [], f"Positions unavailable this pass ({e})."
     print(f"{len(positions)} open positions")
