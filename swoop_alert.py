@@ -34,6 +34,9 @@ PAGE = "swoop.html"
 LOG = "swoop_log.csv"
 SWOOP_MAX_ASK = 80    # don't flag chases above this (cents)
 LOCK_MAX_ASK = 95     # locked-win flag only if price still below this
+SWOOP_EARLIEST_UTC = 20   # no gold tags before ~4pm ET / 1pm PT --
+                          # a morning reading inside a bracket means
+                          # nothing; the day is still heating.
 
 
 def load_key():
@@ -215,8 +218,9 @@ poll. Chase nothing above {SWOOP_MAX_ASK}c; the meat is gone.</div>
 
 
 def main():
-    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    today_code = datetime.now(timezone.utc).strftime("%y%b%d").upper()
+    now = datetime.now(timezone.utc)
+    stamp = now.isoformat(timespec="seconds")
+    today_code = now.strftime("%y%b%d").upper()
     note = ""
     highs = observed_highs()
     print(f"observed highs for {len(highs)} cities")
@@ -285,8 +289,14 @@ def main():
         my_price = yes_ask if side == "yes" else (100 - yes_ask if yes_ask else 0)
         flag = status
         if status == "ON TRACK" and side == "yes" and 0 < my_price <= SWOOP_MAX_ASK:
-            flag, gnote = "SWOOP", (gnote + " Market still under "
-                                    f"{SWOOP_MAX_ASK}c — this is the swoop window.")
+            if now.hour >= SWOOP_EARLIEST_UTC:
+                flag, gnote = "SWOOP", (gnote + " Market still under "
+                                        f"{SWOOP_MAX_ASK}c — this is the "
+                                        "swoop window.")
+            else:
+                gnote += (" TOO EARLY to swoop — the day is still heating "
+                          "and can climb past this bracket. Check the "
+                          "afternoon passes.")
         if status == "LOCKED" and 0 < my_price <= LOCK_MAX_ASK:
             gnote += f" Market still pricing it at {my_price:.0f}c."
         bracket = (m.get("yes_sub_title") or m.get("subtitle") or
@@ -315,5 +325,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
