@@ -280,6 +280,8 @@ def main():
     cards, rows = [], []
     for p in positions:
         tick = p["ticker"]
+        print(f"  SEEN {tick}")
+
         if "KXHIGH" not in tick or today_code not in tick:
             continue
         side = "yes"
