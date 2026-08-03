@@ -33,6 +33,8 @@ KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
 PAGE = "swoop.html"
 LOG = "swoop_log.csv"
 SWOOP_MAX_ASK = 80    # don't flag chases above this (cents)
+SWOOP_MIN_ASK = 8     # below this the market says it already lost
+
 LOCK_MAX_ASK = 95     # locked-win flag only if price still below this
 SWOOP_EARLIEST_UTC = 20   # no gold tags before ~4pm ET / 1pm PT --
                           # a morning reading inside a bracket means
@@ -312,7 +314,8 @@ def main():
             yes_ask = 0
         my_price = yes_ask if side == "yes" else (100 - yes_ask if yes_ask else 0)
         flag = status
-        if status == "ON TRACK" and side == "yes" and 0 < my_price <= SWOOP_MAX_ASK:
+        if status == "ON TRACK" and side == "yes" and SWOOP_MIN_ASK <= my_price <= SWOOP_MAX_ASK:
+
             if now.hour >= SWOOP_EARLIEST_UTC:
                 flag, gnote = "SWOOP", (gnote + " Market still under "
                                         f"{SWOOP_MAX_ASK}c — this is the "
