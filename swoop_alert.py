@@ -296,10 +296,10 @@ def main():
             print(f"{tick}: market fetch failed ({e})")
             continue
         city = match_city(m.get("title", ""))
-        if not city or city not in highs:
+        if not city or city not in highs: 
             continue
         obs = highs[city]
-                lo, hi = m.get("floor_strike"), m.get("cap_strike")
+        lo, hi = m.get("floor_strike"), m.get("cap_strike")
         sub = m.get("yes_sub_title") or m.get("subtitle") or ""
         if lo in (None, "") and hi in (None, ""):
             lo, hi = parse_bracket(sub)
