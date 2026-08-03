@@ -419,3 +419,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-03T03:53:29+00:00,KXHIGHNY-26AUG03-B80.5,80° to 81°,no,1,63,19.4,15.6,True,submitted,bf534304-b704-4601-ba38-29c0aae810bd
 2026-08-03T03:59:11+00:00,KXHIGHPHIL-26AUG03-T87,88° or above,yes,2,40,51.6,9.6,True,submitted,61f99867-ef2c-4aa7-bc7b-9031d2fb1911
 2026-08-03T04:33:39+00:00,KXHIGHTBOS-26AUG03-B79.5,79° to 80°,no,1,60,19.4,18.6,True,submitted,5e179a8f-9f60-427d-b088-a6d28421a65d
+2026-08-03T18:57:36+00:00,KXHIGHTPHX-26AUG03-B113.5,113° to 114°,no,1,54,12.9,31.1,True,submitted,379b54bb-4fd1-44e9-926e-69d5f7785205
