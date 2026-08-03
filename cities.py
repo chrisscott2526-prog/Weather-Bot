@@ -20,21 +20,22 @@ CITIES = {
     "KXHIGHPHIL": ("Philadelphia",  "KPHL", 39.8683,  -75.2311, False),
     "KXHIGHAUS":  ("Austin",        "KAUS", 30.1945,  -97.6699, False),
     "KXHIGHCHI":  ("Chicago",       "KMDW", 41.7842,  -87.7553, False),
-    # --- the other 13; VERIFY series ticker AND station on Kalshi ---
-    "KXHIGHSF":   ("San Francisco", "KSFO", 37.6188, -122.3750, False),
-    "KXHIGHPHX":  ("Phoenix",       "KPHX", 33.4278, -112.0038, False),
-    "KXHIGHDC":   ("Washington DC", "KDCA", 38.8512,  -77.0402, False),
-    "KXHIGHATL":  ("Atlanta",       "KATL", 33.6301,  -84.4418, False),
-    "KXHIGHDFW":  ("Dallas",        "KDFW", 32.8998,  -97.0403, False),
-    "KXHIGHSEA":  ("Seattle",       "KSEA", 47.4444, -122.3139, False),
-    "KXHIGHLV":   ("Las Vegas",     "KLAS", 36.0719, -115.1634, False),
-    "KXHIGHOKC":  ("Oklahoma City", "KOKC", 35.3889,  -97.6006, False),
-    "KXHIGHBOS":  ("Boston",        "KBOS", 42.3606,  -71.0097, False),
-    "KXHIGHMSP":  ("Minneapolis",   "KMSP", 44.8848,  -93.2223, False),
-    "KXHIGHSAT":  ("San Antonio",   "KSAT", 29.5443,  -98.4839, False),
-    "KXHIGHMSY":  ("New Orleans",   "KMSY", 29.9934,  -90.2509, False),
-    "KXHIGHHOU":  ("Houston",       "KHOU", 29.6375,  -95.2825, False),
+    # --- the other 13; series tickers corrected from trades.csv Aug 3 ---
+    "KXHIGHTSFO": ("San Francisco", "KSFO", 37.6188, -122.3750, False),
+    "KXHIGHTPHX": ("Phoenix",       "KPHX", 33.4278, -112.0038, False),
+    "KXHIGHTDC":  ("Washington DC", "KDCA", 38.8512,  -77.0402, False),
+    "KXHIGHTATL": ("Atlanta",       "KATL", 33.6301,  -84.4418, False),
+    "KXHIGHTDAL": ("Dallas",        "KDFW", 32.8998,  -97.0403, False),
+    "KXHIGHTSEA": ("Seattle",       "KSEA", 47.4444, -122.3139, False),
+    "KXHIGHTLV":  ("Las Vegas",     "KLAS", 36.0719, -115.1634, False),
+    "KXHIGHTOKC": ("Oklahoma City", "KOKC", 35.3889,  -97.6006, False),
+    "KXHIGHTBOS": ("Boston",        "KBOS", 42.3606,  -71.0097, False),
+    "KXHIGHTMIN": ("Minneapolis",   "KMSP", 44.8848,  -93.2223, False),
+    "KXHIGHTSATX":("San Antonio",   "KSAT", 29.5443,  -98.4839, False),
+    "KXHIGHTNOLA":("New Orleans",   "KMSY", 29.9934,  -90.2509, False),
+    "KXHIGHTHOU": ("Houston",       "KHOU", 29.6375,  -95.2825, False),
 }
+
 
 SERIES_TO_CITY = {k: v[0] for k, v in CITIES.items()}
 CITY_TO_STATION = {v[0]: v[1] for v in CITIES.values()}
