@@ -171,6 +171,10 @@ def fetch_kalshi_sports():
                if any(h in (s.get("ticker", "") + s.get("title", "")).upper()
                       for h in hints)]
     print(f"kalshi: {len(series)} sports series, {len(tickers)} game-like")
+        for s in series:
+        if s.get("ticker", "") in tickers:
+            print(f"  SERIES {s.get('ticker','')}: {s.get('title','')}")
+
     mkts = []
     for st in tickers:
         try:
