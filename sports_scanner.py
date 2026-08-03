@@ -61,7 +61,11 @@ MONEYLINE_SERIES = {
 SHOW_EDGE = 2.0        # cents of net edge required to appear on the card
 STRONG_EDGE = 4.0      # cents -> gets the BEST PLAY stamp treatment
 MAX_EDGE = 15.0        # SANITY CAP. Bigger than this = something is wrong.
-                       # Logged with shown=0 and a loud warning, never shown.
+COMBO_MIN_LEG_EDGE = 5.0   # books% - kalshi% needed to qualify as combo leg
+COMBO_HAIRCUT = 0.03       # Kalshi shaves ~2-3%/leg on combos (measured Aug 3)
+COMBO_MAX_LEGS = 4
+COMBO_MAX_TRUE = 60.0      # legs above this books% add little payout; skip
+                     # Logged with shown=0 and a loud warning, never shown.
 MIN_BOOKS = 3          # need at least this many books in consensus
 MAX_HOURS_OUT = 30     # only games starting within this window
 MIN_ASK, MAX_ASK = 10, 90   # ignore extreme moneylines
@@ -320,6 +324,41 @@ def grade(picks_rows):
                 w.writerow(g)
     return graded
 
+# ---------- 6.5: combo legs ----------
+def combo_legs(rows):
+    """Rows where books beat Kalshi's price by COMBO_MIN_LEG_EDGE+ points.
+    One leg per game (best side). Raw gap, not fee-adjusted edge."""
+    best_by_game = {}
+    for r in rows:
+        try:
+            fair = float(r["fair_pct"])
+            ask = float(r["ask_cents"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        gap = fair - ask
+        if gap < COMBO_MIN_LEG_EDGE or fair > COMBO_MAX_TRUE + 20:
+            continue
+        g = r["game"]
+        if g not in best_by_game or gap > best_by_game[g]["gap"]:
+            best_by_game[g] = {**r, "gap": round(gap, 1)}
+    legs = sorted(best_by_game.values(), key=lambda r: -r["gap"])
+    return legs
+
+def combo_math(legs):
+    """True hit prob and approx Kalshi quote for the top 2..N legs."""
+    out = []
+    for n in range(2, min(COMBO_MAX_LEGS, len(legs)) + 1):
+        pick = legs[:n]
+        p_true, p_k = 1.0, 1.0
+        for l in pick:
+            p_true *= float(l["fair_pct"]) / 100.0
+            p_k *= float(l["ask_cents"]) / 100.0 / (1 - COMBO_HAIRCUT)
+        x = (1 / p_k) if p_k else 0
+        out.append({"n": n, "teams": [l["pick_team"] for l in pick],
+                    "true_pct": round(p_true * 100, 1),
+                    "ten_pays": round(10 * x, 2),
+                    "ev": round(p_true * x, 2)})
+    return out
 
 # ---------- 7: the dashboard ----------
 CSS = """
@@ -381,7 +420,7 @@ tr:last-child td{border-bottom:none}
 .slip{transition:transform .12s}.slip:hover{transform:translateY(-2px)}}
 """
 
-def build_page(shown, results, note):
+def build_page(shown, results, note, all_rows):
     now = datetime.now(timezone.utc).strftime("%a %b %d, %H:%M UTC")
     wins = sum(1 for r in results if r["result"] == "WIN")
     losses = sum(1 for r in results if r["result"] == "LOSS")
@@ -422,6 +461,38 @@ on Kalshi at <b>{float(p['ask_cents']):.0f}c</b></div>
                  f"({html.escape(r['action'])})</td>"
                  f"<td class='{r['result'][0]}'>{r['result']}</td>"
                  f"<td>{'+' if float(r['pnl'])>=0 else ''}{float(r['pnl']):.2f}</td></tr>")
+    legs = combo_legs(all_rows)
+    combo = ""
+    if len(legs) >= 2:
+        lines = ""
+        for l in legs:
+            lines += (f"<tr><td>{html.escape(l['pick_team'])}</td>"
+                      f"<td>{html.escape(l['game'])}</td>"
+                      f"<td>{float(l['fair_pct']):.0f}%</td>"
+                      f"<td>{float(l['ask_cents']):.0f}c</td>"
+                      f"<td>+{l['gap']:.1f}</td></tr>")
+        maths = ""
+        for c in combo_math(legs):
+  
+            maths += (f"<tr><td>{c['n']}-leg</td>"
+                      f"<td>{html.escape(' + '.join(c['teams']))}</td>"
+                      f"<td>{c['true_pct']:.0f}%</td>"
+                      f"<td>${c['ten_pays']:.2f}</td>"
+                      f"<td>{c['ev']:.2f}x</td></tr>")
+        combo = (f"<h2>Combo legs (books beat Kalshi by "
+                 f"{COMBO_MIN_LEG_EDGE:.0f}+ pts)</h2><table>"
+                 f"<tr><th>Team</th><th>Game</th><th>Books</th>"
+                 f"<th>Kalshi</th><th>Gap</th></tr>{lines}</table>"
+                 f"<h2>If you combine the top legs</h2><table>"
+                 f"<tr><th>Size</th><th>Legs</th><th>True odds</th>"
+                 f"<th>$10 pays ~</th><th>EV</th></tr>{maths}</table>"
+                 f"<div class='foot'>Build it yourself in Kalshi's COMBO "
+                 f"screen with these exact legs. True odds is the books' "
+                 f"honest chance every leg hits. EV above 1.00x means the "
+                 f"payout beats the odds. Kalshi's quote will differ "
+                 f"slightly. Combos lose most days by design - never bet "
+                 f"more than the fun is worth.</div>")
+     
     hist = (f"<h2>Recent results (graded automatically)</h2><table>"
             f"<tr><th>Sport</th><th>Pick</th><th>Result</th><th>P&L $</th></tr>"
             f"{rows}</table>") if rows else ""
@@ -441,7 +512,14 @@ on Kalshi at <b>{float(p['ask_cents']):.0f}c</b></div>
 <div class="wrap">
 <h2>Today's plays</h2>
 {slips}
+{combo}
 {hist}
+
+
+
+
+
+
 <div class="foot"><b>How to read a slip:</b> "Books say" is the de-vigged
 consensus win probability from US sportsbooks (the sharpest public forecast
 that exists). "Net edge" is that probability minus Kalshi's price minus
@@ -471,6 +549,8 @@ def main():
               "fair_pct", "fee_cents", "edge_cents", "n_books", "shown", "why"]
     new = not os.path.exists(PICKS_CSV)
     shown = []
+    todays_rows = []
+
     matched = 0
     suppressed = 0
     with open(PICKS_CSV, "a", newline="") as f:
@@ -527,6 +607,8 @@ def main():
                        "edge_cents": edge, "n_books": g["n_books"],
                        "shown": "1" if is_shown else "0", "why": why}
                 w.writerow(row)
+                todays_rows.append(row)
+       
                 if is_shown:
                     shown.append(row)
     shown.sort(key=lambda r: -float(r["edge_cents"]))
@@ -549,7 +631,7 @@ def main():
         if os.path.exists(RESULTS_CSV) else []
 
     with open(PAGE, "w") as f:
-        f.write(build_page(shown, results, note))
+        f.write(build_page(shown, results, note, todays_rows))
     print(f"wrote {PAGE}")
 
 
