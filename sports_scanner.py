@@ -1,19 +1,35 @@
-"""Weather-Bot repo: SPORTS EDGE SCANNER (advisor only -- places NO bets).
+"""Weather-Bot repo: SPORTS EDGE SCAN (advisor only -- places NO bets).
+
+Compares sharp sportsbook consensus against Kalshi's FULL-GAME MONEYLINE
+markets and shows the mispriced side, if any.
 
 What it does, every run:
-  1. Pulls moneyline consensus from sharp sportsbooks via The Odds API
-     for MLB, NBA, NFL, NCAA football, NCAA basketball.
+  1. Pulls moneyline consensus from sharp sportsbooks via The Odds API.
   2. De-vigs the books' prices into fair win probabilities.
-  3. Pulls Kalshi's open single-game markets and matches them by team.
+  3. Pulls Kalshi markets from a WHITELIST of full-game moneyline series
+     only -- see MONEYLINE_SERIES below. This is the whole ballgame.
   4. Computes net edge (fair% - Kalshi ask - Kalshi fee) on both sides.
   5. Logs EVERY evaluated pair to sports_picks.csv (full data, always).
   6. Grades yesterday's shown picks against final scores -> sports_results.csv.
   7. Rebuilds sports.html -- the bet-slip dashboard you read before betting.
 
+WHY THE WHITELIST EXISTS (Aug 2 2026 -- do not undo this):
+The old version matched any Kalshi series whose name contained "MLB", "NFL",
+"NCAA" etc. That swept in:
+  KXMLBF3          First 3 Innings Winner      (inning prop, not the game)
+  KXMLBF7          First 7 Innings Winner      (inning prop, not the game)
+  KXMLBSPREAD      run spread                  (not a moneyline)
+  KXNEXTTEAMMLB    which team a player signs with (not a game at all)
+  KXNCAAFCUSAQUAL  Conference USA football      (matched "Houston" = Astros)
+It then compared those prices to full-game win probability and reported
+"edges" of 20-50 cents. Those edges were never real. A true MLB moneyline
+edge is 2-5c and rare. If this card ever shows you 40c again, the matcher
+is broken -- not the market.
+
 Secrets needed: KALSHI_API_KEY_ID, KALSHI_PRIVATE_KEY, ODDS_API_KEY.
 """
 
-import base64, csv, html, json, math, os, re, time, urllib.parse, urllib.request
+import base64, csv, html, json, math, os, re, time, urllib.error, urllib.request
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
 from statistics import median
@@ -28,8 +44,24 @@ SPORTS = {  # Odds API sport key -> label
     "americanfootball_ncaaf": "CFB",
     "basketball_ncaab": "CBB",
 }
+
+# THE WHITELIST. label -> exact Kalshi series tickers that are full-game
+# moneyline markets ("who wins this game"). Nothing else is ever scanned.
+# Confirmed from the live series dump on Aug 2 2026.
+# To add one: run the scan, read the SERIES lines in the log, confirm the
+# title says it's a whole-game winner market, then add the exact ticker.
+MONEYLINE_SERIES = {
+    "MLB": ["KXMLBGAME"],        # "Professional Baseball Game"
+    "NFL": ["KXNFLGAME"],        # "Professional Football Game"
+    "CBB": ["KXNCAAMBGAME"],     # "Men's College Basketball Men's Game"
+    "NBA": [],                   # offseason Aug 2026 -- no game series seen
+    "CFB": [],                   # preseason -- add KXNCAAFGAME when it opens
+}
+
 SHOW_EDGE = 2.0        # cents of net edge required to appear on the card
 STRONG_EDGE = 4.0      # cents -> gets the BEST PLAY stamp treatment
+MAX_EDGE = 15.0        # SANITY CAP. Bigger than this = something is wrong.
+                       # Logged with shown=0 and a loud warning, never shown.
 MIN_BOOKS = 3          # need at least this many books in consensus
 MAX_HOURS_OUT = 30     # only games starting within this window
 MIN_ASK, MAX_ASK = 10, 90   # ignore extreme moneylines
@@ -94,8 +126,9 @@ def fee_cents(price_cents):
     return math.ceil(7 * p * (1 - p))
 
 def nickname(team):
-    """'Atlanta Braves' -> 'braves'; 'St. Louis Cardinals' -> 'cardinals'."""
-    return re.sub(r"[^a-z0-9 ]", "", (team or "").lower()).split()[-1]
+    """'Atlanta Braves' -> 'braves'. Returns '' for empty/odd input."""
+    words = re.sub(r"[^a-z0-9 ]", "", (team or "").lower()).split()
+    return words[-1] if words else ""
 
 def iso(ts):
     try:
@@ -109,6 +142,9 @@ def fetch_consensus():
     """[{sport, game, home, away, commence, fair: {team: prob}, n_books}]"""
     out = []
     for skey, label in SPORTS.items():
+        if not MONEYLINE_SERIES.get(label):
+            print(f"{label}: no moneyline series whitelisted, skipping")
+            continue
         try:
             events = oget(f"/sports/{skey}/odds?regions=us&markets=h2h"
                           f"&oddsFormat=decimal&apiKey={ODDS_KEY}")
@@ -124,6 +160,8 @@ def fetch_consensus():
             if not start or start < now or start > now + timedelta(hours=MAX_HOURS_OUT):
                 continue
             home, away = ev.get("home_team"), ev.get("away_team")
+            if not home or not away:
+                continue
             probs = defaultdict(list)
             for bk in ev.get("bookmakers", []):
                 for mkt in bk.get("markets", []):
@@ -147,51 +185,32 @@ def fetch_consensus():
     return out
 
 
-# ---------- 3: kalshi sports markets ----------
-def fetch_kalshi_sports():
-    """[{ticker, text, yes_ask, no_ask, yes_team_hint}] for open game markets."""
-    series = []
-    cursor = ""
-    for _ in range(10):
-        path = "/trade-api/v2/series/?category=Sports&limit=200"
-        if cursor:
-            path += f"&cursor={cursor}"
-        try:
-            data = ksigned(path)
-        except Exception as e:
-            print(f"kalshi series fetch failed ({e})")
-            break
-        series += data.get("series", [])
-        cursor = data.get("cursor") or ""
-        if not cursor:
-            break
-    hints = ("MLB", "NBA", "NFL", "NCAA", "CFB", "CBB",
-             "BASEBALL", "BASKETBALL", "FOOTBALL", "GAME")
-    tickers = [s["ticker"] for s in series
-               if any(h in (s.get("ticker", "") + s.get("title", "")).upper()
-                      for h in hints)]
-    print(f"kalshi: {len(series)} sports series, {len(tickers)} game-like")
-    for s in series:
-        if s.get("ticker", "") in tickers:
-            print(f"  SERIES {s.get('ticker','')}: {s.get('title','')}")
-
-    mkts = []
-    for st in tickers:
-        try:
-            data = ksigned(f"/trade-api/v2/markets?series_ticker={st}"
-                           f"&status=open&limit=100")
-        except Exception as e:
-            print(f"  {st}: markets fetch failed ({e})")
-            continue
-        for m in data.get("markets", []):
-            text = " ".join(str(m.get(k) or "") for k in
-                            ("title", "subtitle", "yes_sub_title")).lower()
-            mkts.append({"ticker": m.get("ticker", ""), "text": text,
-                         "yes_hint": (m.get("yes_sub_title") or "").lower(),
-                         "yes_ask": cents(m, "yes_ask_dollars"),
-                         "no_ask": cents(m, "no_ask_dollars")})
-    print(f"kalshi: {len(mkts)} open sports markets")
-    return mkts
+# ---------- 3: kalshi moneyline markets (WHITELIST ONLY) ----------
+def fetch_kalshi_moneylines():
+    """{label: [market dicts]} -- only from whitelisted full-game series."""
+    by_sport = {}
+    for label, tickers in MONEYLINE_SERIES.items():
+        mkts = []
+        for st in tickers:
+            try:
+                data = ksigned(f"/trade-api/v2/markets?series_ticker={st}"
+                               f"&status=open&limit=200")
+            except Exception as e:
+                print(f"  {st}: markets fetch failed ({e})")
+                continue
+            for m in data.get("markets", []):
+                text = " ".join(str(m.get(k) or "") for k in
+                                ("title", "subtitle", "yes_sub_title")).lower()
+                mkts.append({"ticker": m.get("ticker", ""), "text": text,
+                             "series": st,
+                             "yes_hint": (m.get("yes_sub_title") or "").lower(),
+                             "yes_ask": cents(m, "yes_ask_dollars"),
+                             "no_ask": cents(m, "no_ask_dollars")})
+        if tickers:
+            print(f"kalshi {label}: {len(mkts)} open moneyline markets "
+                  f"from {tickers}")
+        by_sport[label] = mkts
+    return by_sport
 
 
 def team_keys(team):
@@ -207,32 +226,31 @@ def team_keys(team):
 
 def match_market(game, mkts):
     """Find the Kalshi market for this game and which team YES means.
-    Strong match: both teams named in the market text. Fallback: only
-    one team named, but that team is the YES subtitle."""
+    BOTH teams must be named in the market text. There is deliberately no
+    single-team fallback -- that is what matched Sam Houston State to the
+    Houston Astros. If we cannot confirm both teams, we do not bet."""
     hk, ak = team_keys(game["home"]), team_keys(game["away"])
-    fallback = None
+    if not hk or not ak:
+        return None, None
     for m in mkts:
         h_hit = any(k in m["text"] for k in hk)
         a_hit = any(k in m["text"] for k in ak)
-        if h_hit and a_hit:
-            if any(k in m["yes_hint"] for k in hk) and \
-               not any(k in m["yes_hint"] for k in ak):
+        if not (h_hit and a_hit):
+            continue
+        if any(k in m["yes_hint"] for k in hk) and \
+           not any(k in m["yes_hint"] for k in ak):
+            return m, game["home"]
+        if any(k in m["yes_hint"] for k in ak) and \
+           not any(k in m["yes_hint"] for k in hk):
+            return m, game["away"]
+        mm = re.search(r"will the ([a-z0-9 .]+?) (beat|win)", m["text"])
+        if mm:
+            who = team_keys(mm.group(1))
+            if who & hk:
                 return m, game["home"]
-            if any(k in m["yes_hint"] for k in ak) and \
-               not any(k in m["yes_hint"] for k in hk):
+            if who & ak:
                 return m, game["away"]
-            mm = re.search(r"will the ([a-z0-9 .]+?) (beat|win)", m["text"])
-            if mm:
-                who = team_keys(mm.group(1))
-                if who & hk:
-                    return m, game["home"]
-                if who & ak:
-                    return m, game["away"]
-        elif h_hit and any(k in m["yes_hint"] for k in hk):
-            fallback = fallback or (m, game["home"])
-        elif a_hit and any(k in m["yes_hint"] for k in ak):
-            fallback = fallback or (m, game["away"])
-    return fallback if fallback else (None, None)
+    return None, None
 
 
 # ---------- 6: grade past picks ----------
@@ -255,9 +273,11 @@ def grade(picks_rows):
     if not pending:
         return []
     sports_needed = {r["sport"] for r in pending.values()}
-    winners = {}                    # (sport, frozenset(nicknames)) -> winner team
+    winners = {}                    # (sport, frozenset(nicknames)) -> winner
     label_to_key = {v: k for k, v in SPORTS.items()}
     for label in sports_needed:
+        if label not in label_to_key:
+            continue
         try:
             scores = oget(f"/sports/{label_to_key[label]}/scores?daysFrom=2"
                           f"&apiKey={ODDS_KEY}")
@@ -391,9 +411,10 @@ on Kalshi at <b>{float(p['ask_cents']):.0f}c</b></div>
 </div></div>"""
     if not slips:
         slips = ("<div class='empty'><b>No edges on today's board.</b><br>"
-                 "The books and the Kalshi crowd agree on every game we can "
-                 "match. When there's nothing mispriced, the best bet is no "
-                 "bet - the card refreshes at the next scan.</div>")
+                 "The books and the Kalshi crowd agree on every full-game "
+                 "moneyline we can match. Moneylines are efficient, so this "
+                 "is the normal result. When there's nothing mispriced, the "
+                 "best bet is no bet.</div>")
     rows = ""
     for r in list(reversed(results))[:15]:
         rows += (f"<tr><td>{html.escape(r['sport'])}</td>"
@@ -425,9 +446,13 @@ on Kalshi at <b>{float(p['ask_cents']):.0f}c</b></div>
 consensus win probability from US sportsbooks (the sharpest public forecast
 that exists). "Net edge" is that probability minus Kalshi's price minus
 Kalshi's trading fee - the estimated profit per $1 contract if the books are
-right. Slips under +{SHOW_EDGE:.0f}c never make the card. Every evaluated
-game is logged to sports_picks.csv, shown or not, and every shown play is
-graded against final scores in sports_results.csv.</div>
+right. Only FULL-GAME moneyline markets are scanned; inning props, spreads
+and player-movement markets are excluded on purpose. Slips under
++{SHOW_EDGE:.0f}c never make the card, and anything claiming more than
++{MAX_EDGE:.0f}c is treated as a bug and suppressed. The record above is
+scored at $1 per slip. Every evaluated game is logged to sports_picks.csv,
+shown or not, and every shown play is graded against final scores in
+sports_results.csv.</div>
 </div></body></html>"""
 
 
@@ -437,21 +462,23 @@ def main():
     note = ""
     games = fetch_consensus()
     print(f"books: {len(games)} upcoming games with {MIN_BOOKS}+ book consensus")
-    mkts = fetch_kalshi_sports()
-    if not mkts:
-        note = "Kalshi sports markets unavailable this scan."
+    by_sport = fetch_kalshi_moneylines()
+    if not any(by_sport.values()):
+        note = "Kalshi moneyline markets unavailable this scan."
 
     fields = ["scanned_utc", "sport", "game", "commence_utc", "ticker",
-              "action", "pick_team", "opponent", "ask_cents", "fair_pct",
-              "fee_cents", "edge_cents", "n_books", "shown", "why"]
+              "series", "action", "pick_team", "opponent", "ask_cents",
+              "fair_pct", "fee_cents", "edge_cents", "n_books", "shown", "why"]
     new = not os.path.exists(PICKS_CSV)
     shown = []
     matched = 0
+    suppressed = 0
     with open(PICKS_CSV, "a", newline="") as f:
         w = csv.DictWriter(f, fieldnames=fields)
         if new:
             w.writeheader()
         for g in games:
+            mkts = by_sport.get(g["sport"], [])
             m, yes_team = match_market(g, mkts)
             if not m:
                 print(f"no market matched: {g['game']}")
@@ -466,17 +493,35 @@ def main():
                     continue
                 fee = fee_cents(ask)
                 edge = round(fair - ask - fee, 1)
-                is_shown = edge >= SHOW_EDGE
-                why = (f"{g['n_books']} sportsbooks make {team} "
-                       f"{fair:.0f}% to win this one, but the Kalshi crowd "
-                       f"is only charging {ask:.0f}c. After the {fee:.0f}c "
-                       f"fee that's {edge:+.1f}c of edge per contract - "
-                       f"the books like this side more than the crowd does.")
+                too_big = edge > MAX_EDGE
+                is_shown = (SHOW_EDGE <= edge <= MAX_EDGE)
+                if too_big:
+                    suppressed += 1
+                    print(f"  !! SUPPRESSED {m['ticker']} {action} {team}: "
+                          f"edge {edge:+.1f}c exceeds MAX_EDGE {MAX_EDGE}c. "
+                          f"A real moneyline edge is never this big -- check "
+                          f"the matcher before trusting this.")
+                if edge >= 0:
+                    why = (f"{g['n_books']} sportsbooks make {team} "
+                           f"{fair:.0f}% to win this one, but the Kalshi "
+                           f"crowd is only charging {ask:.0f}c. After the "
+                           f"{fee:.0f}c fee that's {edge:+.1f}c of edge per "
+                           f"contract - the books like this side more than "
+                           f"the crowd does.")
+                else:
+                    why = (f"{g['n_books']} sportsbooks make {team} "
+                           f"{fair:.0f}% to win this one and Kalshi charges "
+                           f"{ask:.0f}c. After the {fee:.0f}c fee that's "
+                           f"{edge:+.1f}c - no edge on this side.")
+                if too_big:
+                    why = ("SUPPRESSED: computed edge is implausibly large "
+                           "for a moneyline, which means the market may be "
+                           "mismatched. Not a play.")
                 row = {"scanned_utc": stamp, "sport": g["sport"],
                        "game": g["game"],
                        "commence_utc": g["commence"].isoformat(),
-                       "ticker": m["ticker"], "action": action,
-                       "pick_team": team, "opponent": opp,
+                       "ticker": m["ticker"], "series": m["series"],
+                       "action": action, "pick_team": team, "opponent": opp,
                        "ask_cents": round(ask, 1),
                        "fair_pct": round(fair, 1), "fee_cents": fee,
                        "edge_cents": edge, "n_books": g["n_books"],
@@ -485,13 +530,16 @@ def main():
                 if is_shown:
                     shown.append(row)
     shown.sort(key=lambda r: -float(r["edge_cents"]))
-    print(f"matched {matched} of {len(games)} games to Kalshi markets")
+    print(f"matched {matched} of {len(games)} games to moneyline markets")
+    if suppressed:
+        print(f"SUPPRESSED {suppressed} implausible edges (>{MAX_EDGE}c)")
     print(f"{len(shown)} plays make the card")
-    if games and mkts and matched == 0:
-        print("DEBUG - sample Kalshi market texts (first 5):")
-        for m in mkts[:5]:
-            print(f"  ticker={m['ticker']!r} text={m['text'][:120]!r} "
-                  f"yes_hint={m['yes_hint']!r}")
+    if games and matched == 0:
+        print("DEBUG - sample market texts from whitelisted series:")
+        for label, mkts in by_sport.items():
+            for m in mkts[:3]:
+                print(f"  [{label}] ticker={m['ticker']!r} "
+                      f"text={m['text'][:110]!r} yes_hint={m['yes_hint']!r}")
 
     all_picks = list(csv.DictReader(open(PICKS_CSV))) \
         if os.path.exists(PICKS_CSV) else []
@@ -507,4 +555,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
  
