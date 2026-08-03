@@ -59,7 +59,7 @@ def ksigned(path):
                    padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
                                salt_length=padding.PSS.DIGEST_LENGTH),
                    hashes.SHA256())
-    req = urllib.request.Request(BASE + path, headers={o
+    req = urllib.request.Request(BASE + path, headers={
         "KALSHI-ACCESS-KEY": KEY_ID,
         "KALSHI-ACCESS-SIGNATURE": base64.b64encode(sig).decode(),
         "KALSHI-ACCESS-TIMESTAMP": ts,
