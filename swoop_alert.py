@@ -299,6 +299,8 @@ def main():
         except Exception as e:
             print(f"{tick}: market fetch failed ({e})")
             continue
+        print(f"    title={m.get('title','')!r} city={match_city(m.get('title',''))!r}")
+ 
         city = match_city(m.get("title", ""))
         if not city or city not in highs: 
             continue
