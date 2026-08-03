@@ -24,7 +24,7 @@ import base64, csv, json, os, re, time, urllib.request, urllib.error, uuid
 from datetime import datetime, timezone
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
-
+from cities import UNVERIFIED
 LIVE = True          # False = log picks only, place nothing
 TRADE_NO = True      # set False to keep old YES-only behavior
 MAX_ORDERS = 5
@@ -36,6 +36,7 @@ MIN_COST, MAX_COST = 15, 70   # cents you pay per contract, either side
 MAX_PER_CITY_DAY = 1         # ONE position per city per day: two YES
                              # brackets of the same city can't both win
 SANITY_GAP = 40              # skip if model% vs implied price gap > this
+SKIP_UNVERIFIED = True
 MAINT_START, MAINT_END = (6, 45), (8, 15)  # UTC window to skip (Kalshi 503s)
 BASE = "https://api.elections.kalshi.com"
 KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
