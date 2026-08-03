@@ -416,3 +416,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-03T01:10:10+00:00,KXHIGHTSFO-26AUG03-T83,84° or above,yes,6,15,35.5,19.5,True,submitted,9de14b80-5219-4a02-bfa3-8df5f7c54dd5
 2026-08-03T01:10:10+00:00,KXHIGHCHI-26AUG03-B80.5,80° to 81°,no,1,53,25.8,19.2,True,submitted,0b156fb2-c5db-47ef-8378-5ff4d6eb87b3
 2026-08-03T01:10:10+00:00,KXHIGHTSATX-26AUG03-B99.5,99° to 100°,no,2,48,32.3,17.7,True,submitted,cacb6249-30c6-49a6-9fd0-ad460c1085cc
+2026-08-03T03:53:29+00:00,KXHIGHNY-26AUG03-B80.5,80° to 81°,no,1,63,19.4,15.6,True,submitted,bf534304-b704-4601-ba38-29c0aae810bd
