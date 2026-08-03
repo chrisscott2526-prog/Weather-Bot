@@ -202,6 +202,17 @@ def main():
     target = max(d for d, _ in dated)
     fresh = [r for d, r in dated if d == target]
 
+        # ---- skip cities whose settlement station isn't verified ----
+    if SKIP_UNVERIFIED:
+        before = len(fresh)
+        blocked = sorted({r.get("city", "") for r in fresh
+                          if r.get("city", "") in UNVERIFIED})
+        fresh = [r for r in fresh if r.get("city", "") not in UNVERIFIED]
+        if blocked:
+            print(f"SKIP_UNVERIFIED: dropped {before - len(fresh)} picks "
+                  f"from unverified cities: {', '.join(blocked)}")
+
+
     # ---- FAIL CLOSED: verify real account exposure before anything ----
     try:
         owned = exposure_tickers()
