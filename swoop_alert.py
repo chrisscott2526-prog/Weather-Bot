@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
-from cities import CITY_TO_STATION
+from cities import CITY_TO_STATION, SERIES_TO_CITY
 
 BASE = "https://api.elections.kalshi.com"
 KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
@@ -105,7 +105,12 @@ def observed_highs():
                     highs[c] = t
     return highs
 
-def match_city(title):
+def match_city(title, ticker=""):
+    """Prefer the ticker's series prefix -- Kalshi omits the city from the
+    title on the newer KXHIGHT* markets. Fall back to the title text."""
+    series = (ticker or "").split("-")[0].upper()
+    if series in SERIES_TO_CITY:
+        return SERIES_TO_CITY[series]
     t = " " + re.sub(r"[^a-z]+", " ", (title or "").lower()) + " "
     for city in CITY_TO_STATION:
         if city.lower() in t:
@@ -117,6 +122,7 @@ def match_city(title):
         if alias in t:
             return city
     return None
+
 
 
 # ---------- grade one position ----------
@@ -299,9 +305,9 @@ def main():
         except Exception as e:
             print(f"{tick}: market fetch failed ({e})")
             continue
-        print(f"    title={m.get('title','')!r} city={match_city(m.get('title',''))!r}")
+        
  
-        city = match_city(m.get("title", ""))
+        city = match_city(m.get("title", ""), tick)
         if not city or city not in highs: 
             continue
         obs = highs[city]
