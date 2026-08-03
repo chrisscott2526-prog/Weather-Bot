@@ -59,7 +59,7 @@ def ksigned(path):
                    padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
                                salt_length=padding.PSS.DIGEST_LENGTH),
                    hashes.SHA256())
-    req = urllib.request.Request(BASE + path, headers={
+    req = urllib.request.Request(BASE + path, headers={o
         "KALSHI-ACCESS-KEY": KEY_ID,
         "KALSHI-ACCESS-SIGNATURE": base64.b64encode(sig).decode(),
         "KALSHI-ACCESS-TIMESTAMP": ts,
@@ -118,40 +118,59 @@ def match_city(title):
 
 
 # ---------- grade one position ----------
+
+def parse_bracket(sub):
+    """Read (lo, hi) from a Kalshi subtitle: '88° to 89°',
+    '98° or below', '99° or above'. (None, None) if unreadable."""
+    s = (sub or "").lower().replace("\u00b0", " ")
+    nums = re.findall(r"-?\d+(?:\.\d+)?", s)
+    if not nums:
+        return None, None
+    if " to " in s and len(nums) >= 2:
+        return float(nums[0]), float(nums[1])
+    if "below" in s or "under" in s or "less" in s:
+        return None, float(nums[0])
+    if "above" in s or "over" in s or "greater" in s or "higher" in s:
+        return float(nums[0]), None
+    return None, None
+
+
 def grade(side, lo, hi, obs):
     """Return (status, note). Daily highs only rise: obs is a floor on
     the final high. lo/hi may be None for tail markets."""
     lo = float(lo) if lo not in (None, "") else None
     hi = float(hi) if hi not in (None, "") else None
-    above = hi is not None and obs > hi + 0.5          # passed the bracket
-    inside = ((lo is None or obs >= lo - 0.5)
-              and (hi is None or obs <= hi + 0.5)
-              and (lo is None or True))
+    if lo is None and hi is None:
+        return "UNKNOWN", ("Bracket could not be read from this market. "
+                           "NOT graded - check weather.gov yourself.")
+    above = hi is not None and obs > hi + 0.5
     below = lo is not None and obs < lo - 0.5
+    inside = not above and not below
     if side == "yes":
         if above:
             return "DEAD", "Thermometer already blew past this bracket."
         if hi is None and lo is not None and obs >= lo - 0.5:
-            return "LOCKED", (f"High already hit {obs:.0f}° — at/above the "
-                              f"{lo:.0f}° line. This YES cannot lose.")
-        if inside and not below:
-            return "ON TRACK", (f"Observed high {obs:.0f}° is inside the "
-                                "bracket. Wins if the heat stops here — "
+            return "LOCKED", (f"High already hit {obs:.0f}\u00b0 - at/above the "
+                              f"{lo:.0f}\u00b0 line. This YES cannot lose.")
+        if inside:
+            return "ON TRACK", (f"Observed high {obs:.0f}\u00b0 is inside the "
+                                "bracket. Wins if the heat stops here - "
                                 "watch for late overshoot.")
         need = (lo - obs) if lo is not None else 0
-        return "NEEDS HEAT", f"Needs about {need:.0f}° more warming to enter."
+        return "NEEDS HEAT", f"Needs about {need:.0f}\u00b0 more warming to enter."
     else:  # no side
         if above:
-            return "LOCKED", (f"High already {obs:.0f}°, past {hi:.0f}°. "
+            return "LOCKED", (f"High already {obs:.0f}\u00b0, past {hi:.0f}\u00b0. "
                               "This NO is mathematically won.")
         if hi is None and lo is not None and obs >= lo - 0.5:
-            return "DEAD", "Threshold already reached — this NO is done."
-        if inside and not below:
-            return "IN DANGER", (f"Observed high {obs:.0f}° is sitting in "
+            return "DEAD", "Threshold already reached - this NO is done."
+        if inside:
+            return "IN DANGER", (f"Observed high {obs:.0f}\u00b0 is sitting in "
                                  "the bracket. NO needs more heat to "
                                  "escape upward.")
-        return "ON TRACK", (f"High {obs:.0f}° is below the bracket. NO wins "
+        return "ON TRACK", (f"High {obs:.0f}\u00b0 is below the bracket. NO wins "
                             "unless the day climbs into it.")
+
 
 
 # ---------- page ----------
