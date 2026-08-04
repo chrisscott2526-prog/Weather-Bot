@@ -3,7 +3,7 @@ Pulls 31-member GFS ensemble highs for tomorrow from Open-Meteo
 for each settlement city, logs all members to forecasts.csv.
 Column forecast_high_f = ensemble median (backward compatible)."""
 
-import csv, json, os, urllib.request
+import csv, json, os, time, urllib.request
 from datetime import datetime, timezone, timedelta
 from calibration import calibrate_members
 from cities import SITES
@@ -12,10 +12,23 @@ from cities import SITES
 OUT = "forecasts.csv"
 UA = {"User-Agent": "weather-bot-personal"}
 
-def get(url):
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=60) as r:
-        return json.load(r)
+def get(url, tries=3):
+    """Retry on transient network failures. Dallas has been timing out on
+    the SSL handshake nightly since ~Aug 1 -- one dropped connection should
+    not cost a whole city's forecast."""
+    last = None
+    for attempt in range(tries):
+        try:
+            req = urllib.request.Request(url, headers=UA)
+            with urllib.request.urlopen(req, timeout=60) as r:
+                return json.load(r)
+        except Exception as e:
+            last = e
+            if attempt < tries - 1:
+                print(f"    retry {attempt + 1}/{tries - 1} after: {e}")
+                time.sleep(3)
+    raise last
+
 
 def ensemble_highs(lat, lon):
     """Return (date_str, [member highs F]) for tomorrow, local to site."""
