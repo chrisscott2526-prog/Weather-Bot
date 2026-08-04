@@ -430,3 +430,8 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-04T00:15:35+00:00,KXHIGHTOKC-26AUG04-B100.5,100° to 101°,no,1,63,6.5,28.5,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
 2026-08-04T00:15:35+00:00,KXHIGHTBOS-26AUG04-B85.5,85° to 86°,no,1,62,9.7,26.3,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
 2026-08-04T00:15:35+00:00,KXHIGHTPHX-26AUG04-B109.5,109° to 110°,no,1,53,19.4,25.6,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
+2026-08-04T01:02:51+00:00,KXHIGHAUS-26AUG04-B99.5,99° to 100°,no,2,46,22.6,29.4,True,submitted,f9fb246c-4376-40a1-abfc-275b894ea3cc
+2026-08-04T01:02:51+00:00,KXHIGHTMIN-26AUG04-T76,75° or below,yes,4,21,51.6,28.6,True,submitted,2bb31349-4509-4315-b70e-fc78f59f82a6
+2026-08-04T01:02:51+00:00,KXHIGHTOKC-26AUG04-B100.5,100° to 101°,no,1,63,6.5,28.5,True,submitted,6bfc9fe0-9f12-49d4-84c9-3e2d6b904f8e
+2026-08-04T01:02:51+00:00,KXHIGHTBOS-26AUG04-B85.5,85° to 86°,no,1,62,9.7,26.3,True,submitted,35a77fa7-d311-49f3-83b3-bdd44c078a20
+2026-08-04T01:02:51+00:00,KXHIGHTPHX-26AUG04-B109.5,109° to 110°,no,1,53,19.4,25.6,True,submitted,8b5f36c4-f709-4dbf-bc41-dbc2a1ad27f8
