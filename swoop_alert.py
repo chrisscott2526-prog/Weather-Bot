@@ -161,9 +161,16 @@ def grade(side, lo, hi, obs):
             return "LOCKED", (f"High already hit {obs:.0f}\u00b0 - at/above the "
                               f"{lo:.0f}\u00b0 line. This YES cannot lose.")
         if inside:
+            if lo is None:
+                return "AT RISK", (f"Observed high {obs:.0f}\u00b0 is under the "
+                                   f"{hi:.0f}\u00b0 cap, but highs only rise - "
+                                   "this can still climb out and die. Never a "
+                                   "swoop; there is no safe side on an "
+                                   "'or below' bracket.")
             return "ON TRACK", (f"Observed high {obs:.0f}\u00b0 is inside the "
                                 "bracket. Wins if the heat stops here - "
                                 "watch for late overshoot.")
+
         need = (lo - obs) if lo is not None else 0
         return "NEEDS HEAT", f"Needs about {need:.0f}\u00b0 more warming to enter."
     else:  # no side
