@@ -13,6 +13,10 @@ text-transform:uppercase;color:#f3b53c;margin-bottom:4px}
 padding:14px 16px;margin-bottom:12px;border-left:5px solid #2a323b}
 .card.LOCKED{border-left-color:#28a06c}.card.SWOOP{border-left-color:#f3b53c}
 .card.ONTRACK{border-left-color:#3f7fbf}.card.INDANGER{border-left-color:#c2542f}
+.card.ATRISK{border-left-color:#c2542f}
+.ATRISK .badge{background:#c2542f}
+
+
 .card.DEAD{border-left-color:#5c6670;opacity:.65}
 .top{display:flex;justify-content:space-between;align-items:baseline}
 .city{font:600 19px/1 "Barlow Condensed",sans-serif}
@@ -29,8 +33,104 @@ border-radius:3px;background:#2a323b}
 </style></head><body><div class="wrap">
 <h1>Swoop Alert</h1>
 <div class="sub">Thermometer vs. market on the bot's open positions —
-checked Wed Aug 05, 00:06 UTC. </div>
-<div class='empty'>No open same-day weather positions to grade right now. The board refreshes each scheduled pass.</div>
+checked Wed Aug 05, 06:22 UTC. </div>
+
+<div class="card INDANGER"><div class="top">
+<span class="city">New Orleans — NO 91° or below</span>
+<span class="badge">IN DANGER</span></div>
+<div class="det">Observed high so far: <b>82°</b> &nbsp;|&nbsp;
+Market now: <b>67c</b> &nbsp;|&nbsp; Your side value rising: <b>NO side</b></div>
+<div class="note">Observed high 82° is sitting in the bracket. NO needs more heat to escape upward.</div></div>
+<div class="card INDANGER"><div class="top">
+<span class="city">Seattle — NO 87° or below</span>
+<span class="badge">IN DANGER</span></div>
+<div class="det">Observed high so far: <b>81°</b> &nbsp;|&nbsp;
+Market now: <b>33c</b> &nbsp;|&nbsp; Your side value rising: <b>NO side</b></div>
+<div class="note">Observed high 81° is sitting in the bracket. NO needs more heat to escape upward.</div></div>
+<div class="card INDANGER"><div class="top">
+<span class="city">Phoenix — NO 107° to 108°</span>
+<span class="badge">IN DANGER</span></div>
+<div class="det">Observed high so far: <b>108°</b> &nbsp;|&nbsp;
+Market now: <b>52c</b> &nbsp;|&nbsp; Your side value rising: <b>NO side</b></div>
+<div class="note">Observed high 108° is sitting in the bracket. NO needs more heat to escape upward.</div></div>
+<div class="card ONTRACK"><div class="top">
+<span class="city">New York City — NO 80° to 81°</span>
+<span class="badge">ON TRACK</span></div>
+<div class="det">Observed high so far: <b>75°</b> &nbsp;|&nbsp;
+Market now: <b>76c</b> &nbsp;|&nbsp; Your side value rising: <b>NO side</b></div>
+<div class="note">High 75° is below the bracket. NO wins unless the day climbs into it.</div></div>
+<div class="card ONTRACK"><div class="top">
+<span class="city">Las Vegas — NO 112° to 113°</span>
+<span class="badge">ON TRACK</span></div>
+<div class="det">Observed high so far: <b>109°</b> &nbsp;|&nbsp;
+Market now: <b>33c</b> &nbsp;|&nbsp; Your side value rising: <b>NO side</b></div>
+<div class="note">High 109° is below the bracket. NO wins unless the day climbs into it.</div></div>
+<div class="card ONTRACK"><div class="top">
+<span class="city">Dallas — NO 101° to 102°</span>
+<span class="badge">ON TRACK</span></div>
+<div class="det">Observed high so far: <b>97°</b> &nbsp;|&nbsp;
+Market now: <b>43c</b> &nbsp;|&nbsp; Your side value rising: <b>NO side</b></div>
+<div class="note">High 97° is below the bracket. NO wins unless the day climbs into it.</div></div>
+<div class="card ONTRACK"><div class="top">
+<span class="city">Houston — NO 96° to 97°</span>
+<span class="badge">ON TRACK</span></div>
+<div class="det">Observed high so far: <b>90°</b> &nbsp;|&nbsp;
+Market now: <b>45c</b> &nbsp;|&nbsp; Your side value rising: <b>NO side</b></div>
+<div class="note">High 90° is below the bracket. NO wins unless the day climbs into it.</div></div>
+<div class="card ONTRACK"><div class="top">
+<span class="city">Boston — NO 87° to 88°</span>
+<span class="badge">ON TRACK</span></div>
+<div class="det">Observed high so far: <b>79°</b> &nbsp;|&nbsp;
+Market now: <b>67c</b> &nbsp;|&nbsp; Your side value rising: <b>NO side</b></div>
+<div class="note">High 79° is below the bracket. NO wins unless the day climbs into it.</div></div>
+<div class="card ONTRACK"><div class="top">
+<span class="city">San Antonio — NO 97° to 98°</span>
+<span class="badge">ON TRACK</span></div>
+<div class="det">Observed high so far: <b>91°</b> &nbsp;|&nbsp;
+Market now: <b>46c</b> &nbsp;|&nbsp; Your side value rising: <b>NO side</b></div>
+<div class="note">High 91° is below the bracket. NO wins unless the day climbs into it.</div></div>
+<div class="card ONTRACK"><div class="top">
+<span class="city">Atlanta — NO 86° to 87°</span>
+<span class="badge">ON TRACK</span></div>
+<div class="det">Observed high so far: <b>81°</b> &nbsp;|&nbsp;
+Market now: <b>59c</b> &nbsp;|&nbsp; Your side value rising: <b>NO side</b></div>
+<div class="note">High 81° is below the bracket. NO wins unless the day climbs into it.</div></div>
+<div class="card ONTRACK"><div class="top">
+<span class="city">Oklahoma City — NO 101° to 102°</span>
+<span class="badge">ON TRACK</span></div>
+<div class="det">Observed high so far: <b>97°</b> &nbsp;|&nbsp;
+Market now: <b>38c</b> &nbsp;|&nbsp; Your side value rising: <b>NO side</b></div>
+<div class="note">High 97° is below the bracket. NO wins unless the day climbs into it.</div></div>
+<div class="card ONTRACK"><div class="top">
+<span class="city">Austin — NO 98° to 99°</span>
+<span class="badge">ON TRACK</span></div>
+<div class="det">Observed high so far: <b>95°</b> &nbsp;|&nbsp;
+Market now: <b>72c</b> &nbsp;|&nbsp; Your side value rising: <b>NO side</b></div>
+<div class="note">High 95° is below the bracket. NO wins unless the day climbs into it.</div></div>
+<div class="card NEEDSHEAT"><div class="top">
+<span class="city">New York City — YES 82° to 83°</span>
+<span class="badge">NEEDS HEAT</span></div>
+<div class="det">Observed high so far: <b>75°</b> &nbsp;|&nbsp;
+Market now: <b>59c</b> &nbsp;|&nbsp; Your side value rising: <b>your side</b></div>
+<div class="note">Needs about 7° more warming to enter.</div></div>
+<div class="card NEEDSHEAT"><div class="top">
+<span class="city">Philadelphia — YES 84° to 85°</span>
+<span class="badge">NEEDS HEAT</span></div>
+<div class="det">Observed high so far: <b>81°</b> &nbsp;|&nbsp;
+Market now: <b>22c</b> &nbsp;|&nbsp; Your side value rising: <b>your side</b></div>
+<div class="note">Needs about 3° more warming to enter.</div></div>
+<div class="card NEEDSHEAT"><div class="top">
+<span class="city">Philadelphia — YES 86° to 87°</span>
+<span class="badge">NEEDS HEAT</span></div>
+<div class="det">Observed high so far: <b>81°</b> &nbsp;|&nbsp;
+Market now: <b>57c</b> &nbsp;|&nbsp; Your side value rising: <b>your side</b></div>
+<div class="note">Needs about 5° more warming to enter.</div></div>
+<div class="card NEEDSHEAT"><div class="top">
+<span class="city">Minneapolis — YES 83° or above</span>
+<span class="badge">NEEDS HEAT</span></div>
+<div class="det">Observed high so far: <b>72°</b> &nbsp;|&nbsp;
+Market now: <b>18c</b> &nbsp;|&nbsp; Your side value rising: <b>your side</b></div>
+<div class="note">Needs about 10° more warming to enter.</div></div>
 <div class="foot"><b>Read it like this:</b> daily highs only rise, so a
 bracket the thermometer has passed is settled physics, not opinion.
 <b>SWOOP</b> = the reading already agrees with the bot's side and the
