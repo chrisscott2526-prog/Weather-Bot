@@ -3,16 +3,17 @@ cities. Import this from poller.py, forecast.py, and scanner.py so
 every script agrees on names and stations.
 
 STATION = the NWS station whose Daily Climate Report settles the
-market. VERIFY=True means: open that city's market on Kalshi, check
-the rules/underlying section, and confirm the station before trusting
-its data. Wrong station = garbage calibration = losing trades.
+market. All 20 stations verified by hand against Kalshi's rules on
+Aug 3 2026 (the CLI trick: each market's rules panel names a code
+like CLIPHX -- CLI plus the station letters. Match it to the station
+here). Wrong station = garbage calibration = losing trades.
 Known Kalshi gotchas already baked in: Chicago=Midway, Dallas=DFW,
 Houston=Hobby (NOT Intercontinental).
 """
 
 # series_ticker: (city_name, icao_station, lat, lon, needs_verification)
 CITIES = {
-    # --- your original 7, already settling correctly ---
+    # --- the original 7, settling correctly since day one ---
     "KXHIGHNY":   ("New York City", "KNYC", 40.7794,  -73.9692, False),
     "KXHIGHMIA":  ("Miami",         "KMIA", 25.7906,  -80.3164, False),
     "KXHIGHDEN":  ("Denver",        "KDEN", 39.8467, -104.6562, False),
@@ -36,6 +37,11 @@ CITIES = {
     "KXHIGHTHOU": ("Houston",       "KHOU", 29.6375,  -95.2825, False),
 }
 
+# Ghost series seen on Kalshi with 0 open markets (Aug 5 2026):
+# KXHIGHNYD, KXHIGHOU, KXHIGHTEMPDEN, KXHIGHUS.
+# They are NOT in CITIES on purpose. If one ever shows open markets,
+# verify its station on Kalshi before adding it -- do not let discovery
+# code auto-match it.
 
 SERIES_TO_CITY = {k: v[0] for k, v in CITIES.items()}
 CITY_TO_STATION = {v[0]: v[1] for v in CITIES.values()}
@@ -44,3 +50,4 @@ STATIONS = {v[1]: v[0] for v in CITIES.values()}
 # forecast.py: station -> (city, lat, lon)
 SITES = {v[1]: (v[0], v[2], v[3]) for v in CITIES.values()}
 UNVERIFIED = sorted(v[0] for v in CITIES.values() if v[4])
+
