@@ -1,171 +1,192 @@
+"""Weather-Bot: forecast calibration.
+
+Learns each station's forecast bias (model minus reality) from recent
+history and corrects tomorrow's ensemble members before they are stored.
+
+REBUILT Aug 5 2026 -- the honest-thermometer rewrite:
+
+1. MEDIAN, not mean. One storm-capped day can no longer steer a city's
+   correction for two weeks.
+2. SETTLEMENT-PINNED ACTUALS. The bias target is what actually SETTLED
+   whenever we can prove it. Any of our own bets that resolved YES pins
+   the day's high inside that bracket (results.csv, B-tickers only --
+   tail tickers are ambiguous). When the poller's instrument reading
+   disagrees with a settled bracket, the settlement wins: it is the only
+   thermometer that pays.
+3. CONFIDENCE RAMP instead of the MIN_SAMPLES cliff. Less history means
+   a wider spread, which means the scanner takes fewer, safer bets in
+   that city -- instead of zero correction with full confidence.
+4. Ignores the ERROR/blank rows old forecast.py wrote into
+   forecasts.csv, and reads all CSVs by column name so added columns
+   (obs_time_utc) never break it.
+
+Interface (unchanged): forecast.py calls
+    members, bias = calibrate_members(station, members)
+which returns bias-shifted, spread-scaled members plus the bias used.
+Run standalone to print the calibration table.
 """
-calibration.py — Weather-Bot calibration (stdlib only, no pip installs needed).
-Matched to forecast.py's SITES keys (KNYC, KMIA, KDEN, KLAX, KPHL, KAUS, KMDW).
 
-Fix 1: rolling per-station bias (mean forecast - actual, last 14 days).
-       Actuals come from daily_highs.csv if usable, else Open-Meteo archive.
-Fix 2: ensemble spread inflation (raw GFS is underdispersive).
+import csv, os, re
+from datetime import datetime, timedelta, timezone
+from statistics import median
 
-Fails safe: any missing file, missing column, or network error -> bias 0.0,
-spread inflation still applies. Can never crash the nightly run.
-"""
+from cities import STATIONS
 
-import csv, json, urllib.request
-from datetime import date, timedelta
-from statistics import median, mean
+FORECASTS = "forecasts.csv"
+HIGHS = "daily_highs.csv"
+RESULTS = "results.csv"
 
-STATIONS = {
-    "KNYC": (40.7794, -73.9692),
-    "KMIA": (25.7906, -80.3164),
-    "KDEN": (39.8467, -104.6562),
-    "KLAX": (33.9382, -118.3866),
-    "KPHL": (39.8683, -75.2311),
-    "KAUS": (30.1945, -97.6699),
-    "KMDW": (41.7842, -87.7553),
-}
-NAMES = {
-    "KNYC": "New York City", "KMIA": "Miami", "KDEN": "Denver",
-    "KLAX": "Los Angeles", "KPHL": "Philadelphia", "KAUS": "Austin",
-    "KMDW": "Chicago",
-}
-
-BIAS_WINDOW_DAYS = 14
-MIN_MATCHED_DAYS = 5
-MAX_ABS_BIAS = 4.0
-SPREAD_INFLATE = 1.30
-FORECAST_LOG = "forecasts.csv"
-ACTUALS_LOG = "daily_highs.csv"
-UA = {"User-Agent": "weather-bot-personal"}
-
-DATE_COLS = ("date", "target_date", "forecast_date", "day")
-SITE_COLS = ("station", "site", "city", "location", "ticker")
-FCST_COLS = ("forecast_high_f",)
-HIGH_COLS = ("high_f", "actual_high_f", "high", "tmax_f", "temp_high_f")
+WINDOW_DAYS = 14          # how far back to learn from
+MAX_ABS_BIAS = 6.0        # sanity clamp; a "bias" beyond this is a data bug
 
 
-def _rows(path):
-    try:
-        with open(path, newline="") as f:
-            return list(csv.DictReader(f))
-    except Exception:
-        return []
-
-
-def _pick(row_keys, options):
-    for o in options:
-        if o in row_keys:
-            return o
-    return None
-
-
-def _iso(d):
-    try:
-        return date.fromisoformat(str(d).strip()[:10])
-    except Exception:
-        return None
-
-
-def _matches(value, station):
-    v = str(value).strip()
-    return v.upper() == station or v == NAMES.get(station, "")
-
-
-def _local_actuals(station):
-    """{date: high_f} from daily_highs.csv, if columns are recognizable."""
-    rows = _rows(ACTUALS_LOG)
-    if not rows:
-        return {}
-    keys = rows[0].keys()
-    dc, sc, hc = _pick(keys, DATE_COLS), _pick(keys, SITE_COLS), _pick(keys, HIGH_COLS)
-    if not (dc and hc):
-        return {}
+# ---------- settlement truth ----------
+def settled_windows():
+    """(date, city) -> (lo, hi): a 2-degree window the day's high provably
+    landed in, from our own settled bets. A market resolved YES when we
+    won a YES or lost a NO. B-tickers only; T (tail) tickers are
+    ambiguous about direction and are skipped."""
     out = {}
-    for r in rows:
-        if sc and not _matches(r.get(sc, ""), station):
-            continue
-        d = _iso(r.get(dc))
-        try:
-            out[d] = float(r.get(hc))
-        except (TypeError, ValueError):
-            continue
-    out.pop(None, None)
+    if not os.path.exists(RESULTS):
+        return out
+    with open(RESULTS) as f:
+        for r in csv.DictReader(f):
+            act = (r.get("action") or r.get("side") or "").upper()
+            res = (r.get("result") or "").upper()
+            if not ((act == "YES" and res == "WIN") or
+                    (act == "NO" and res == "LOSS")):
+                continue
+            tick = r.get("ticker", "")
+            m = re.search(r"-(\d{2}[A-Z]{3}\d{2})-B(\d+(?:\.5)?)$", tick)
+            if not m:
+                continue
+            try:
+                date = datetime.strptime(
+                    m.group(1), "%y%b%d").date().isoformat()
+            except ValueError:
+                continue
+            lo = float(m.group(2)) - 0.5
+            city = (r.get("city") or "").strip()
+            if city:
+                out[(date, city)] = (lo, lo + 1.0)
     return out
 
 
-def _api_actuals(station, start, end):
-    """{date: high_f} from Open-Meteo archive at the station coords."""
-    lat, lon = STATIONS[station]
-    url = ("https://archive-api.open-meteo.com/v1/archive"
-           f"?latitude={lat}&longitude={lon}"
-           f"&start_date={start}&end_date={end}"
-           "&daily=temperature_2m_max&temperature_unit=fahrenheit&timezone=auto")
-    req = urllib.request.Request(url, headers=UA)
-    with urllib.request.urlopen(req, timeout=30) as r:
-        d = json.load(r).get("daily", {})
-    out = {}
-    for t, v in zip(d.get("time", []), d.get("temperature_2m_max", [])):
-        if v is not None:
-            out[_iso(t)] = float(v)
-    out.pop(None, None)
-    return out
+# ---------- history ----------
+def load_forecast_history():
+    """(date, station) -> forecast median. Skips ERROR/blank rows.
+    Keeps the LAST forecast logged for a date (rerun overwrites)."""
+    hist = {}
+    if not os.path.exists(FORECASTS):
+        return hist
+    with open(FORECASTS) as f:
+        for r in csv.DictReader(f):
+            d = (r.get("forecast_date") or "").strip()
+            sid = (r.get("station") or "").strip()
+            v = (r.get("forecast_high_f") or "").strip()
+            if not d or not sid or v in ("", "ERROR"):
+                continue
+            try:
+                hist[(d, sid)] = float(v)
+            except ValueError:
+                continue
+    return hist
 
 
-def station_bias(station):
-    """Rolling mean(forecast - actual) F. Positive = warm bias. 0.0 if unsure."""
-    rows = _rows(FORECAST_LOG)
-    if not rows:
-        return 0.0
-    keys = rows[0].keys()
-    dc, sc, fc = _pick(keys, DATE_COLS), _pick(keys, SITE_COLS), _pick(keys, FCST_COLS)
-    if not (dc and fc):
-        return 0.0
-    cutoff = date.today() - timedelta(days=BIAS_WINDOW_DAYS)
-    fcsts = {}
-    for r in rows:
-        if sc and not _matches(r.get(sc, ""), station):
+def load_actuals():
+    """(date, station) -> observed high from the poller (instrument
+    reading -- may be corrected by settlement below)."""
+    acts = {}
+    if not os.path.exists(HIGHS):
+        return acts
+    with open(HIGHS) as f:
+        for r in csv.DictReader(f):
+            d = (r.get("date") or "").strip()
+            sid = (r.get("station") or "").strip()
+            v = (r.get("high_f") or "").strip()
+            if not d or not sid or not v:
+                continue
+            try:
+                acts[(d, sid)] = float(v)
+            except ValueError:
+                continue
+    return acts
+
+
+# ---------- the model ----------
+def compute_calibration():
+    """station -> (bias_f, spread_scale, n_samples).
+    bias_f = median(forecast - actual): positive means the model runs hot,
+    so members get shifted DOWN by bias_f. spread_scale widens the member
+    spread when history is thin."""
+    windows = settled_windows()
+    forecasts = load_forecast_history()
+    actuals = load_actuals()
+    cutoff = (datetime.now(timezone.utc).date()
+              - timedelta(days=WINDOW_DAYS)).isoformat()
+
+    errors = {}   # station -> [forecast - actual]
+    for (d, sid), fc in forecasts.items():
+        if d < cutoff:
             continue
-        d = _iso(r.get(dc))
-        if d is None or d < cutoff or d >= date.today():
+        act = actuals.get((d, sid))
+        if act is None:
             continue
-        try:
-            fcsts[d] = float(r.get(fc))
-        except (TypeError, ValueError):
-            continue
-    if not fcsts:
-        return 0.0
-    actuals = _local_actuals(station)
-    matched = [(fcsts[d], actuals[d]) for d in fcsts if d in actuals]
-    if len(matched) < MIN_MATCHED_DAYS:
-        try:
-            api = _api_actuals(station, min(fcsts), max(fcsts))
-        except Exception:
-            api = {}
-        actuals = {**api, **actuals}
-        matched = [(fcsts[d], actuals[d]) for d in fcsts if d in actuals]
-    if len(matched) < MIN_MATCHED_DAYS:
-        return 0.0
-    b = mean(f - a for f, a in matched)
-    return max(-MAX_ABS_BIAS, min(MAX_ABS_BIAS, b))
+        # settlement beats the instrument when they disagree
+        city = STATIONS.get(sid, "")
+        win = windows.get((d, city))
+        if win:
+            lo, hi = win
+            if not (lo - 0.25 <= act <= hi + 0.25):
+                act = (lo + hi) / 2.0
+        err = fc - act
+        if abs(err) <= 25:          # discard corrupt joins outright
+            errors.setdefault(sid, []).append(err)
+
+    cal = {}
+    for sid in STATIONS:
+        errs = errors.get(sid, [])
+        n = len(errs)
+        if n >= 10:
+            bias, scale = median(errs), 1.0
+        elif n >= 5:
+            bias, scale = median(errs), 1.3
+        elif n >= 2:
+            bias, scale = median(errs), 1.8
+        else:
+            bias, scale = 0.0, 2.5   # no history = wide spread = few bets
+        bias = max(-MAX_ABS_BIAS, min(MAX_ABS_BIAS, bias))
+        cal[sid] = (round(bias, 2), scale, n)
+    return cal
+
+
+_CAL_CACHE = None
 
 
 def calibrate_members(station, members):
-    """
-    station: SITES key, e.g. "KNYC".
-    members: list of raw ensemble highs (floats or strings).
-    Returns (calibrated_members, bias_applied).
-    """
-    try:
-        m = [float(x) for x in members]
-    except (TypeError, ValueError):
-        return members, 0.0
-    if not m:
-        return members, 0.0
-    try:
-        bias = station_bias(station)
-    except Exception:
-        bias = 0.0
-    m = [x - bias for x in m]
-    med = median(m)
-    m = [round(med + (x - med) * SPREAD_INFLATE, 1) for x in m]
-    return m, bias
+    """Shift members down by the learned bias and widen the spread by the
+    confidence scale. Returns (adjusted_members, bias_used)."""
+    global _CAL_CACHE
+    if _CAL_CACHE is None:
+        _CAL_CACHE = compute_calibration()
+    bias, scale, _n = _CAL_CACHE.get(station, (0.0, 2.5, 0))
+    if not members:
+        return members, bias
+    shifted = [m - bias for m in members]
+    med = median(shifted)
+    adjusted = [round(med + (m - med) * scale, 1) for m in shifted]
+    return adjusted, bias
+
+
+def main():
+    cal = compute_calibration()
+    for sid in sorted(cal, key=lambda s: STATIONS[s]):
+        bias, scale, n = cal[sid]
+        print(f"cal {STATIONS[sid]}: bias={bias:+.2f}F "
+              f"spread x{scale:.2f} (n={n})")
+
+
+if __name__ == "__main__":
+    main()
+
 
