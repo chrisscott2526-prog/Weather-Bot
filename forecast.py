@@ -1,16 +1,25 @@
 """Weather-Bot: nightly forecast logger (v2 - GFS ensemble).
 Pulls 31-member GFS ensemble highs for tomorrow from Open-Meteo
 for each settlement city, logs all members to forecasts.csv.
-Column forecast_high_f = ensemble median (backward compatible)."""
+Column forecast_high_f = ensemble median (backward compatible).
+
+FIXED Aug 5 2026:
+- True median (averages the middle pair on an even member count;
+  the old index pick was biased whenever a member dropped out).
+- Failures print and SKIP -- no more "ERROR" rows with blank dates
+  poisoning every downstream reader of forecasts.csv.
+"""
 
 import csv, json, os, time, urllib.request
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
+from statistics import median as true_median
 from calibration import calibrate_members
 from cities import SITES
 
 
 OUT = "forecasts.csv"
 UA = {"User-Agent": "weather-bot-personal"}
+
 
 def get(url, tries=3):
     """Retry on transient network failures. Dallas has been timing out on
@@ -51,6 +60,7 @@ def ensemble_highs(lat, lon):
                 members.append(round(float(vals[1]), 1))
     return tomorrow, members
 
+
 def main():
     fetched = datetime.now(timezone.utc).isoformat(timespec="seconds")
     new = not os.path.exists(OUT)
@@ -65,15 +75,17 @@ def main():
                 if not d or not members:
                     raise ValueError("no ensemble data returned")
                 members, bias = calibrate_members(sid, members)
-                srt = sorted(members)
-                median = srt[len(srt) // 2]
-                w.writerow([d, sid, city, median, fetched,
+                med = round(true_median(members), 1)
+                w.writerow([d, sid, city, med, fetched,
                             "|".join(str(m) for m in members)])
-                print(f"{city}: median {median}F, "
+                print(f"{city}: median {med}F, "
                       f"{len(members)} members for {d}")
             except Exception as e:
-                w.writerow(["", sid, city, "ERROR", fetched, ""])
-                print(f"{city}: failed - {e}")
+                # Print and SKIP. A missing row is honest; an ERROR row
+                # with a blank date is a trap for every downstream reader.
+                print(f"{city}: failed - {e} (no row written)")
+
 
 if __name__ == "__main__":
     main()
+
