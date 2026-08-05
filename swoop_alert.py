@@ -200,6 +200,10 @@ text-transform:uppercase;color:#f3b53c;margin-bottom:4px}
 padding:14px 16px;margin-bottom:12px;border-left:5px solid #2a323b}
 .card.LOCKED{border-left-color:#28a06c}.card.SWOOP{border-left-color:#f3b53c}
 .card.ONTRACK{border-left-color:#3f7fbf}.card.INDANGER{border-left-color:#c2542f}
+.card.ATRISK{border-left-color:#c2542f}
+.ATRISK .badge{background:#c2542f}
+
+
 .card.DEAD{border-left-color:#5c6670;opacity:.65}
 .top{display:flex;justify-content:space-between;align-items:baseline}
 .city{font:600 19px/1 "Barlow Condensed",sans-serif}
@@ -218,8 +222,9 @@ border-radius:3px;background:#2a323b}
 def build_page(cards, note):
     now = datetime.now(timezone.utc).strftime("%a %b %d, %H:%M UTC")
     body = ""
-    order = {"SWOOP": 0, "LOCKED": 1, "IN DANGER": 2, "ON TRACK": 3,
-             "NEEDS HEAT": 4, "DEAD": 5}
+        order = {"SWOOP": 0, "LOCKED": 1, "AT RISK": 2, "IN DANGER": 3,
+             "ON TRACK": 4, "NEEDS HEAT": 5, "DEAD": 6}
+
     for c in sorted(cards, key=lambda c: order.get(c["flag"], 9)):
         cls = c["flag"].replace(" ", "")
         body += f"""
