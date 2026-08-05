@@ -488,3 +488,8 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-05T00:14:27+00:00,KXHIGHDEN-26AUG05-B85.5,85° to 86°,no,1,66,16.1,15.9,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
 2026-08-05T00:14:27+00:00,KXHIGHLAX-26AUG05-B75.5,75° to 76°,yes,3,27,41.9,12.9,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
 2026-08-05T00:14:27+00:00,KXHIGHMIA-26AUG05-B88.5,88° to 89°,no,1,60,29.0,9.0,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
+2026-08-05T00:58:10+00:00,KXHIGHTDC-26AUG05-B86.5,86° to 87°,no,1,61,9.7,27.3,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
+2026-08-05T00:58:10+00:00,KXHIGHCHI-26AUG05-B83.5,83° to 84°,yes,5,18,38.7,18.7,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
+2026-08-05T00:58:10+00:00,KXHIGHDEN-26AUG05-B85.5,85° to 86°,no,1,66,16.1,15.9,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
+2026-08-05T00:58:10+00:00,KXHIGHLAX-26AUG05-B75.5,75° to 76°,yes,3,27,41.9,12.9,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
+2026-08-05T00:58:10+00:00,KXHIGHMIA-26AUG05-B88.5,88° to 89°,no,1,60,29.0,9.0,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
