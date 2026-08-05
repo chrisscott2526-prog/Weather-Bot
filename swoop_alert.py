@@ -222,7 +222,7 @@ border-radius:3px;background:#2a323b}
 def build_page(cards, note):
     now = datetime.now(timezone.utc).strftime("%a %b %d, %H:%M UTC")
     body = ""
-        order = {"SWOOP": 0, "LOCKED": 1, "AT RISK": 2, "IN DANGER": 3,
+    order = {"SWOOP": 0, "LOCKED": 1, "AT RISK": 2, "IN DANGER": 3,
              "ON TRACK": 4, "NEEDS HEAT": 5, "DEAD": 6}
 
     for c in sorted(cards, key=lambda c: order.get(c["flag"], 9)):
