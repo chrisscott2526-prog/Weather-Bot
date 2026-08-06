@@ -8,15 +8,11 @@ on:
     types: [completed]
   workflow_dispatch:
 
-
-
 permissions:
   contents: write
 
 jobs:
   trade:
-      
-
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -30,7 +26,7 @@ jobs:
         env:
           KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
           KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
-        run: python "trader.py"
+        run: python trader.py
 
       - name: Commit the log
         run: |
