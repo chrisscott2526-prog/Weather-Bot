@@ -14,9 +14,7 @@ padding:14px 16px;margin-bottom:12px;border-left:5px solid #2a323b}
 .card.LOCKED{border-left-color:#28a06c}.card.SWOOP{border-left-color:#f3b53c}
 .card.ONTRACK{border-left-color:#3f7fbf}.card.INDANGER{border-left-color:#c2542f}
 .card.ATRISK{border-left-color:#c2542f}
-.ATRISK .badge{background:#c2542f}
-
-
+.card.VERIFY{border-left-color:#8a6aa8}
 .card.DEAD{border-left-color:#5c6670;opacity:.65}
 .top{display:flex;justify-content:space-between;align-items:baseline}
 .city{font:600 19px/1 "Barlow Condensed",sans-serif}
@@ -25,21 +23,28 @@ border-radius:3px;background:#2a323b}
 .LOCKED .badge{background:#28a06c;color:#08130d}
 .SWOOP .badge{background:#f3b53c;color:#191203}
 .INDANGER .badge{background:#c2542f}
+.ATRISK .badge{background:#c2542f}
+.VERIFY .badge{background:#8a6aa8}
 .det{font-size:13px;color:#93a1ad;margin:6px 0}
 .det b{color:#e8e4da}
+.age{font-size:12px;color:#93a1ad}
+.age.old{color:#c2542f;font-weight:600}
 .note{font-size:14px;border-top:1px solid #2a323b;padding-top:8px;margin-top:8px}
 .empty{border:1px dashed #2a323b;border-radius:8px;padding:24px;text-align:center;color:#93a1ad}
 .foot{margin-top:22px;font-size:12.5px;color:#93a1ad;line-height:1.6}
 </style></head><body><div class="wrap">
 <h1>Swoop Alert</h1>
-<div class="sub">Thermometer vs. market on the bot's open positions —
-checked Thu Aug 06, 00:01 UTC. </div>
+<div class="sub">Thermometer vs. market on the bot's open positions -
+checked Thu Aug 06, 05:23 UTC. Graded 0 of 0 open weather positions.
+</div>
 <div class='empty'>No open same-day weather positions to grade right now. The board refreshes each scheduled pass.</div>
 <div class="foot"><b>Read it like this:</b> daily highs only rise, so a
 bracket the thermometer has passed is settled physics, not opinion.
-<b>SWOOP</b> = the reading already agrees with the bot's side and the
-market is still selling it under 80c. <b>LOCKED</b> = the
-outcome is mathematically decided. Always eyeball the station on
-weather.gov before sizing up — this page is only as fresh as the last
+<b>SWOOP</b> = the reading already agrees with the bot's side, the
+reading is FRESH (under 60m old), and the market still
+sells it under 80c. A stale reading or a price that
+disagrees kills the tag. <b>AT RISK</b> = an 'or below' bracket that can
+still climb out - never a swoop. Always eyeball the station on
+weather.gov before sizing up; this page is only as fresh as the last
 poll. Chase nothing above 80c; the meat is gone.</div>
 </div></body></html>
