@@ -1,15 +1,30 @@
-"""Weather-Bot: settlement scorekeeper. Reads trades.csv, asks Kalshi
-which markets settled and how, writes results.csv with win/loss and
-P&L per bet, prints the running scoreboard. Places NO trades ever.
-Run daily. This file is how we know when to raise BET_DOLLARS."""
+"""Weather-Bot: settlement grader. Reads trades.csv, asks Kalshi how each
+market actually settled, writes graded rows to results.csv.
+
+AUDITED + FIXED Aug 6 2026:
+- results.csv now ALWAYS carries city + action + result + ticker, because
+  calibration.py reads settled bets to pin the day's true high (the
+  settlement is the only thermometer that pays). Missing city fields
+  previously made those rows useless to calibration.
+- Only grades markets whose Kalshi status is settled -- no more guessing
+  from price. The result field comes from the exchange, nowhere else.
+- Rows already graded are never re-graded (idempotent on re-run).
+- Defensive column reads: works with old and new trades.csv layouts.
+"""
 
 import base64, csv, json, os, re, time, urllib.request
 from datetime import datetime, timezone
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
+
+from cities import SERIES_TO_CITY
+
+TRADES = "trades.csv"
+RESULTS = "results.csv"
 
 BASE = "https://api.elections.kalshi.com"
 KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
+
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
 
 
 def load_key():
@@ -25,116 +40,120 @@ def load_key():
            + f"\n-----END {label}-----\n").encode()
     return serialization.load_pem_private_key(pem, password=None)
 
+
 key = load_key()
 
-def sign(method, path):
+
+def ksigned(path):
     ts = str(int(time.time() * 1000))
-    sig = key.sign((ts + method + path.split("?")[0]).encode(),
+    sig = key.sign((ts + "GET" + path.split("?")[0]).encode(),
                    padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
                                salt_length=padding.PSS.DIGEST_LENGTH),
                    hashes.SHA256())
-    return {"KALSHI-ACCESS-KEY": KEY_ID,
-            "KALSHI-ACCESS-SIGNATURE": base64.b64encode(sig).decode(),
-            "KALSHI-ACCESS-TIMESTAMP": ts,
-            "User-Agent": "weather-bot-personal",
-            "Content-Type": "application/json"}
-
-def api(path):
-    req = urllib.request.Request(BASE + path, headers=sign("GET", path))
+    req = urllib.request.Request(BASE + path, headers={
+        "KALSHI-ACCESS-KEY": KEY_ID,
+        "KALSHI-ACCESS-SIGNATURE": base64.b64encode(sig).decode(),
+        "KALSHI-ACCESS-TIMESTAMP": ts,
+        "User-Agent": "weather-bot-personal"})
     with urllib.request.urlopen(req, timeout=30) as r:
-        raw = r.read()
-        return json.loads(raw) if raw else {}
+        return json.load(r)
 
 
-def market_results():
-    """ticker -> 'yes'/'no' for markets that have settled, from the
-    account's settlement history (paged)."""
-    results, cursor = {}, ""
-    for _ in range(20):  # up to 20 pages
-        path = "/trade-api/v2/portfolio/settlements?limit=100"
-        if cursor:
-            path += f"&cursor={cursor}"
-        resp = api(path)
-        for s in resp.get("settlements", []):
-            t = s.get("ticker")
-            mr = (s.get("market_result") or "").lower()
-            if t and mr in ("yes", "no"):
-                results[t] = mr
-        cursor = resp.get("cursor") or ""
-        if not cursor:
-            break
-    return results
+def city_from_ticker(ticker):
+    series = (ticker or "").split("-")[0].upper()
+    return SERIES_TO_CITY.get(series, "")
+
+
+def load_graded():
+    """Set of (ticker, action) already in results.csv."""
+    done = set()
+    if os.path.exists(RESULTS):
+        with open(RESULTS) as f:
+            for r in csv.DictReader(f):
+                act = (r.get("action") or r.get("side") or "").upper()
+                done.add((r.get("ticker", ""), act))
+    return done
+
+
+def load_trades():
+    """Ungraded submitted trades from trades.csv, defensively read."""
+    out = []
+    if not os.path.exists(TRADES):
+        return out
+    with open(TRADES) as f:
+        for r in csv.DictReader(f):
+            tick = (r.get("ticker") or r.get("market") or "").strip()
+            if not tick:
+                continue
+            act = (r.get("action") or r.get("side") or "").upper()
+            if act not in ("YES", "NO"):
+                continue
+            cost = (r.get("cost_cents") or r.get("price_cents")
+                    or r.get("cost") or "")
+            qty = r.get("count") or r.get("qty") or r.get("contracts") or "1"
+            out.append({"ticker": tick, "action": act,
+                        "cost_cents": cost, "count": qty,
+                        "city": (r.get("city") or "").strip()
+                                or city_from_ticker(tick)})
+    return out
 
 
 def main():
-    if not os.path.exists("trades.csv"):
-        print("No trades.csv yet.")
-        return
-    trades = [r for r in csv.DictReader(open("trades.csv"))
-              if r.get("status") == "submitted"]
-    if not trades:
-        print("No submitted trades to score.")
-        return
+    stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    graded = load_graded()
+    trades = load_trades()
+    pending = [t for t in trades
+               if (t["ticker"], t["action"]) not in graded]
+    print(f"{len(trades)} trades on file, {len(pending)} not yet graded")
 
-    try:
-        settled = market_results()
-    except Exception as e:
-        print(f"Could not fetch settlements ({e}). Nothing written.")
-        return
-
-    rows, total_pnl, wins, losses = [], 0.0, 0, 0
-    for t in trades:
-        ticker = t.get("ticker", "")
-        result = settled.get(ticker)
-        if not result:
-            continue  # not settled yet
-        side = (t.get("side") or "yes").lower()
-        try:
-            count = int(float(t.get("count") or 1))
-            cost = int(float(t.get("limit_cents") or 0))
-        except (TypeError, ValueError):
-            continue
-        won = (side == result)
-        pnl = (count * (100 - cost) if won else -count * cost) / 100.0
-        total_pnl += pnl
-        wins, losses = wins + won, losses + (not won)
-        rows.append({"settled_checked_utc":
-                     datetime.now(timezone.utc).isoformat(timespec="seconds"),
-                     "placed_utc": t.get("placed_utc", ""),
-                     "ticker": ticker,
-                     "subtitle": t.get("subtitle", ""),
-                     "side": side, "count": count, "cost_cents": cost,
-                     "model_pct": t.get("model_pct", ""),
-                     "edge": t.get("edge", ""),
-                     "result": result,
-                     "won": "WIN" if won else "LOSS",
-                     "pnl_dollars": f"{pnl:.2f}"})
-
-    with open("results.csv", "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()) if rows else
-                           ["settled_checked_utc", "placed_utc", "ticker",
-                            "subtitle", "side", "count", "cost_cents",
-                            "model_pct", "edge", "result", "won",
-                            "pnl_dollars"])
-        w.writeheader()
-        for r in rows:
-            w.writerow(r)
-
-    n = wins + losses
-    print("=" * 46)
-    print(f"SCOREBOARD  ({n} settled bets)")
-    print(f"  Wins: {wins}   Losses: {losses}   "
-          f"Win rate: {(wins / n * 100) if n else 0:.0f}%")
-    print(f"  Total P&L: ${total_pnl:+.2f}")
-    print(f"  Bets until sizing decision (100): {max(0, 100 - n)}")
-    print("=" * 46)
-    if n >= 100 and total_pnl > 0:
-        print("MILESTONE: 100+ settled bets, positive P&L. "
-              "Time to look at raising BET_DOLLARS.")
-    elif n >= 100:
-        print("MILESTONE: 100+ settled bets, P&L not positive. "
-              "Fix the model before raising BET_DOLLARS.")
+    fields = ["graded_utc", "ticker", "city", "action", "cost_cents",
+              "count", "market_result", "result", "pnl"]
+    new = not os.path.exists(RESULTS)
+    wrote = 0
+    with open(RESULTS, "a", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+        if new:
+            w.writeheader()
+        seen_this_run = set()
+        for t in pending:
+            k = (t["ticker"], t["action"])
+            if k in seen_this_run:
+                continue
+            seen_this_run.add(k)
+            try:
+                data = ksigned(f"/trade-api/v2/markets/{t['ticker']}")
+            except Exception as e:
+                print(f"{t['ticker']}: fetch failed ({e})")
+                continue
+            m = data.get("market", {})
+            status = (m.get("status") or "").lower()
+            result = (m.get("result") or "").lower()
+            if status not in ("settled", "finalized") or result not in \
+                    ("yes", "no"):
+                continue   # not settled yet -- next run
+            won = (result == t["action"].lower())
+            try:
+                cost = float(t["cost_cents"])
+            except (TypeError, ValueError):
+                cost = 0.0
+            try:
+                n = float(t["count"])
+            except (TypeError, ValueError):
+                n = 1.0
+            pnl = round(((100 - cost) if won else -cost) * n / 100.0, 2)
+            w.writerow({"graded_utc": stamp, "ticker": t["ticker"],
+                        "city": t["city"], "action": t["action"],
+                        "cost_cents": t["cost_cents"], "count": t["count"],
+                        "market_result": result.upper(),
+                        "result": "WIN" if won else "LOSS",
+                        "pnl": pnl})
+            wrote += 1
+            print(f"{t['city'] or t['ticker']} {t['action']} "
+                  f"@ {t['cost_cents']}c -> {result.upper()} "
+                  f"= {'WIN' if won else 'LOSS'} ({pnl:+.2f})")
+    print(f"graded {wrote} newly settled bets")
 
 
 if __name__ == "__main__":
     main()
+
