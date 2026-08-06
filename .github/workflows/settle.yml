@@ -1,4 +1,5 @@
 name: settle
+
 on:
   schedule:
     - cron: "20 12 * * *"   # daily ~12:20 UTC, after overnight settlements
@@ -11,20 +12,25 @@ jobs:
   settle:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
       - run: pip install cryptography
+
       - name: Score settled bets
         env:
           KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
           KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
         run: python settle.py
+
       - name: Commit results
         run: |
-          git config user.name "bot"
+          git config user.name "weather-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add results.csv
+          git add -A
           git diff --cached --quiet || git commit -m "scoreboard $(date -u +'%Y-%m-%d %H:%M')"
+          git pull --rebase
           git push
