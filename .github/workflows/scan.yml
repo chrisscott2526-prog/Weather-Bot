@@ -8,16 +8,11 @@ on:
     types: [completed]
   workflow_dispatch:
 
-  
-
 permissions:
   contents: write
 
 jobs:
   scan:
-      
-    
-
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
