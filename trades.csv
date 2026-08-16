@@ -1,1 +1,6 @@
 placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,order_id
+2026-08-16T22:30:58+00:00,KXHIGHPHIL-26AUG17-B89.5,89° to 90°,yes,2,46,41.9,,True,submitted,345c70d4-75df-4fd4-803e-07327648b769
+2026-08-16T22:30:58+00:00,KXHIGHCHI-26AUG17-B80.5,80° to 81°,yes,2,40,45.2,,True,submitted,a34308aa-5d26-435d-8404-0a823af3f771
+2026-08-16T22:30:58+00:00,KXHIGHTDC-26AUG17-B92.5,92° to 93°,yes,2,37,45.2,,True,submitted,34e55893-1538-4c79-bf87-ac902d1feaa2
+2026-08-16T22:30:58+00:00,KXHIGHTATL-26AUG17-B97.5,97° to 98°,yes,2,34,71.0,,True,submitted,263547a5-4f15-475a-b912-831db90ef10c
+2026-08-16T22:30:58+00:00,KXHIGHTDAL-26AUG17-B106.5,106° to 107°,yes,5,20,51.6,,True,submitted,132f6984-5969-4f94-8872-163e19e2b9de
