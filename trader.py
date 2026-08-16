@@ -1,23 +1,21 @@
-"""Weather-Bot: LIVE trader v4. Reads latest scan from edges.csv,
-trades top picks (YES or NO), logs to trades.csv.
+"""Weather-Bot: LIVE trader. Reads latest scan from edges.csv, buys the
+scanner's picked brackets (YES only), logs to trades.csv.
 
-Changes vs v3 (safety release -- trading logic untouched):
-  1. Skips Kalshi's daily maintenance window (~07:00 UTC): no more
-     503 batches and blind retries into a down exchange.
-  2. FAIL CLOSED ownership: markets owned = live API positions
-     + resting orders + trades.csv 'submitted' rows, combined.
-     If the API check fails, the run places NOTHING (previously it
-     fell back to trades.csv alone, which can't see manual trades).
-  3. Per-city daily cap (default 2): stops stacking multiple
-     brackets of the same city/day, which is one correlated bet.
-  4. Sanity guard: skips picks where the model and the market
-     disagree by more than SANITY_GAP points -- those are almost
-     always model/calibration bugs, not real edge. Skips are logged.
+FIXED Aug 6 2026 -- pick-first alignment:
+  1. MIN_COST/MAX_COST corrected to 8/68, matching scanner.py's gate
+     exactly. (Was 15/10 -- an impossible range that silently placed
+     ZERO trades no matter what the scanner picked. This was the bug
+     behind days of "nothing is buying.")
+  2. TRADE_NO removed. The pick-first scanner never bets against a
+     bracket -- only for the one it picked. Nothing left to flip.
+  3. No more edge-based ranking. The scanner already chose the
+     bracket; the trader just executes it. Picks are taken in the
+     order they were written, not re-sorted by any price math.
 
-v3 features kept: proper ticker-date parsing, cancel own resting
-orders each run, YES=bid / NO=ask-at-(100-c) on the single book.
-HARD CAPS unchanged: 1 contract/market, 5 orders/run, cost 3-70c.
-Run once with LIVE = False after upgrading to sanity-check output.
+Everything else unchanged: maintenance-window skip, FAIL CLOSED
+ownership check, per-city daily cap, sanity guard against a model/
+price gap, unverified-city skip, $1 sizing until 100+ settled bets.
+HARD CAPS: 1 contract/market by default, 5 orders/run, $10/run.
 """
 
 import base64, csv, json, os, re, time, urllib.request, urllib.error, uuid
@@ -25,16 +23,14 @@ from datetime import datetime, timezone
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cities import UNVERIFIED
+
 LIVE = True          # False = log picks only, place nothing
-TRADE_NO = True      # set False to keep old YES-only behavior
 MAX_ORDERS = 5
-BET_DOLLARS = 1      # $ per bet. THE sizing knob: 1 = ~1 contract now;
-                     # 20 = ~$20 per bet later. Change ONLY after 100+
-                     # settled bets show positive P&L.
+BET_DOLLARS = 1      # $ per bet. Change ONLY after 100+ settled bets
+                     # show positive P&L.
 MAX_RUN_DOLLARS = 10  # hard ceiling on total $ placed in one run
-MIN_COST, MAX_COST = 15, 10  # cents you pay per contract, either side
-MAX_PER_CITY_DAY = 1         # ONE position per city per day: two YES
-                             # brackets of the same city can't both win
+MIN_COST, MAX_COST = 8, 68   # matches scanner.py's MIN/MAX_PICK_COST
+MAX_PER_CITY_DAY = 1         # one position per city per day
 SANITY_GAP = 40              # skip if model% vs implied price gap > this
 SKIP_UNVERIFIED = True
 MAINT_START, MAINT_END = (6, 45), (8, 15)  # UTC window to skip (Kalshi 503s)
@@ -84,18 +80,11 @@ def balance():
         return f"ERR {e}"
 
 
-# ---------- safety ----------
-
 def in_maintenance_window(now):
-    """Kalshi daily maintenance ~07:00 UTC returns 503s. Skip it."""
     return MAINT_START <= (now.hour, now.minute) <= MAINT_END
 
 
-# ---------- book-keeping ----------
-
 def bot_order_ids():
-    """Order IDs this bot placed, from trades.csv. Used so we only
-    ever cancel our own orders - never the owner's manual app orders."""
     ids = set()
     if os.path.exists("trades.csv"):
         with open("trades.csv") as f:
@@ -105,9 +94,6 @@ def bot_order_ids():
     return ids
 
 def cancel_resting_orders():
-    """Kill unfilled GTC orders from prior BOT runs so stale prices
-    can't get picked off. Manual orders placed in the Kalshi app are
-    left untouched."""
     mine = bot_order_ids()
     if not mine:
         return
@@ -119,7 +105,7 @@ def cancel_resting_orders():
     for o in resp.get("orders", []):
         oid = o.get("order_id")
         if not oid or oid not in mine:
-            continue  # not ours - leave it alone
+            continue
         for path in (f"/trade-api/v2/portfolio/events/orders/{oid}",
                      f"/trade-api/v2/portfolio/orders/{oid}"):
             try:
@@ -128,7 +114,7 @@ def cancel_resting_orders():
                 break
             except urllib.error.HTTPError as e:
                 if e.code == 404:
-                    continue          # try legacy path
+                    continue
                 print(f"cancel {oid[:8]}: HTTP {e.code}")
                 break
             except Exception as e:
@@ -136,10 +122,6 @@ def cancel_resting_orders():
                 break
 
 def exposure_tickers():
-    """Every market we are exposed to RIGHT NOW: live positions plus
-    resting orders (manual ones included) plus trades.csv history.
-    Raises on API failure -- caller must FAIL CLOSED (trade nothing),
-    because trades.csv alone cannot see manual positions."""
     tickers = set()
     resp = api("GET", "/trade-api/v2/portfolio/positions")
     for p in resp.get("market_positions", []):
@@ -157,7 +139,6 @@ def exposure_tickers():
     return tickers
 
 def ticker_day(ticker):
-    """KXHIGHNY-26JUL19-B82.5 -> datetime.date, or None."""
     try:
         return datetime.strptime((ticker or "").split("-")[1],
                                  "%y%b%d").date()
@@ -165,11 +146,8 @@ def ticker_day(ticker):
         return None
 
 def city_key(ticker):
-    """KXHIGHLAX-26JUL23-B85.5 -> KXHIGHLAX (series prefix = city)."""
     return (ticker or "").split("-")[0]
 
-
-# ---------- main ----------
 
 def main():
     now = datetime.now(timezone.utc)
@@ -189,11 +167,8 @@ def main():
         return
     latest = rows[-1]["scanned_utc"]
     fresh = [r for r in rows if r["scanned_utc"] == latest
-             and r.get("would_bet") in
-             (("YES", "NO") if TRADE_NO else ("YES",))]
+             and r.get("would_bet") == "YES"]
 
-    # target the most distant open date (usually tomorrow),
-    # comparing REAL dates, not alphabetical ticker strings
     dated = [(ticker_day(r["market"]), r) for r in fresh]
     dated = [(d, r) for d, r in dated if d]
     if not dated:
@@ -202,7 +177,6 @@ def main():
     target = max(d for d, _ in dated)
     fresh = [r for d, r in dated if d == target]
 
-        # ---- skip cities whose settlement station isn't verified ----
     if SKIP_UNVERIFIED:
         before = len(fresh)
         blocked = sorted({r.get("city", "") for r in fresh
@@ -212,8 +186,6 @@ def main():
             print(f"SKIP_UNVERIFIED: dropped {before - len(fresh)} picks "
                   f"from unverified cities: {', '.join(blocked)}")
 
-
-    # ---- FAIL CLOSED: verify real account exposure before anything ----
     try:
         owned = exposure_tickers()
     except Exception as e:
@@ -222,44 +194,38 @@ def main():
         return
     fresh = [r for r in fresh if r["market"] not in owned]
 
-    # positions already held per city for the target day (cap input)
     per_city = {}
     for t in owned:
         if ticker_day(t) == target:
             per_city[city_key(t)] = per_city.get(city_key(t), 0) + 1
 
-    # pick side-specific cost & edge, filter, rank
-    ranked = []
+    # filter to the cost band only -- no ranking, no edge math.
+    # order is simply the order the scanner wrote them in.
+    candidates = []
     for r in fresh:
-        side = r["would_bet"]
         try:
-            cost = float(r["yes_ask"] if side == "YES" else r["no_ask"])
-            edge = float(r["edge_yes"] if side == "YES" else r["edge_no"])
+            cost = float(r["yes_ask"])
         except (TypeError, ValueError):
             continue
         if MIN_COST <= cost <= MAX_COST:
-            ranked.append((edge, cost, side, r))
-    ranked.sort(key=lambda p: p[0], reverse=True)
+            candidates.append((cost, r))
 
     picks = []
-    for edge, cost, side, r in ranked:
-        # sanity guard: model YES% vs the YES price this trade implies
+    for cost, r in candidates:
         try:
             model = float(r.get("model_prob_pct") or 0)
         except (TypeError, ValueError):
             model = 0.0
-        implied_yes = cost if side == "YES" else 100 - cost
-        if abs(model - implied_yes) > SANITY_GAP:
-            print(f"SKIP {r['market']} {side}: sanity gap "
-                  f"(model {model:.0f}% vs implied {implied_yes:.0f}c)")
+        if abs(model - cost) > SANITY_GAP:
+            print(f"SKIP {r['market']}: sanity gap "
+                  f"(model {model:.0f}% vs price {cost:.0f}c)")
             continue
-        # per-city daily cap
         ck = city_key(r["market"])
         if per_city.get(ck, 0) >= MAX_PER_CITY_DAY:
-            print(f"SKIP {r['market']} {side}: city cap ({ck})")
+            print(f"SKIP {r['market']}: city cap ({ck})")
             continue
         per_city[ck] = per_city.get(ck, 0) + 1
-        picks.append((edge, cost, side, r))
+        picks.append((cost, r))
         if len(picks) >= MAX_ORDERS:
             break
 
@@ -277,29 +243,23 @@ def main():
                         "count", "limit_cents", "model_pct", "edge",
                         "live", "status", "order_id"])
         run_spent = 0.0
-        for edge, cost, side, r in picks:
+        for cost, r in picks:
             cost = int(cost)
-            # dollar sizing: how many contracts BET_DOLLARS buys at this
-            # price (min 1). Hard ceiling on total $ placed per run.
             count = max(1, int(BET_DOLLARS * 100) // cost)
             bet_cost = count * cost / 100
             if run_spent + bet_cost > MAX_RUN_DOLLARS:
-                print(f"SKIP {r['market']} {side}: run spend cap "
+                print(f"SKIP {r['market']}: run spend cap "
                       f"(${run_spent:.2f} + ${bet_cost:.2f} > "
                       f"${MAX_RUN_DOLLARS})")
                 continue
             run_spent += bet_cost
-            # single YES book: buy YES = bid at cost;
-            # buy NO at cost = ask (short YES) at 100 - cost
-            book_side = "bid" if side == "YES" else "ask"
-            book_price = cost if side == "YES" else 100 - cost
             status, oid = "DRY_RUN", ""
             if LIVE:
                 body = {"ticker": r["market"],
                         "client_order_id": str(uuid.uuid4()),
-                        "side": book_side,
+                        "side": "bid",
                         "count": f"{count:.2f}",
-                        "price": f"{book_price / 100:.4f}",
+                        "price": f"{cost / 100:.4f}",
                         "time_in_force": "good_till_canceled",
                         "self_trade_prevention_type": "taker_at_cross"}
                 try:
@@ -312,11 +272,11 @@ def main():
                     status = f"ERROR {e.code} {e.read().decode()[:150]}"
                 except Exception as e:
                     status = f"ERROR {e}"
-            print(f"{r['city']} {r['subtitle']} {side} x{count} @{cost}c "
-                  f"(${bet_cost:.2f}, edge {edge:+.1f}) -> {status}")
-            w.writerow([stamp, r["market"], r["subtitle"], side.lower(),
-                        count, cost, r["model_prob_pct"],
-                        edge, LIVE, status, oid])
+            print(f"{r['city']} {r['subtitle']} YES x{count} @{cost}c "
+                  f"(${bet_cost:.2f}) -> {status}")
+            w.writerow([stamp, r["market"], r["subtitle"], "yes",
+                        count, cost, r["model_prob_pct"], "",
+                        LIVE, status, oid])
     print("Balance after:", balance())
 
 
