@@ -11,3 +11,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-16T23:18:02+00:00,KXHIGHTBOS-26AUG17-T74,73° or below,yes,1,53,48.4,,True,submitted,fb35c097-93b5-4ca4-862f-0398eca82b8b
 2026-08-16T23:33:22+00:00,KXHIGHTSATX-26AUG17-B101.5,101° to 102°,yes,2,36,35.5,,True,submitted,48059aa7-a62a-46ef-9fed-e8d0070bc2df
 2026-08-16T23:33:22+00:00,KXHIGHTNOLA-26AUG17-B97.5,97° to 98°,yes,4,25,51.6,,True,submitted,c486e70b-ea92-48d9-b963-791c8ef4a335
+2026-08-17T19:41:24+00:00,KXHIGHTSFO-26AUG17-T74,75° or above,yes,11,9,54.8,,True,submitted,8bf4bc63-4256-4637-bad1-ca515fd30c6d
