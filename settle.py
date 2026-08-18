@@ -16,9 +16,12 @@ import base64, csv, json, os, re, time, urllib.request
 from datetime import datetime, timezone
 
 from cities import SERIES_TO_CITY
+from csvio import appender
 
 TRADES = "trades.csv"
 RESULTS = "results.csv"
+FIELDS = ["graded_utc", "ticker", "city", "action", "cost_cents",
+          "count", "market_result", "result", "pnl"]
 
 BASE = "https://api.elections.kalshi.com"
 KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
@@ -88,8 +91,12 @@ def load_trades():
             act = (r.get("action") or r.get("side") or "").upper()
             if act not in ("YES", "NO"):
                 continue
+            # trades.csv names this column limit_cents (the price the
+            # order was placed at). It was missing from this chain, so
+            # every graded bet scored with cost 0: wins paid a full 100c
+            # and losses cost nothing. Real money, fictional scoreboard.
             cost = (r.get("cost_cents") or r.get("price_cents")
-                    or r.get("cost") or "")
+                    or r.get("limit_cents") or r.get("cost") or "")
             qty = r.get("count") or r.get("qty") or r.get("contracts") or "1"
             out.append({"ticker": tick, "action": act,
                         "cost_cents": cost, "count": qty,
@@ -106,14 +113,8 @@ def main():
                if (t["ticker"], t["action"]) not in graded]
     print(f"{len(trades)} trades on file, {len(pending)} not yet graded")
 
-    fields = ["graded_utc", "ticker", "city", "action", "cost_cents",
-              "count", "market_result", "result", "pnl"]
-    new = not os.path.exists(RESULTS)
     wrote = 0
-    with open(RESULTS, "a", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
-        if new:
-            w.writeheader()
+    with appender(RESULTS, FIELDS) as w:
         seen_this_run = set()
         for t in pending:
             k = (t["ticker"], t["action"])
@@ -141,6 +142,7 @@ def main():
             except (TypeError, ValueError):
                 n = 1.0
             pnl = round(((100 - cost) if won else -cost) * n / 100.0, 2)
+            pnl = pnl + 0.0        # normalise -0.0 -> 0.0
             w.writerow({"graded_utc": stamp, "ticker": t["ticker"],
                         "city": t["city"], "action": t["action"],
                         "cost_cents": t["cost_cents"], "count": t["count"],

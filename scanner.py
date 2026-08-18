@@ -45,8 +45,13 @@ from datetime import datetime, timezone
 
 from cities import CITIES, STATIONS
 from calibration import compute_calibration
+from csvio import appender
 
 OUT = "edges.csv"
+FIELDS = ["scanned_utc", "city", "market", "subtitle", "floor", "cap",
+          "yes_ask", "no_ask", "model_prob_pct", "edge_yes", "edge_no",
+          "bias_f", "spread_scale", "n_members", "pick", "edge_pick",
+          "would_bet"]
 
 # ---- THE TWO RULES' NUMBERS ----
 MAX_PICK_COST = 68.0   # past this, no buy for that city today
@@ -181,18 +186,9 @@ def main():
         print(f"cal {STATIONS[sid]}: bias={bias:+.2f}F spread x{scale:.2f} "
               f"(n={n}) [applied at forecast time]")
 
-    fields = ["scanned_utc", "city", "market", "subtitle", "floor", "cap",
-              "yes_ask", "no_ask", "model_prob_pct", "edge_yes", "edge_no",
-              "bias_f", "spread_scale", "n_members", "pick", "edge_pick",
-              "would_bet"]
-    new = not os.path.exists(OUT)
     rows_written = 0
     buys = 0
-    with open(OUT, "a", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fields)
-        if new:
-            w.writeheader()
-
+    with appender(OUT, FIELDS) as w:
         for series, (city, _station, _lat, _lon, _v) in CITIES.items():
             try:
                 data = ksigned(f"/trade-api/v2/markets?series_ticker={series}"

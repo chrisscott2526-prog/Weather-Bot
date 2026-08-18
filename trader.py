@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cities import UNVERIFIED
+from csvio import appender
 
 LIVE = True          # False = log picks only, place nothing
 MAX_ORDERS = 5
@@ -30,6 +31,9 @@ BET_DOLLARS = 1      # $ per bet. Change ONLY after 100+ settled bets
                      # show positive P&L.
 MAX_RUN_DOLLARS = 10  # hard ceiling on total $ placed in one run
 MIN_COST, MAX_COST = 8, 68   # matches scanner.py's MIN/MAX_PICK_COST
+TRADE_FIELDS = ["placed_utc", "ticker", "subtitle", "side", "count",
+                "limit_cents", "model_pct", "edge", "live",
+                "status", "order_id"]
 MAX_PER_CITY_DAY = 1         # one position per city per day
 SANITY_GAP = 60             # skip if model% vs implied price gap > this
 SKIP_UNVERIFIED = True
@@ -235,13 +239,7 @@ def main():
         cancel_resting_orders()
     print("Balance before:", balance())
 
-    new = not os.path.exists("trades.csv")
-    with open("trades.csv", "a", newline="") as f:
-        w = csv.writer(f)
-        if new:
-            w.writerow(["placed_utc", "ticker", "subtitle", "side",
-                        "count", "limit_cents", "model_pct", "edge",
-                        "live", "status", "order_id"])
+    with appender("trades.csv", TRADE_FIELDS) as w:
         run_spent = 0.0
         for cost, r in picks:
             cost = int(cost)
@@ -274,9 +272,11 @@ def main():
                     status = f"ERROR {e}"
             print(f"{r['city']} {r['subtitle']} YES x{count} @{cost}c "
                   f"(${bet_cost:.2f}) -> {status}")
-            w.writerow([stamp, r["market"], r["subtitle"], "yes",
-                        count, cost, r["model_prob_pct"], "",
-                        LIVE, status, oid])
+            w.writerow({"placed_utc": stamp, "ticker": r["market"],
+                        "subtitle": r["subtitle"], "side": "yes",
+                        "count": count, "limit_cents": cost,
+                        "model_pct": r["model_prob_pct"], "edge": "",
+                        "live": LIVE, "status": status, "order_id": oid})
     print("Balance after:", balance())
 
 
