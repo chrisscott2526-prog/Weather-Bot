@@ -1,3 +1,6 @@
 graded_utc,ticker,city,action,cost_cents,count,market_result,result,pnl
 
 
+2026-08-18T11:55:47+00:00,KXHIGHTDC-26AUG17-B92.5,Washington DC,YES,,2,NO,LOSS,-0.0
+2026-08-18T11:55:47+00:00,KXHIGHTATL-26AUG17-B97.5,Atlanta,YES,,2,YES,WIN,2.0
+2026-08-18T11:55:47+00:00,KXHIGHTBOS-26AUG17-T74,Boston,YES,,1,NO,LOSS,-0.0
