@@ -37,3 +37,6 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-18T02:39:51+00:00,KXHIGHTDAL-26AUG18-B106.5,106° to 107°,yes,1,64,38.7,,True,submitted,4d6f7802-5d55-4c66-8902-c9efe8bb5d52
 2026-08-18T02:39:51+00:00,KXHIGHTSEA-26AUG18-T76,75° or below,yes,5,17,38.7,,True,submitted,b02143df-046b-461e-8177-5ea6fa3eb594
 2026-08-18T02:39:51+00:00,KXHIGHTOKC-26AUG18-B104.5,104° to 105°,yes,4,22,35.5,,True,submitted,d817dcc4-d296-4eed-bead-5965e20cdc75
+2026-08-18T03:57:06+00:00,KXHIGHTMIN-26AUG18-T82,83° or above,yes,3,32,64.5,,True,submitted,a0888d9e-417f-4eb9-a65b-21da8b1493e8
+2026-08-18T03:57:06+00:00,KXHIGHTNOLA-26AUG18-T95,94° or below,yes,4,23,80.6,,True,submitted,b811ca0f-0a07-43c7-8a2f-a98fd0bfad39
+2026-08-18T03:57:06+00:00,KXHIGHTHOU-26AUG18-B98.5,98° to 99°,yes,4,22,38.7,,True,submitted,78d09797-e5c5-4c93-9f15-b25e15d8d06a
