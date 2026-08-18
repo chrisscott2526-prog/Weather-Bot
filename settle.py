@@ -10,9 +10,18 @@ AUDITED + FIXED Aug 6 2026:
   from price. The result field comes from the exchange, nowhere else.
 - Rows already graded are never re-graded (idempotent on re-run).
 - Defensive column reads: works with old and new trades.csv layouts.
+
+AUDITED + FIXED Aug 18 2026:
+- Cost comes from limit_cents (the column trader.py actually writes);
+  rows were previously graded at cost 0, so every loss scored -0.00 and
+  every win scored the full payout.
+- Trades whose status isn't a successful submission (ERROR/ODD/DRY_RUN
+  rows) are never graded -- no fill means nothing to score.
+- P&L nets out Kalshi's trading fee: ceil-to-cent of
+  0.07 * contracts * price * (1 - price), charged win or lose.
 """
 
-import base64, csv, json, os, re, time, urllib.request
+import base64, csv, json, math, os, re, time, urllib.request
 from datetime import datetime, timezone
 
 from cities import SERIES_TO_CITY
@@ -88,8 +97,11 @@ def load_trades():
             act = (r.get("action") or r.get("side") or "").upper()
             if act not in ("YES", "NO"):
                 continue
-            cost = (r.get("cost_cents") or r.get("price_cents")
-                    or r.get("cost") or "")
+            if "status" in r and \
+                    (r.get("status") or "").strip().lower() != "submitted":
+                continue   # order never filled the book -- nothing to score
+            cost = (r.get("limit_cents") or r.get("cost_cents")
+                    or r.get("price_cents") or r.get("cost") or "")
             qty = r.get("count") or r.get("qty") or r.get("contracts") or "1"
             out.append({"ticker": tick, "action": act,
                         "cost_cents": cost, "count": qty,
@@ -107,7 +119,7 @@ def main():
     print(f"{len(trades)} trades on file, {len(pending)} not yet graded")
 
     fields = ["graded_utc", "ticker", "city", "action", "cost_cents",
-              "count", "market_result", "result", "pnl"]
+              "count", "fee_cents", "market_result", "result", "pnl"]
     new = not os.path.exists(RESULTS)
     wrote = 0
     with open(RESULTS, "a", newline="") as f:
@@ -140,17 +152,20 @@ def main():
                 n = float(t["count"])
             except (TypeError, ValueError):
                 n = 1.0
-            pnl = round(((100 - cost) if won else -cost) * n / 100.0, 2)
+            fee = math.ceil(7 * cost * (100 - cost) * n / 10000)
+            gross = ((100 - cost) if won else -cost) * n
+            pnl = round((gross - fee) / 100.0, 2)
             w.writerow({"graded_utc": stamp, "ticker": t["ticker"],
                         "city": t["city"], "action": t["action"],
                         "cost_cents": t["cost_cents"], "count": t["count"],
+                        "fee_cents": fee,
                         "market_result": result.upper(),
                         "result": "WIN" if won else "LOSS",
                         "pnl": pnl})
             wrote += 1
             print(f"{t['city'] or t['ticker']} {t['action']} "
                   f"@ {t['cost_cents']}c -> {result.upper()} "
-                  f"= {'WIN' if won else 'LOSS'} ({pnl:+.2f})")
+                  f"= {'WIN' if won else 'LOSS'} ({pnl:+.2f} after {fee}c fee)")
     print(f"graded {wrote} newly settled bets")
 
 
