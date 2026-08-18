@@ -1,0 +1,194 @@
+# CLAUDE.md — Weather-Bot Operating Manual
+
+**Read this before touching anything.** This file is the permanent operating
+manual for every future session. The rules below were paid for with real
+money. Do not "improve" them away.
+
+## Who you're working for
+
+The owner is **not a programmer** and works from an **iPad**.
+
+- Explain everything in plain English. No jargon walls.
+- Prefer **complete-file changes** over fragments or diffs — the owner
+  cannot easily apply a patch by hand.
+- When something looks wrong, say so plainly and say what it costs.
+
+## What this bot does
+
+It bets Kalshi **daily HIGH temperature bracket markets** on **20
+hand-verified US cities**, $1 at a time, and keeps an honest scoreboard.
+
+- `cities.py` is the **single source of truth** for the 20 cities: series
+  ticker → (city, NWS station, lat, lon). Every script imports from it.
+- **Never auto-discover series.** Ghost series with 0 open markets exist on
+  Kalshi (KXHIGHNYD, KXHIGHOU, KXHIGHTEMPDEN, KXHIGHUS — deliberately
+  excluded). A new series gets added only after its settlement station is
+  verified by hand against Kalshi's rules panel (the CLI code trick:
+  `CLIPHX` = station KPHX). Wrong station = garbage calibration = losing
+  trades. Known gotchas already baked in: Chicago = Midway (KMDW),
+  Dallas = DFW, Houston = **Hobby** (KHOU, not Intercontinental),
+  New York = Central Park (KNYC).
+
+There are also two **advisor-only** side products that place no bets:
+`sports_scanner.py` (moneyline edge card; series whitelist is sacred —
+see its docstring) and `swoop_alert.py` (grades open positions against
+the thermometer with freshness gates). They share the honesty rules.
+
+## THE STRATEGY IS PICK-FIRST (Law of Aug 6, 2026)
+
+1. **Pick the bracket.** For each city and market date, the GFS ensemble
+   votes: the bracket containing the **most ensemble members** is the pick.
+   Full stop. Price plays **no part** in choosing it.
+2. **Price is only a gate.** If the pick's YES ask is inside
+   `MIN_PICK_COST..MAX_PICK_COST` (8¢–68¢ in `scanner.py`), buy is flagged.
+   Outside the band → **NO BUY for that city that day. No substitutes.**
+   Never fall back to a cheaper neighboring bracket — a week of babysitting
+   proved the discounted second-favorite loses, and rolling out of it costs
+   a sell loss, a premium re-entry, and two fees.
+3. **Never rank by edge.** The old edge-ranking rule systematically bought
+   the second-most-likely bracket at a discount. Right neighborhood, wrong
+   house, over and over. Edge numbers are still *computed and logged* in
+   `edges.csv` (`edge_yes`, `edge_no`, `edge_pick`) so the scoreboard can
+   grade the old rule's hypothetical picks against the real ones — they
+   **decide nothing**.
+4. **Never bet NO.** The scanner and trader are YES-only. `TRADE_NO` was
+   removed from the trader on purpose.
+5. Additional seatbelts in `scanner.py` (paid for in losses — keep them):
+   - `MIN_PICK_PROB = 35`: if even the top bracket has under 35% of
+     members, the day is too uncertain — no bet.
+   - Under `MIN_PICK_COST` (8¢): the market is screaming we're wrong —
+     believe it, don't "value-buy".
+   - No ensemble members for a (date, city) → **SKIP loudly**.
+
+## SIZING LAW
+
+**$1 per bet** (`BET_DOLLARS = 1` in `trader.py`) until **100+ settled bets
+in `results.csv` show positive P&L**. No exceptions, no matter how good a
+pick looks. A pick that "can't lose" still gets $1.
+
+Trader hard caps, all enforced in `trader.py` — do not loosen:
+- `MAX_ORDERS = 5` orders per run, `MAX_RUN_DOLLARS = 10` per run.
+- `MAX_PER_CITY_DAY = 1` position per city per day (counts existing
+  positions and resting orders via the FAIL-CLOSED exposure check — if the
+  account can't be read, **no trades are placed that run**).
+- `MIN_COST, MAX_COST = 8, 68` — must always equal the scanner's gate.
+  (They were once 15/10, an impossible range that silently placed zero
+  trades for days.)
+- `SANITY_GAP = 60`: skip if model% and price disagree by more than 60
+  points — that gap means bad data, not free money.
+- Kalshi maintenance window 06:45–08:15 UTC is skipped (the API 503s).
+- Contracts per bet = `max(1, 100 // cost_cents)` — i.e. roughly $1 spent
+  whatever the price.
+
+## HONESTY RULES
+
+- **Never invent data.** No fake spreads, no guessed confidence, no
+  placeholder temperatures. A missing forecast or observation means
+  **SKIP, loudly** (print why), never a made-up row.
+- Every temperature reading carries its **observation timestamp**
+  (`obs_time_utc`). Downstream code must be able to refuse stale data;
+  `swoop_alert.py` refuses readings older than 60 minutes for SWOOP tags.
+- `daily_highs.csv` is the **hourly METAR instrument reading so far** —
+  Kalshi settles on the NWS **CLI Daily Climate Report**, a different
+  product that catches between-hour peaks. They usually agree; they are not
+  the same number. Never present the board as "what will settle."
+- **Settlement truth outranks any thermometer.** Kalshi's own `result`
+  field is the only thermometer that pays. `settle.py` grades only markets
+  Kalshi says are settled/finalized; `calibration.py` overrides the
+  instrument reading whenever one of our own settled bets proves the high
+  landed in a different bracket.
+- Failures print and skip. An "ERROR" row with a blank date is a trap for
+  every downstream reader (this exact trap poisoned `forecasts.csv` once).
+
+## HISTORY — THE SCARS (do not repeat these)
+
+- **The $60 Phoenix lesson (Aug 5, 2026).** Rounding invented a degree:
+  42.2 °C → 107.96 °F displayed as 108.0 on a bracket edge. The poller now
+  **floors to two decimals and never rounds up** (`c_to_f` in `poller.py`).
+  The board must understate, never overstate. Also from the same audit:
+  daily highs are filed under the **city's own calendar day** (longitude
+  timezone estimate), not the UTC date.
+- **CSV header drift caused repeated silent failures.** Whenever a data
+  file is wiped or a writer changes columns, the header must be updated
+  **in the same commit** as the writer change. Readers should read by
+  column name and tolerate old layouts (`settle.py` and `calibration.py`
+  do this deliberately).
+- **Workflow rules** (`.github/workflows/*.yml`), all learned the hard way:
+  - `git add -A` — never single-file `git add` (it silently drops sibling
+    files the script also wrote).
+  - `git pull --rebase` **with a conflict fallback** before push (see
+    `poll.yml` for the pattern) — 15-minute polling means pushes race.
+  - Every job must carry `timeout-minutes`.
+- **Sports whitelist (Aug 2, 2026).** Substring matching on series names
+  swept in inning props and player-signing markets and reported fantasy
+  40¢ "edges". Real moneyline edges are 2–5¢ and rare. Whitelist only.
+
+## HOW THE PIECES FIT (data flow)
+
+```
+forecast.py  (nightly 23:00 UTC)  GFS 31-member ensemble via Open-Meteo,
+     |                            calibrated per-station -> forecasts.csv
+     v
+scanner.py   (9x daily + after forecast)  Kalshi open markets + ensemble
+     |                            votes -> picks + gates -> edges.csv
+     v
+trader.py    (9x daily + after scan)  latest scan's would_bet=YES rows,
+     |                            $1 each -> Kalshi orders -> trades.csv
+     v
+settle.py    (daily 12:20 UTC)    asks Kalshi how each market settled
+     |                            -> results.csv  (THE scoreboard)
+     v
+calibration.py  learns per-station bias from forecasts vs actuals,
+                settlement-pinned; feeds back into forecast.py.
+
+poller.py    (every 15 min)       NWS METAR temps -> temps_log.csv,
+                                  running local-day highs -> daily_highs.csv
+swoop_alert.py (4x afternoon)     advisor board -> swoop.html, swoop_log.csv
+sports_scanner.py (2x daily)      advisor card  -> sports.html, sports_*.csv
+index.html                        static dashboard reading the CSVs
+```
+
+All state is CSVs committed to `main` by the workflows. There is no
+database. Secrets live in GitHub Actions: `KALSHI_API_KEY_ID`,
+`KALSHI_PRIVATE_KEY`, `ODDS_API_KEY`.
+
+### CSV contracts (writer owns the header)
+
+| File | Writer | Header |
+|---|---|---|
+| `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members` (members pipe-separated, already calibrated) |
+| `temps_log.csv` | `poller.py` | `utc_time,station,city,temp_f,obs_time_utc` |
+| `daily_highs.csv` | `poller.py` (full rewrite each run) | `date,station,city,high_f,last_update_utc,obs_time_utc` |
+| `edges.csv` | `scanner.py` | `scanned_utc,city,market,subtitle,floor,cap,yes_ask,no_ask,model_prob_pct,edge_yes,edge_no,bias_f,spread_scale,n_members,pick,edge_pick,would_bet` |
+| `trades.csv` | `trader.py` | `placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,order_id` |
+| `results.csv` | `settle.py` | `graded_utc,ticker,city,action,cost_cents,count,market_result,result,pnl` |
+
+Calibration is applied **exactly once**, at forecast time
+(`calibrate_members` inside `forecast.py`). The scanner only reports the
+calibration table for display — never re-apply it.
+
+## ROADMAP — how this grows
+
+Flat $1 stakes are **temporary tuition**. The record in `results.csv`,
+sliced **per-city and per-strategy**, decides everything:
+
+- Cities with proven bad hit rates get **benched**. Prime suspect:
+  **KNYC Central Park** (sheltered station, runs cool). Bench on evidence
+  from the scoreboard, not on vibes.
+- Sizing eventually concentrates into the strategies and cities the record
+  proves accurate (the `pick` vs `edge_pick` columns exist so pick-first
+  can be graded against the old edge rule on the same days).
+- **The scoreboard promotes; conviction never does.** No sizing change, no
+  city change, no strategy change without settled results backing it.
+
+## Working rules for future sessions
+
+- Before changing any writer, grep for every reader of that CSV and keep
+  the header, writer, and readers in sync **in one commit**.
+- Never weaken a guard because it "blocks trades" — most guards exist
+  because a missing guard once lost money. Find out why it's blocking.
+- Keep the scanner's and trader's cost bands identical.
+- Test reasoning against the actual CSVs in the repo; they are the ground
+  truth of what the code really did.
+- Explain your findings to the owner in plain English, and deliver
+  complete files.
