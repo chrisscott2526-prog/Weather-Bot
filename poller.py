@@ -24,9 +24,14 @@ import csv, json, math, os, urllib.request
 from datetime import datetime, timezone, timedelta
 
 from cities import STATIONS, SITES
+from csvio import appender
 
 LOG = "temps_log.csv"
 HIGHS = "daily_highs.csv"
+
+LOG_FIELDS = ["utc_time", "station", "city", "temp_f", "obs_time_utc"]
+# layout before obs_time_utc was added (Aug 5 2026)
+LOG_LEGACY = [["utc_time", "station", "city", "temp_f"]]
 
 def build_offsets():
     """city -> UTC offset (hours, negative for US) from site longitude."""
@@ -91,20 +96,17 @@ def main():
     stamp = now.isoformat(timespec="seconds")
     highs = read_highs()
 
-    new_file = not os.path.exists(LOG)
-    with open(LOG, "a", newline="") as f:
-        w = csv.writer(f)
-        if new_file:
-            w.writerow(["utc_time", "station", "city", "temp_f",
-                        "obs_time_utc"])
+    with appender(LOG, LOG_FIELDS, LOG_LEGACY) as w:
         for sid, city in STATIONS.items():
             try:
                 t, obs_time = fetch(sid)
             except Exception as e:
-                w.writerow([stamp, sid, city, "ERROR", ""])
+                w.writerow({"utc_time": stamp, "station": sid, "city": city,
+                            "temp_f": "ERROR", "obs_time_utc": ""})
                 print(f"{city}: failed - {e}")
                 continue
-            w.writerow([stamp, sid, city, t, obs_time])
+            w.writerow({"utc_time": stamp, "station": sid, "city": city,
+                        "temp_f": t, "obs_time_utc": obs_time})
             age = ""
             try:
                 ot = datetime.fromisoformat(obs_time.replace("Z", "+00:00"))

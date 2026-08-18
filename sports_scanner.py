@@ -36,6 +36,8 @@ from statistics import median
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
+from csvio import appender
+
 # ---------- config ----------
 SPORTS = {  # Odds API sport key -> label
     "baseball_mlb": "MLB",
@@ -71,6 +73,16 @@ MAX_HOURS_OUT = 30     # only games starting within this window
 MIN_ASK, MAX_ASK = 10, 90   # ignore extreme moneylines
 PICKS_CSV = "sports_picks.csv"
 RESULTS_CSV = "sports_results.csv"
+
+PICKS_FIELDS = ["scanned_utc", "sport", "game", "commence_utc", "ticker",
+                "series", "action", "pick_team", "opponent", "ask_cents",
+                "fair_pct", "fee_cents", "edge_cents", "n_books",
+                "shown", "why"]
+# layout before the series column was added mid-row (Aug 6 2026)
+PICKS_LEGACY = [[c for c in PICKS_FIELDS if c != "series"]]
+RESULTS_FIELDS = ["graded_utc", "sport", "game", "commence_utc", "ticker",
+                  "action", "pick_team", "ask_cents", "edge_cents",
+                  "winner", "result", "pnl"]
 PAGE = "sports.html"
 
 KBASE = "https://api.elections.kalshi.com"
@@ -315,11 +327,7 @@ def grade(picks_rows):
                        "winner": w,
                        "result": "WIN" if pick_won else "LOSS", "pnl": pnl})
     if graded:
-        new = not os.path.exists(RESULTS_CSV)
-        with open(RESULTS_CSV, "a", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=list(graded[0].keys()))
-            if new:
-                w.writeheader()
+        with appender(RESULTS_CSV, RESULTS_FIELDS) as w:
             for g in graded:
                 w.writerow(g)
     return graded
@@ -544,19 +552,12 @@ def main():
     if not any(by_sport.values()):
         note = "Kalshi moneyline markets unavailable this scan."
 
-    fields = ["scanned_utc", "sport", "game", "commence_utc", "ticker",
-              "series", "action", "pick_team", "opponent", "ask_cents",
-              "fair_pct", "fee_cents", "edge_cents", "n_books", "shown", "why"]
-    new = not os.path.exists(PICKS_CSV)
     shown = []
     todays_rows = []
 
     matched = 0
     suppressed = 0
-    with open(PICKS_CSV, "a", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fields)
-        if new:
-            w.writeheader()
+    with appender(PICKS_CSV, PICKS_FIELDS, PICKS_LEGACY) as w:
         for g in games:
             mkts = by_sport.get(g["sport"], [])
             m, yes_team = match_market(g, mkts)

@@ -31,11 +31,17 @@ import base64, csv, html, json, os, re, time, urllib.request
 from datetime import datetime, timezone
 
 from cities import CITY_TO_STATION, SERIES_TO_CITY
+from csvio import appender
 
 BASE = "https://api.elections.kalshi.com"
 KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
 PAGE = "swoop.html"
 LOG = "swoop_log.csv"
+LOG_FIELDS = ["checked_utc", "ticker", "city", "side", "bracket",
+              "observed_high", "obs_age_min", "market_cents", "status"]
+# layout before obs_age_min was added mid-row (Aug 6 2026)
+LOG_LEGACY = [["checked_utc", "ticker", "city", "side", "bracket",
+               "observed_high", "market_cents", "status"]]
 SWOOP_MAX_ASK = 80       # don't flag chases above this (cents)
 SWOOP_MIN_ASK = 8        # below this the market says it already lost
 LOCK_MAX_ASK = 95        # locked-win flag only if price still below this
@@ -403,11 +409,7 @@ def main():
         print(f"{city} {side.upper()} {bracket}: {flag} (obs {obs:.1f}\u00b0)")
 
     if rows:
-        new = not os.path.exists(LOG)
-        with open(LOG, "a", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
-            if new:
-                w.writeheader()
+        with appender(LOG, LOG_FIELDS, LOG_LEGACY) as w:
             for r in rows:
                 w.writerow(r)
     with open(PAGE, "w") as f:

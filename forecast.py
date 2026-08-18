@@ -15,9 +15,14 @@ from datetime import datetime, timezone
 from statistics import median as true_median
 from calibration import calibrate_members
 from cities import SITES
+from csvio import appender
 
 
 OUT = "forecasts.csv"
+FIELDS = ["forecast_date", "station", "city", "forecast_high_f",
+          "fetched_utc", "members"]
+# layout before ensemble members were logged (Aug 5 2026)
+LEGACY = [[c for c in FIELDS if c != "members"]]
 UA = {"User-Agent": "weather-bot-personal"}
 
 
@@ -63,12 +68,7 @@ def ensemble_highs(lat, lon):
 
 def main():
     fetched = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    new = not os.path.exists(OUT)
-    with open(OUT, "a", newline="") as f:
-        w = csv.writer(f)
-        if new:
-            w.writerow(["forecast_date", "station", "city",
-                        "forecast_high_f", "fetched_utc", "members"])
+    with appender(OUT, FIELDS, LEGACY) as w:
         for sid, (city, lat, lon) in SITES.items():
             try:
                 d, members = ensemble_highs(lat, lon)
@@ -76,8 +76,10 @@ def main():
                     raise ValueError("no ensemble data returned")
                 members, bias = calibrate_members(sid, members)
                 med = round(true_median(members), 1)
-                w.writerow([d, sid, city, med, fetched,
-                            "|".join(str(m) for m in members)])
+                w.writerow({"forecast_date": d, "station": sid,
+                            "city": city, "forecast_high_f": med,
+                            "fetched_utc": fetched,
+                            "members": "|".join(str(m) for m in members)})
                 print(f"{city}: median {med}F, "
                       f"{len(members)} members for {d}")
             except Exception as e:
