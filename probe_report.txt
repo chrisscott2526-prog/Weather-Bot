@@ -1,0 +1,332 @@
+SPORTS PROBE -- read-only. No bets, no CSV writes, no card.
+========================================================================
+PART 1: WHAT THE ODDS API KEY CAN PULL
+========================================================================
+ODDS_API_KEY is EMPTY in this repo's Actions secrets. Re-add it under GitHub → Settings → Secrets → Actions, then re-run this probe.
+
+========================================================================
+PART 2: KALSHI SPORTS INVENTORY (open markets, real volume)
+========================================================================
+Kalshi lists 3468 series under category=Sports
+
+Every KXNFL* series in the catalogue (titles only, no lookup):
+  KXNFL1H                      Pro Football 1st Half Winner
+  KXNFL1HSPREAD                Pro Football 1st Half Spread
+  KXNFL1HTOTAL                 Pro Football 1st  Half Total Points
+  KXNFL1HWINNER                NFL 1st Half Winner
+  KXNFL1Q                      Pro Football 1st Quarter Winner
+  KXNFL1QSPREAD                Pro Football 1st Quarter Spread
+  KXNFL1QTOTAL                 Pro Football 1st Quarter Total
+  KXNFL1QWINNER                Pro Football 1st Quarter Winner
+  KXNFL1SEED                   Will team win conference in regular season
+  KXNFL1YDPASS                 Seattle 1 Yard Pass
+  KXNFL2H                      Pro Football 2nd Half
+  KXNFL2HSPREAD                Pro Football 2nd Half Spread
+  KXNFL2HTOTAL                 Pro Football 2nd Half Total
+  KXNFL2HWINNER                NFL 2nd Half Winner
+  KXNFL2PTCONV                 Pro Football 2-Point Conversions
+  KXNFL2Q                      Pro Football 2nd Quarter Winner
+  KXNFL2QSPREAD                Pro Football 2nd Quarter Spread
+  KXNFL2QTOTAL                 Pro Football 2nd Quarter Total
+  KXNFL2QWINNER                Pro Football 2nd Quarter Winner
+  KXNFL2TD                     Pro Football Multiple Touchdowns
+  KXNFL3Q                      Pro Football 3rd Quarter Winner
+  KXNFL3QSPREAD                Pro Football 3rd Quarter Spread
+  KXNFL3QTOTAL                 Pro Football 3rd Quarter Total
+  KXNFL3QWINNER                Pro Football 3rd Quarter Winner
+  KXNFL4DCONV                  Pro Football 4th Down Conversions
+  KXNFL4DOWNCONV               Pro Football 4th Down Conversions
+  KXNFL4Q                      Pro Football 4th Quarter Winner
+  KXNFL4QSPREAD                Pro Football 4th Quarter Spread
+  KXNFL4QTOTAL                 Pro Football 4th Quarter Total
+  KXNFL4QWINNER                Pro Football 4th Quarter Winner
+  KXNFLAFCCHAMP                American Football Conference Champion
+  KXNFLAFCEAST                 American Football Conference East Winner
+  KXNFLAFCNORTH                American Football Conference North Winner
+  KXNFLAFCSOUTH                American Football Conference South Winner
+  KXNFLAFCWEST                 American Football Conference West Winner
+  KXNFLALLPRO                  Pro Football All-Pro Teams
+  KXNFLANYTD                   Pro Football Anytime Touchdown
+  KXNFLASSCOACH                NFL Assistant Coach of the Year
+  KXNFLAWARDFIN                Pro Football Award Finalists
+  KXNFLBLOWOUT                 Pro Football Biggest Blowout
+  KXNFLCELEBRITYGAME           Pro Football Celebrity Flag Football Game
+  KXNFLCOACH                   NFL Coach of the Year
+  KXNFLCOMBINE                 NFL Combine
+  KXNFLCOMBINE40               Pro Football Combine Fastest 40 Time
+  KXNFLCOMBO                   NFL COMBO
+  KXNFLCOMEBACK                Pro Football Comeback
+  KXNFLCOMPETE                 Will an NFL Player Compete in game
+  KXNFLCONTRACTSIZE            Pro Football Next Contract Size
+  KXNFLCOTY                    AP Pro Football Coach Of The Year
+  KXNFLCPOTY                   AP Pro Football Comeback Player of the Year
+  KXNFLDEPTHPOSITIONCLEQB2     QB2 CLE
+  KXNFLDIVISIONORDER           Pro Football Division Exact Order
+  KXNFLDIVISIONWINS            Pro Football Division Total Wins
+  KXNFLDIVLEASTWINS            Pro Football Division with the Most Wins
+  KXNFLDIVMOSTWINS             Pro Football Division with the Least Wins
+  KXNFLDPOTY                   AP Pro Football Defensive Player Of The Year
+  KXNFLDPOY                    NFL Defensive Player of the Year
+  KXNFLDRAFT1                  NFL Draft First Pick
+  KXNFLDRAFT1ST                Make the 1st pick in NFL Draft
+  KXNFLDRAFTCAT                Pro Football Draft Category
+  KXNFLDRAFTCOMPARE            NFL Draft Comparison
+  KXNFLDRAFTDB                 Pro Football Defensive Back Drafted
+  KXNFLDRAFTDT                 Pro Football Defensive Tackle Drafted
+  KXNFLDRAFTEAMPOS             Will team draft a position across round
+  KXNFLDRAFTEDGE               Pro Football Edge Drafted
+  KXNFLDRAFTLB                 Pro Football Linebacker Drafted
+  KXNFLDRAFTMATCHUP            Pro Football Draft Matchup
+  KXNFLDRAFTOL                 Pro Football Offensive Line Drafted 
+  KXNFLDRAFTOU                 Will Player be drafted before or after pick?
+  KXNFLDRAFTPICK               NFL Draft Pick
+  KXNFLDRAFTQB                 Pro Football Quarterback Drafted
+  KXNFLDRAFTRB                 Pro Football Running Back Drafted
+  KXNFLDRAFTTE                 Pro Football Tight End Drafted
+  KXNFLDRAFTTEAM               Pro Football Team Draft
+  KXNFLDRAFTTEAMPOS            Which team will draft a quarterback in specific round?
+  KXNFLDRAFTTOP                Pro Football Top Draft
+  KXNFLDRAFTWR                 Pro Football Wide Receiver Drafted 
+  KXNFLDROTY                   AP Pro Football Defensive Rookie of the Year
+  KXNFLDROY                    NFL Defensive Rookie of the Year
+  KXNFLDSTTD                   Pro Football D/ST Touchdown
+  KXNFLENDSTREAK               When will team end streak
+  KXNFLEVERYWEEKCOMPETE        Pro Football Players to Play in Every Week of the Season
+  KXNFLEXACTWINSARI            Pro football exact wins Arizona
+  KXNFLEXACTWINSATL            Pro football exact wins Atlanta
+  KXNFLEXACTWINSBAL            Pro football exact wins Baltimore
+  KXNFLEXACTWINSBUF            Pro football exact wins Buffalo
+  KXNFLEXACTWINSCAR            Pro football exact wins Carolina
+  KXNFLEXACTWINSCHI            Pro football exact wins Chicago
+  KXNFLEXACTWINSCIN            Pro football exact wins Cincinnati
+  KXNFLEXACTWINSCLE            Pro football exact wins Cleveland
+  KXNFLEXACTWINSDAL            Pro football exact wins Dallas
+  KXNFLEXACTWINSDEN            Pro football exact wins Denver
+  KXNFLEXACTWINSDET            Pro football exact wins Detroit
+  KXNFLEXACTWINSGB             Pro football exact wins Green Bay
+  KXNFLEXACTWINSHOU            Pro football exact wins Houston
+  KXNFLEXACTWINSIND            Pro football exact wins Indianapolis
+  KXNFLEXACTWINSJAC            Pro football exact wins Jacksonville
+  KXNFLEXACTWINSKC             Pro football exact wins Kansas City
+  KXNFLEXACTWINSLA             Pro football exact wins Los Angeles R
+  KXNFLEXACTWINSLAC            Pro football exact wins Los Angeles C
+  KXNFLEXACTWINSLV             Pro football exact wins Las Vegas
+  KXNFLEXACTWINSMIA            Pro football exact wins Miami
+  KXNFLEXACTWINSMIN            Pro football exact wins Minnesota
+  KXNFLEXACTWINSNE             Pro football exact wins New England
+  KXNFLEXACTWINSNO             Pro football exact wins New Orleans
+  KXNFLEXACTWINSNYG            Pro football exact wins New York G
+  KXNFLEXACTWINSNYJ            Pro football exact wins New York J
+  KXNFLEXACTWINSPHI            Pro football exact wins Philadephia
+  KXNFLEXACTWINSPIT            Pro football exact wins Pittsburgh
+  KXNFLEXACTWINSSEA            Pro football exact wins Seattle
+  KXNFLEXACTWINSSF             Pro football exact wins San Francisco
+  KXNFLEXACTWINSTB             Pro football exact wins Tampa Bay
+  KXNFLEXACTWINSTEN            Pro football exact wins Tennessee
+  KXNFLEXACTWINSWAS            Pro football exact wins Washington
+  KXNFLEXECOTY                 Pro Football Executive of the Year
+  KXNFLFANTASYMOST             Pro Football Most Fantasy Points
+  KXNFLFFLEADER                Best in Fantasy By Position
+  KXNFLFFLEADERTOP             Top Fantasy
+  KXNFLFFPTS                   Pro Football Player Fantasy Points
+  KXNFLFFTOP                   Top Fantasy Rank
+  KXNFLFIRSTPICK               First Pick in NFL Draft
+  KXNFLFIRSTTD                 Pro Football First Touchdown
+  KXNFLFIRSTTDTIME             Pro Football First Touchdown Time
+  KXNFLGAME                    Professional Football Game
+  KXNFLGAMEFG                  Pro Football Field Goals
+  KXNFLGAMESACK                Pro Football Sacks
+  KXNFLGAMESPECIALS            Pro Football Game Specials
+  KXNFLGAMETD                  Pro Football Touchdowns
+  KXNFLGAMETO                  Pro Football Turnovers
+  KXNFLGPICKENSCONTRACT        Pro Football George Picken's Next Contract Size
+  KXNFLH2HWINS                 Pro Football Head-to-Head Win Totals
+  KXNFLHALLOFFAME              Pro Football Hall of Fame
+  KXNFLHIGHSCORE               Pro Football Highest Scoring Game
+  KXNFLHIGHSCOREQ              Pro Football Highest Scoring Quarter
+  KXNFLHIRECOACH               NFL hire coach
+  KXNFLHOFINDUCTEES            Pro Football Hall of Fame Inductees
+  KXNFLINT                     Pro Football Interceptions
+  KXNFLLARGELEAD               Pro Football Largest Lead
+  KXNFLLARGESTLEAD             Pro Football Largest Lead
+  KXNFLLASTPICKPOS             NFL Last Pick of the Draft Position
+  KXNFLLASTTOLOSE              Pro Football Last Undefeated Team
+  KXNFLLEADCHANGE              Pro Football Lead Changes
+  KXNFLLEADERPINT              Pro Football P INT Leader
+  KXNFLLEASTPENALIZED          Pro Football Least Penalized Team
+  KXNFLLONGESTTD               Pro Football Longest Touchdown
+  KXNFLMATCHUP                 Pro Football Matchups
+  KXNFLMOSTRECYDS              Pro Football Most Receiving Yards
+  KXNFLMOSTRSHYDS              Pro Football Most Rushing Yards
+  KXNFLMVP                     AP Pro Football Regular Season MVP
+  KXNFLNEXTINT                 Pro Football Next Interception
+  KXNFLNEXTTD                  Pro Football Next TD scorer
+  KXNFLNEXTTEAM                Pro Football Next Team
+  KXNFLNFCCHAMP                National Football Conference Champion
+  KXNFLNFCEAST                 National Football Conference East Winner
+  KXNFLNFCNORTH                National Football Conference North Winner
+  KXNFLNFCSOUTH                National Football Conference South Winner
+  KXNFLNFCWEST                 National Football Conference West Winner
+  KXNFLNONQBPASS               Pro Football Non-QB Passes
+  KXNFLNOSCOREQ                Pro Football Scoreless Quarter
+  KXNFLOPOTY                   AP Pro Football Offensive Player Of The Year
+  KXNFLOPOY                    NFL Offensive Player of the Year
+  KXNFLOROTY                   AP Pro Football Offensive Rookie of the Year
+  KXNFLOROY                    NFL Offensive Rookie of the Y ear
+  KXNFLOT                      Pro Football Overtime
+  KXNFLOWNERSTAKE              Next Pro Football Team to Sell Ownership Stake
+  KXNFLPASSATT                 Pro Football Passing Attempts
+  KXNFLPASSCOMP                Pro Football Passing Completions
+  KXNFLPASSINT                 Pro Football Passing Interceptions
+  KXNFLPASSTDS                 Pro Football player Passing Touchdowns
+  KXNFLPASSYDS                 Pro Football Passing Yards
+  KXNFLPLAYOFF                 Pro Football Playoff Qualifiers
+  KXNFLPLAYOFFC                Will both teams make the NFL Playoffs
+  KXNFLPLAYOFFHOST             Team to host a playoff game
+  KXNFLPREPACK                 MVE NFL Pre Pack
+  KXNFLPREPACK1HFT             MVE NFL Pre Pack
+  KXNFLPREPACK1Q1H             MVE NFL Pre Pack
+  KXNFLPREPACK2ML              MVE NFL Pre Pack
+  KXNFLPREPACK3ML              MVE NFL Pre Pack
+  KXNFLPREPACKSGP              MVE NFL Pre Pack
+  KXNFLPREPACKSGPSPREAD        MVE NFL Pre Pack
+  KXNFLPRIMETIME               Pro Football Primetime Games
+  KXNFLPROBOWL                 Pro Football Pro Bowl
+  KXNFLPROBOWLWIN              Pro Football Pro Bowl Game
+  KXNFLPROOTY                  Pro Football Protector of the Year
+  KXNFLREBOOT                  Reboot Rules
+  KXNFLREC                     Pro Football Player Receptions
+  KXNFLRECYDS                  Pro Football Receiving Yards
+  KXNFLRECYDSRECORD            NFL Regular Season Receiving Yards Record
+  KXNFLREDZONEADS              NFL Redzone ads
+  KXNFLREDZONEBRANDADS         Redzone week 1 brand ads
+  KXNFLRETIRE                  Pro Football Retirement
+  KXNFLRETURN                  Pro Football Injury Return
+  KXNFLRSHATT                  Pro Football Rushing Attempts
+  KXNFLRSHYDS                  Pro Football Rushing Yards
+  KXNFLSACK                    Pro Football Sacks
+  KXNFLSACKRECORD              NFL Regular Season Sack Record
+  KXNFLSAFETY                  Pro Football Safeties
+  KXNFLSBMVP                   Pro Football Championship MVP
+  KXNFLSBMVPDEF                Defensive Player Championship MVP
+  KXNFLSBMVPPOS                Pro Football Championship MVP Position
+  KXNFLSBMVPQB                 Non QB Championship MVP
+  KXNFLSDRAFTTOP               Will player be drafted Top X in Supplemental Draft
+  KXNFLSEASONPASSTDS           Pro Football Season Passing TDs
+  KXNFLSEASONPASSYDS           Pro Football Season Passing Yards
+  KXNFLSEASONREC               Pro Football Season Receptions
+  KXNFLSEASONRECTD             Pro Football Season Receiving Touchdowns
+  KXNFLSEASONRECYDS            Pro Football Season Receiving Yards
+  KXNFLSEASONRSHTD             Pro Football Season Rush Touchdowns
+  KXNFLSEASONRSHYDS            Pro Football Season Rushing Yards
+  KXNFLSEASONRUSHYDS           Pro Football Season Rushing Yards
+  KXNFLSEED                    NFL Playoff Seed
+  KXNFLSELLOUT                 Pro Football Sellouts
+  KXNFLSFPRACFIELD             Practice Field Relocation
+  KXNFLSHORTESTTD              Pro Football Shortest Touchdown
+  KXNFLSPREAD                  Pro Football Spread
+  KXNFLSTADIUM                 Will NFL Stadium Project be complete by date
+  KXNFLSTAGEOFELIM             Pro Football Stage of Elimination
+  KXNFLSUPDRAFTPICK            Will Player declare for supplemental draft
+  KXNFLT100                    Will player be ranked on Pro Football T100 List
+  KXNFLT100TOP                 Will player be ranked Top X on NFL 100
+  KXNFLTD                      Pro Football Touchdowns
+  KXNFLTEAM1POS                What position will Team select with first pick
+  KXNFLTEAMDPTS                Who will allow the least/most points this season
+  KXNFLTEAMFIRSTTD             Pro Football First Touchdown
+  KXNFLTEAMPTS                 Who will most/least points in Regular Season
+  KXNFLTEAMTOTAL               Pro Football Team Total Points
+  KXNFLTIES                    Pro Football Ties
+  KXNFLTOTAL                   Pro Football Total Points
+  KXNFLTRADE                   Pro Football Players Traded
+  KXNFLTSPEC                   NFL Team Specials
+  KXNFLWEEKCOMPETE             NFL Player to Play in Week
+  KXNFLWINMARGIN               Pro Football Win Margin
+  KXNFLWINS                    Pro Football Wins
+  KXNFLWINS-ANY                Pro football wins any team
+  KXNFLWINS-ARI                Pro football wins Arizona
+  KXNFLWINS-ATL                Pro football wins Atlanta
+  KXNFLWINS-BAL                Pro football wins Baltimore
+  KXNFLWINS-BUF                Pro football wins Buffalo
+  KXNFLWINS-CAR                Pro football wins Carolina
+  KXNFLWINS-CHI                Pro football wins Chicago
+  KXNFLWINS-CIN                Pro football wins Cincinnati
+  KXNFLWINS-CLE                Pro football wins Cleveland
+  KXNFLWINS-DAL                Pro football wins Dallas
+  KXNFLWINS-DEN                Pro football wins Denver
+  KXNFLWINS-DET                Pro football wins Detroit
+  KXNFLWINS-GB                 Pro football wins Green Bay
+  KXNFLWINS-HOU                Pro football wins Houston
+  KXNFLWINS-IND                Pro football wins Indianapolis
+  KXNFLWINS-JAC                Pro football wins Jacksonville
+  KXNFLWINS-KC                 Pro football wins Kansas City
+  KXNFLWINS-LA                 Pro football wins Los Angeles R
+  KXNFLWINS-LAC                Pro football wins Los Angeles C
+  KXNFLWINS-LV                 Pro football wins Las Vegas
+  KXNFLWINS-MIA                Pro football wins Miami
+  KXNFLWINS-MIN                Pro football wins Minnesota
+  KXNFLWINS-NE                 Pro football wins New England
+  KXNFLWINS-NO                 Pro football wins New Orleans
+  KXNFLWINS-NYG                Pro football wins New York G
+  KXNFLWINS-NYJ                Pro football wins New York J
+  KXNFLWINS-PHI                Pro football wins Philadelphia
+  KXNFLWINS-PIT                Pro football wins Pittsburgh
+  KXNFLWINS-SEA                Pro football wins Seattle
+  KXNFLWINS-SF                 Pro football wins San Francisco
+  KXNFLWINS-TB                 Pro football wins Tampa Bay
+  KXNFLWINS-TEN                Pro football wins Tennessee
+  KXNFLWINS-WAS                Pro football wins Washington
+  KXNFLWINSTREAK               Pro Football Win Streak
+  KXNFLWINSWEEK                NFL wins by week
+  KXNFLWORSTTOFIRST            Pro Football Worst in Division to First
+  KXNFLWPMOTY                  Walter Payton Man of the Year
+
+Priority series, open markets right now:
+  SERIES                      MKTS    VOL24H      VOLUME   OPENINT  TITLE
+  KXMLBGAME                     76         0           0         0  Professional Baseball Game
+  KXMLBF5                       54         0           0         0  First 5 Innings Winner
+  KXMLBF5TOTAL                 126         0           0         0  First 5 Innings Total
+  KXMLBF5SPREAD                 72         0           0         0  First 5 Innings Spread
+  KXMLBF7                       54         0           0         0  First 7 Innings Winner
+  KXMLBSPREAD                  109         0           0         0  Pro Baseball Spread
+  KXMLBTOTAL                   198         0           0         0  Pro Baseball Total Points
+  KXMLBKS                      148         0           0         0  Pro Baseball Strikeouts
+  KXMLBHIT                     200         0           0         0  Pro Baseball Hits
+  KXMLBHR                      200         0           0         0  Pro Baseball Home Runs
+  KXMLBHRR                     200         0           0         0  Pro Baseball Hits Runs RBIs
+  KXMLBHA                       95         0           0         0  Pro Baseball Hits Allowed
+  KXNFLGAME                     94         0           0         0  Professional Football Game
+  KXNFLSPREAD                  200         0           0         0  Pro Football Spread
+  KXNFLTOTAL                   200         0           0         0  Pro Football Total Points
+
+RAW MARKET DUMPS (full JSON of one open market per series, so field names and ticker anatomy can be read):
+  -- KXMLBGAME:
+     {"can_close_early": true, "close_time": "2026-08-25T20:10:00Z", "created_time": "2026-08-19T20:15:39.683486Z", "custom_strike": {"baseball_team": "517134f6-9c3a-4fbe-bad5-3fbe925f9a02"}, "early_close_condition": "This market will close and expire after a winner is declared.", "event_ticker": "KXMLBGAME-26AUG221610WSHMIA", "exchange_index": 0, "expected_expiration_time": "2026-08-22T23:10:00Z", "expiration_time": "2026-08-25T20:10:00Z", "expiration_value": "", "last_price_dollars": "0.4000", "latest_expiration_time": "2026-08-25T20:10:00Z", "liquidity_dollars": "0.0000", "market_type": "binary", "no_ask_dollars": "0.7100", "no_bid_dollars": "0.6100", "no_sub_title": "Washington", "notional_value_dollars": "1.0000", "occurrence_datetime": "2026-08-22T23:10:00Z", "open_interest_fp": "1.00", "open_time": "2026-08-19T20:25:00Z", "previous_price_dollars": "0.0000", "previous_yes_ask_dollars": "0.0000", "previous_yes_bid_dollars": "0.0000", "price_level_structure": "linear_cent", "price_ranges": [{"end": "1.0000", "start": "0.0000", "step": "0.0100"}], "result": "", "rules_primary": "If Washington wins the Washington vs Miami professional baseball game originally scheduled for Aug 22, 2026 at 4:10 PM EDT, then the market resolves to Yes.", "rules_secondary": "The following market refers to the Washington vs Miami professional baseball game originally scheduled for Aug 22, 2026 at 4:10 PM EDT. If this game is postponed or delayed, the market will remain open and close after the rescheduled game has finished (within two days). If the game is cancelled or rescheduled to over two days away, the market will resolve to a fair price in accordance with the rules.\n\nKalshi is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the Governing League. All trademarks, logos, and brand names are the property of their respective owners.", "settlement_timer_seconds": 120, "status": "active", "strike_type": "structured", "ticker": "KXMLBGAME-26AUG221610WSHMIA-WSH", "title": "Washington wins", "updated_time": "2026-08-19T20:25:00.442659Z", "volume_24h_fp": "1.00", "volume_fp": "1.00", "yes_ask_dollars": "0.3900", "yes_ask_size_fp": "527.00", "yes_bid_dollars": "0.2900", "yes_bid_size_fp": "947.00", "yes_sub_title": "Washington"}
+     also: KXMLBGAME-26AUG221610WSHMIA-MIA  yes_sub='Miami'
+     also: KXMLBGAME-26AUG221410ATLMIL-MIL  yes_sub='Milwaukee'
+     also: KXMLBGAME-26AUG221410ATLMIL-ATL  yes_sub='Atlanta'
+     also: KXMLBGAME-26AUG221335TORNYY-TOR  yes_sub='Toronto'
+     also: KXMLBGAME-26AUG221335TORNYY-NYY  yes_sub='New York Y'
+  -- KXMLBF5:
+     {"can_close_early": true, "close_time": "2026-08-24T00:10:00Z", "created_time": "2026-08-19T19:20:56.727252Z", "custom_strike": {"baseball_team": "b8c3e2a1-7f4d-4e9b-a6d0-3c5f8e1b2a49"}, "early_close_condition": "This market will close and expire after a winner is declared.", "event_ticker": "KXMLBF5-26AUG202010LAAHOU", "exchange_index": 0, "expected_expiration_time": "2026-08-21T03:10:00Z", "expiration_time": "2026-08-24T00:10:00Z", "expiration_value": "", "last_price_dollars": "0.0000", "latest_expiration_time": "2026-08-24T00:10:00Z", "liquidity_dollars": "0.0000", "market_type": "binary", "no_ask_dollars": "0.8800", "no_bid_dollars": "0.6700", "no_sub_title": "Tie", "notional_value_dollars": "1.0000", "occurrence_datetime": "2026-08-21T05:10:00Z", "open_interest_fp": "0.00", "open_time": "2026-08-19T19:30:00Z", "previous_price_dollars": "0.0000", "previous_yes_ask_dollars": "0.0000", "previous_yes_bid_dollars": "0.0000", "price_level_structure": "linear_cent", "price_ranges": [{"end": "1.0000", "start": "0.0000", "step": "0.0100"}], "result": "", "rules_primary": "If Los Angeles A and Houston tie in the first 5 innings of the Los Angeles A vs Houston professional baseball game originally scheduled for Aug 20, 2026 at 8:10 PM EDT, then the market resolves to Yes.", "rules_secondary": "This market refers to the first 5 innings of the Los Angeles A vs Houston professional baseball game originally scheduled for Aug 20, 2026 at 8:10 PM EDT. If the score at the end of the first 5 innings is tied, the \"Tie\" strike will resolve to Yes and all team strikes will resolve to No. If this game is postponed or delayed, the market will remain open and close after the rescheduled game has finished (within two days).\n\nKalshi is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the Governing League. All trademarks, logos, and brand names are the property of their respective owners.", "settlement_timer_seconds": 300, "status": "active", "strike_type": "structured", "ticker": "KXMLBF5-26AUG202010LAAHOU-TIE", "title": "first 5 innings tie", "updated_time": "2026-08-19T19:30:00.807336Z", "volume_24h_fp": "0.00", "volume_fp": "0.00", "yes_ask_dollars": "0.3300", "yes_ask_size_fp": "36.00", "yes_bid_dollars": "0.1200", "yes_bid_size_fp": "30.00", "yes_sub_title": "Tie"}
+     also: KXMLBF5-26AUG202010LAAHOU-LAA  yes_sub='Los Angeles A wins first 5 innings'
+     also: KXMLBF5-26AUG202010LAAHOU-HOU  yes_sub='Houston wins first 5 innings'
+     also: KXMLBF5-26AUG201410ATLCWS-TIE  yes_sub='Tie'
+     also: KXMLBF5-26AUG201410ATLCWS-CWS  yes_sub='Chicago WS wins first 5 innings'
+     also: KXMLBF5-26AUG201410ATLCWS-ATL  yes_sub='Atlanta wins first 5 innings'
+  -- KXMLBF5TOTAL:
+     {"can_close_early": true, "close_time": "2026-08-24T00:10:00Z", "created_time": "2026-08-19T19:20:57.362439Z", "early_close_condition": "This market will close and expire early if the event occurs.", "event_ticker": "KXMLBF5TOTAL-26AUG202010LAAHOU", "exchange_index": 0, "expected_expiration_time": "2026-08-21T03:10:00Z", "expiration_time": "2026-08-24T00:10:00Z", "expiration_value": "", "floor_strike": 6.5, "last_price_dollars": "0.0000", "latest_expiration_time": "2026-08-24T00:10:00Z", "liquidity_dollars": "0.0000", "market_type": "binary", "no_ask_dollars": "0.7300", "no_bid_dollars": "0.5900", "no_sub_title": "Over 6.5 runs in the first 5 innings", "notional_value_dollars": "1.0000", "occurrence_datetime": "2026-08-21T03:10:00Z", "open_interest_fp": "0.00", "open_time": "2026-08-19T19:30:00Z", "previous_price_dollars": "0.0000", "previous_yes_ask_dollars": "0.0000", "previous_yes_bid_dollars": "0.0000", "price_level_structure": "linear_cent", "price_ranges": [{"end": "1.0000", "start": "0.0000", "step": "0.0100"}], "result": "", "rules_primary": "If Los Angeles A and Houston collectively score more than 6.5 runs in the first 5 innings of the Los Angeles A vs Houston professional baseball game originally scheduled for Aug 20, 2026 at 8:10 PM EDT, then the market resolves to Yes.", "rules_secondary": "If this game is postponed or delayed, the market will remain open and close after the rescheduled game has finished (within two days).\n\nKalshi is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the Governing League. All trademarks, logos, and brand names are the property of their respective owners.", "settlement_timer_seconds": 180, "status": "active", "strike_type": "greater", "ticker": "KXMLBF5TOTAL-26AUG202010LAAHOU-7", "title": "First 5 innings: Over 6.5 runs", "updated_time": "2026-08-19T19:30:00.807336Z", "volume_24h_fp": "0.00", "volume_fp": "0.00", "yes_ask_dollars": "0.4100", "yes_ask_size_fp": "78.00", "yes_bid_dollars": "0.2700", "yes_bid_size_fp": "78.00", "yes_sub_title": "Over 6.5 runs in the first 5 innings"}
+     also: KXMLBF5TOTAL-26AUG202010LAAHOU-6  yes_sub='Over 5.5 runs in the first 5 innings'
+     also: KXMLBF5TOTAL-26AUG202010LAAHOU-5  yes_sub='Over 4.5 runs in the first 5 innings'
+     also: KXMLBF5TOTAL-26AUG202010LAAHOU-4  yes_sub='Over 3.5 runs in the first 5 innings'
+     also: KXMLBF5TOTAL-26AUG202010LAAHOU-3  yes_sub='Over 2.5 runs in the first 5 innings'
+     also: KXMLBF5TOTAL-26AUG202010LAAHOU-2  yes_sub='Over 1.5 runs in the first 5 innings'
+  -- KXMLBKS:
+     {"can_close_early": true, "close_time": "2026-08-22T23:40:00Z", "created_time": "2026-08-19T21:17:56.288097Z", "custom_strike": {"baseball_player": "9fc388c8-3adb-4a89-8988-f99d530111c8", "baseball_team": "cd1bf455-5181-4740-9e7c-d88eb72baa3e"}, "early_close_condition": "This market will close and expire after the event occurs.", "event_ticker": "KXMLBKS-26AUG191940ATHKC", "exchange_index": 0, "expected_expiration_time": "2026-08-20T05:40:00Z", "expiration_time": "2026-08-22T23:40:00Z", "expiration_value": "", "floor_strike": 6.5, "last_price_dollars": "0.1200", "latest_expiration_time": "2026-08-22T23:40:00Z", "liquidity_dollars": "0.0000", "market_type": "binary", "no_ask_dollars": "0.9200", "no_bid_dollars": "0.9100", "no_sub_title": "Jeffrey Springs: 7+", "notional_value_dollars": "1.0000", "occurrence_datetime": "2026-08-20T02:40:00Z", "open_interest_fp": "2.00", "open_time": "2026-08-19T21:35:00Z", "previous_price_dollars": "0.0000", "previous_yes_ask_dollars": "0.0000", "previous_yes_bid_dollars": "0.0000", "price_level_structure": "linear_cent", "price_ranges": [{"end": "1.0000", "start": "0.0000", "step": "0.0100"}], "primary_participant_key": "baseball_player", "result": "", "rules_primary": "If Jeffrey Springs records 7+ strikeouts in the A's vs Kansas City professional baseball game originally scheduled for Aug 19, 2026 at 7:40 PM EDT, then the market resolves to Yes.", "rules_secondary": "Player Participation & Settlement Criteria\nIf Jeffrey Springs is scratched or is not a starting pitcher, the market will resolve to the fair market price.\nIf Jeffrey Springs is not a starting pitcher but later enters the game, the market will resolve to the fair market price, relief appearances will not count towards this market.\nIf Jeffrey Springs is a starting pitcher and records at least one batter faced the market will settle based on strikeouts recorded.\n\nKalshi is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the Governing League. All trademarks, logos, and brand names are the property of their respective owners.", "settlement_timer_seconds": 300, "status": "active", "strike_type": "structured", "ticker": "KXMLBKS-26AUG191940ATHKC-ATHJSPRINGS59-7", "title": "Jeffrey Springs: 7+ strikeouts?", "updated_time": "2026-08-19T21:35:00.445171Z", "volume_24h_fp": "2.00", "volume_fp": "2.00", "yes_ask_dollars": "0.0900", "yes_ask_size_fp": "1204.00", "yes_bid_dollars": "0.0800", "yes_bid_size_fp": "4.00", "yes_s
+     also: KXMLBKS-26AUG191940ATHKC-ATHJSPRINGS59-6  yes_sub='Jeffrey Springs: 6+'
+     also: KXMLBKS-26AUG191940ATHKC-ATHJSPRINGS59-5  yes_sub='Jeffrey Springs: 5+'
+     also: KXMLBKS-26AUG191940ATHKC-ATHJSPRINGS59-4  yes_sub='Jeffrey Springs: 4+'
+     also: KXMLBKS-26AUG191940ATHKC-ATHJSPRINGS59-3  yes_sub='Jeffrey Springs: 3+'
+     also: KXMLBKS-26AUG191940ATHKC-ATHJSPRINGS59-2  yes_sub='Jeffrey Springs: 2+'
+
+probe complete.
