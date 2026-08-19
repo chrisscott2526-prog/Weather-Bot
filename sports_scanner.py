@@ -96,6 +96,14 @@ MAX_HOURS_OUT = 30          # only games starting inside this window
 PROP_EVENT_CAP = 12         # per-event odds calls per sport per scan
                             # (props cost 1 credit per market per event;
                             #  this caps a scan at ~36 credits/sport)
+# CREDIT_RESERVE: the Odds API plan verified Aug 19 2026 is the FREE
+# tier -- 500 credits/month. Featured markets cost ~2/sport/scan (~250/mo
+# at 2 scans a day); prop lookups cost 3-5 per game and would drain the
+# month in under a week. So: once remaining credits drop below this
+# floor, prop calls stop for the run (loudly) and the card runs on
+# featured markets only. Raise the plan, raise the shelf -- the guard
+# reads the live header, so a bigger plan lifts it automatically.
+CREDIT_RESERVE = 150
 
 PICKS_CSV = "sports_picks.csv"
 RESULTS_CSV = "sports_results.csv"
@@ -211,8 +219,11 @@ TEAM_CODES = {"baseball_mlb": MLB_CODES, "americanfootball_nfl": NFL_CODES}
 
 
 # ------------------------------------------------------------- fetchers
+CREDITS = {"remaining": None}   # live x-requests-remaining, for the guard
+
+
 def oget(path, label):
-    """Odds API GET -> (json, err). Prints remaining quota when present."""
+    """Odds API GET -> (json, err). Tracks remaining quota for the guard."""
     req = urllib.request.Request(OBASE + path,
                                  headers={"User-Agent": "weather-bot-card"})
     try:
@@ -220,6 +231,10 @@ def oget(path, label):
             left = r.headers.get("x-requests-remaining")
             if left is not None:
                 print(f"  [{label}] odds-api credits remaining: {left}")
+                try:
+                    CREDITS["remaining"] = float(left)
+                except ValueError:
+                    pass
             return json.load(r), None
     except urllib.error.HTTPError as e:
         try:
@@ -385,9 +400,18 @@ def fetch_sharp_games(sport, featured_keys):
 
 
 def fetch_event_props(sport, game, market_keys, dead_keys):
-    """Per-event odds for prop markets. Mutates dead_keys on plan errors."""
+    """Per-event odds for prop markets. Mutates dead_keys on plan errors
+    and stops for the run when the credit budget is nearly spent."""
     keys = [k for k in market_keys if k not in dead_keys]
     if not keys:
+        return None
+    rem = CREDITS["remaining"]
+    if rem is not None and rem < CREDIT_RESERVE:
+        print(f"!! CREDIT GUARD: only {rem:.0f} odds-api credits left this "
+              f"month (< {CREDIT_RESERVE}). Skipping prop lookups so the "
+              f"featured card keeps running -- upgrade the Odds API plan "
+              f"to lift this.")
+        dead_keys.update(keys)
         return None
     data, err = oget(f"/sports/{sport}/events/{game['id']}/odds"
                      f"?regions=us&markets={','.join(keys)}"

@@ -29,6 +29,14 @@ import time
 import urllib.error
 import urllib.request
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+
+
+def iso(ts):
+    try:
+        return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    except Exception:
+        return None
 
 OBASE = "https://api.the-odds-api.com/v4"
 KBASE = "https://api.elections.kalshi.com"
@@ -101,7 +109,13 @@ def probe_event_markets(sport_key, markets):
     if not events:
         print("  no upcoming events -- cannot probe per-event markets today")
         return
-    ev = events[0]
+    # pick a game that has NOT started: books pull period/prop lines at
+    # the opening pitch, so probing a live game reads as "not offered"
+    now = datetime.now(timezone.utc)
+    future = [e for e in events
+              if iso(e.get("commence_time", "")) and
+              iso(e["commence_time"]) > now + timedelta(minutes=30)]
+    ev = (future or events)[0]
     print(f"  probing event: {ev.get('away_team')} @ {ev.get('home_team')} "
           f"({ev.get('commence_time')})")
     # One batched call first (cheapest happy path)...
