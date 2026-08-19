@@ -14,6 +14,7 @@ padding:14px 16px;margin-bottom:12px;border-left:5px solid #2a323b}
 .card.LOCKED{border-left-color:#28a06c}.card.SWOOP{border-left-color:#f3b53c}
 .card.ONTRACK{border-left-color:#3f7fbf}.card.INDANGER{border-left-color:#c2542f}
 .card.ATRISK{border-left-color:#c2542f}
+.card.OVERSHOOTRISK{border-left-color:#e0483e}
 .card.VERIFY{border-left-color:#8a6aa8}
 .card.DEAD{border-left-color:#5c6670;opacity:.65}
 .top{display:flex;justify-content:space-between;align-items:baseline}
@@ -24,6 +25,7 @@ border-radius:3px;background:#2a323b}
 .SWOOP .badge{background:#f3b53c;color:#191203}
 .INDANGER .badge{background:#c2542f}
 .ATRISK .badge{background:#c2542f}
+.OVERSHOOTRISK .badge{background:#e0483e;color:#1a0505}
 .VERIFY .badge{background:#8a6aa8}
 .det{font-size:13px;color:#93a1ad;margin:6px 0}
 .det b{color:#e8e4da}
@@ -35,82 +37,82 @@ border-radius:3px;background:#2a323b}
 </style></head><body><div class="wrap">
 <h1>Swoop Alert</h1>
 <div class="sub">Thermometer vs. market on the bot's open positions -
-checked Tue Aug 18, 23:25 UTC. Graded 11 of 11 open weather positions.
+checked Wed Aug 19, 16:47 UTC. Graded 10 of 10 open weather positions.
 </div>
 
-<div class="card VERIFY"><div class="top">
-<span class="city">Dallas &mdash; YES 106° to 107°</span>
-<span class="badge">VERIFY</span></div>
-<div class="det">Observed high so far: <b>105.8&deg;</b> &nbsp;|&nbsp; <span class="age old">reading 145m old</span>
- &nbsp;|&nbsp; Market now: <b>23c</b></div>
-<div class="note">Observed high 105.8° is inside the bracket. Wins if the heat stops here - watch for late overshoot. Reading is 145m old - too old to trust for a swoop. Check weather.gov before any money moves.</div></div>
 <div class="card NEEDSHEAT"><div class="top">
-<span class="city">Houston &mdash; YES 98° to 99°</span>
+<span class="city">Oklahoma City &mdash; YES 109° to 110°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">Observed high so far: <b>95.0&deg;</b> &nbsp;|&nbsp; <span class="age old">reading 265m old</span>
- &nbsp;|&nbsp; Market now: <b>1c</b></div>
+<div class="det">Observed high so far: <b>96.8&deg;</b> &nbsp;|&nbsp; <span class="age">reading 57m old</span>
+ &nbsp;|&nbsp; Market now: <b>59c</b></div>
+<div class="note">Needs about 12° more warming to enter.</div></div>
+<div class="card NEEDSHEAT"><div class="top">
+<span class="city">Dallas &mdash; YES 107° to 108°</span>
+<span class="badge">NEEDS HEAT</span></div>
+<div class="det">Observed high so far: <b>93.9&deg;</b> &nbsp;|&nbsp; <span class="age">reading 54m old</span>
+ &nbsp;|&nbsp; Market now: <b>5c</b></div>
+<div class="note">Needs about 13° more warming to enter.</div></div>
+<div class="card NEEDSHEAT"><div class="top">
+<span class="city">Atlanta &mdash; YES 95° to 96°</span>
+<span class="badge">NEEDS HEAT</span></div>
+<div class="det">Observed high so far: <b>87.8&deg;</b> &nbsp;|&nbsp; <span class="age">reading 47m old</span>
+ &nbsp;|&nbsp; Market now: <b>44c</b></div>
+<div class="note">Needs about 7° more warming to enter.</div></div>
+<div class="card NEEDSHEAT"><div class="top">
+<span class="city">Washington DC &mdash; YES 91° to 92°</span>
+<span class="badge">NEEDS HEAT</span></div>
+<div class="det">Observed high so far: <b>86.0&deg;</b> &nbsp;|&nbsp; <span class="age">reading 55m old</span>
+ &nbsp;|&nbsp; Market now: <b>31c</b></div>
+<div class="note">Needs about 5° more warming to enter.</div></div>
+<div class="card NEEDSHEAT"><div class="top">
+<span class="city">Phoenix &mdash; YES 109° to 110°</span>
+<span class="badge">NEEDS HEAT</span></div>
+<div class="det">Observed high so far: <b>104.0&deg;</b> &nbsp;|&nbsp; <span class="age old">reading 597m old</span>
+ &nbsp;|&nbsp; Market now: <b>60c</b></div>
+<div class="note">Needs about 5° more warming to enter.</div></div>
+<div class="card NEEDSHEAT"><div class="top">
+<span class="city">Chicago &mdash; YES 82° or above</span>
+<span class="badge">NEEDS HEAT</span></div>
+<div class="det">Observed high so far: <b>75.2&deg;</b> &nbsp;|&nbsp; <span class="age old">reading 107m old</span>
+ &nbsp;|&nbsp; Market now: <b>22c</b></div>
+<div class="note">Needs about 7° more warming to enter.</div></div>
+<div class="card NEEDSHEAT"><div class="top">
+<span class="city">Philadelphia &mdash; YES 88° to 89°</span>
+<span class="badge">NEEDS HEAT</span></div>
+<div class="det">Observed high so far: <b>84.9&deg;</b> &nbsp;|&nbsp; <span class="age">reading 53m old</span>
+ &nbsp;|&nbsp; Market now: <b>32c</b></div>
 <div class="note">Needs about 3° more warming to enter.</div></div>
 <div class="card NEEDSHEAT"><div class="top">
-<span class="city">Washington DC &mdash; YES 90° to 91°</span>
+<span class="city">Denver &mdash; YES 86° to 87°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">Observed high so far: <b>87.8&deg;</b> &nbsp;|&nbsp; <span class="age old">reading 415m old</span>
- &nbsp;|&nbsp; Market now: <b>1c</b></div>
-<div class="note">Needs about 2° more warming to enter.</div></div>
+<div class="det">Observed high so far: <b>72.0&deg;</b> &nbsp;|&nbsp; <span class="age">reading 54m old</span>
+ &nbsp;|&nbsp; Market now: <b>9c</b></div>
+<div class="note">Needs about 14° more warming to enter.</div></div>
 <div class="card NEEDSHEAT"><div class="top">
-<span class="city">San Francisco &mdash; YES 76° or above</span>
+<span class="city">Miami &mdash; YES 95° to 96°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">Observed high so far: <b>69.8&deg;</b> &nbsp;|&nbsp; <span class="age">reading 60m old</span>
- &nbsp;|&nbsp; Market now: <b>1c</b></div>
-<div class="note">Needs about 6° more warming to enter.</div></div>
+<div class="det">Observed high so far: <b>91.9&deg;</b> &nbsp;|&nbsp; <span class="age">reading 54m old</span>
+ &nbsp;|&nbsp; Market now: <b>42c</b></div>
+<div class="note">Needs about 3° more warming to enter.</div></div>
 <div class="card NEEDSHEAT"><div class="top">
-<span class="city">Chicago &mdash; YES 82° to 83°</span>
+<span class="city">New York City &mdash; YES 87° to 88°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">Observed high so far: <b>80.6&deg;</b> &nbsp;|&nbsp; <span class="age old">reading 370m old</span>
- &nbsp;|&nbsp; Market now: <b>1c</b></div>
-<div class="note">Needs about 1° more warming to enter.</div></div>
-<div class="card NEEDSHEAT"><div class="top">
-<span class="city">Philadelphia &mdash; YES 90° to 91°</span>
-<span class="badge">NEEDS HEAT</span></div>
-<div class="det">Observed high so far: <b>87.8&deg;</b> &nbsp;|&nbsp; <span class="age old">reading 220m old</span>
- &nbsp;|&nbsp; Market now: <b>1c</b></div>
-<div class="note">Needs about 2° more warming to enter.</div></div>
-<div class="card NEEDSHEAT"><div class="top">
-<span class="city">Denver &mdash; YES 91° to 92°</span>
-<span class="badge">NEEDS HEAT</span></div>
-<div class="det">Observed high so far: <b>87.1&deg;</b> &nbsp;|&nbsp; <span class="age old">reading 152m old</span>
- &nbsp;|&nbsp; Market now: <b>1c</b></div>
-<div class="note">Needs about 4° more warming to enter.</div></div>
-<div class="card DEAD"><div class="top">
-<span class="city">New Orleans &mdash; YES 94° or below</span>
-<span class="badge">DEAD</span></div>
-<div class="det">Observed high so far: <b>95.0&deg;</b> &nbsp;|&nbsp; <span class="age old">reading 190m old</span>
- &nbsp;|&nbsp; Market now: <b>1c</b></div>
-<div class="note">Thermometer already blew past this bracket.</div></div>
-<div class="card DEAD"><div class="top">
-<span class="city">Oklahoma City &mdash; YES 104° to 105°</span>
-<span class="badge">DEAD</span></div>
-<div class="det">Observed high so far: <b>109.4&deg;</b> &nbsp;|&nbsp; <span class="age old">reading 110m old</span>
- &nbsp;|&nbsp; Market now: <b>1c</b></div>
-<div class="note">Thermometer already blew past this bracket.</div></div>
-<div class="card DEAD"><div class="top">
-<span class="city">Miami &mdash; YES 97° to 98°</span>
-<span class="badge">DEAD</span></div>
-<div class="det">Observed high so far: <b>100.4&deg;</b> &nbsp;|&nbsp; <span class="age old">reading 220m old</span>
- &nbsp;|&nbsp; Market now: <b>1c</b></div>
-<div class="note">Thermometer already blew past this bracket.</div></div>
-<div class="card DEAD"><div class="top">
-<span class="city">New York City &mdash; YES 84° or below</span>
-<span class="badge">DEAD</span></div>
-<div class="det">Observed high so far: <b>84.9&deg;</b> &nbsp;|&nbsp; <span class="age old">reading 334m old</span>
- &nbsp;|&nbsp; Market now: <b>1c</b></div>
-<div class="note">Thermometer already blew past this bracket.</div></div>
+<div class="det">Observed high so far: <b>82.0&deg;</b> &nbsp;|&nbsp; <span class="age">reading 56m old</span>
+ &nbsp;|&nbsp; Market now: <b>27c</b></div>
+<div class="note">Needs about 5° more warming to enter.</div></div>
 <div class="foot"><b>Read it like this:</b> daily highs only rise, so a
 bracket the thermometer has passed is settled physics, not opinion.
 <b>SWOOP</b> = the reading already agrees with the bot's side, the
 reading is FRESH (under 60m old), and the market still
 sells it under 80c. A stale reading or a price that
 disagrees kills the tag. <b>AT RISK</b> = an 'or below' bracket that can
-still climb out - never a swoop. Always eyeball the station on
+still climb out - never a swoop. <b>OVERSHOOT RISK</b> = the observed
+high is within 2&deg; of a YES bracket's cap during
+the station's heating hours (~10am-6pm local) - a winning-looking card
+that one more push of heat kills. The card shows the gap to the cap,
+the reading's age, and what the side currently fetches; a stale reading
+makes it MORE urgent, not less. This board only warns - it never sells
+for you. Always eyeball the station on
 weather.gov before sizing up; this page is only as fresh as the last
 poll. Chase nothing above 80c; the meat is gone.</div>
 </div></body></html>
