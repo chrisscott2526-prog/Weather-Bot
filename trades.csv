@@ -57,3 +57,7 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-19T02:31:20+00:00,KXHIGHTSATX-26AUG19-T99,98° or below,yes,12,8,48.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
 2026-08-19T02:31:20+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,15,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
 2026-08-19T02:31:20+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,5,19,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
+2026-08-19T02:42:18+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,4,23,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
+2026-08-19T02:42:18+00:00,KXHIGHTSATX-26AUG19-T99,98° or below,yes,12,8,48.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
+2026-08-19T02:42:18+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,15,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
+2026-08-19T02:42:18+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,5,19,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
