@@ -2,7 +2,8 @@ name: Swoop alert
 
 on:
   schedule:
-    - cron: "0 17,19,21,23 * * *"   # ~1pm-7pm ET: the heat-of-the-day window
+    - cron: "*/15 16-23 * * *"   # heat of the day: every 15 min, 16:00-23:59 UTC
+    - cron: "0 1-15/2 * * *"     # rest of the clock: the old 2-hour rhythm
   workflow_dispatch: {}
 
 permissions:
