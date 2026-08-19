@@ -32,7 +32,7 @@ from collections import defaultdict
 
 OBASE = "https://api.the-odds-api.com/v4"
 KBASE = "https://api.elections.kalshi.com"
-ODDS_KEY = os.environ["ODDS_API_KEY"].strip()
+ODDS_KEY = os.environ.get("ODDS_API_KEY", "").strip()
 
 # Market keys to try per sport on the per-event endpoint. These are the
 # prop shelves we care about (Kalshi's retail crowd is softest here).
@@ -135,6 +135,11 @@ def probe_odds_api():
     print("PART 1: WHAT THE ODDS API KEY CAN PULL")
     print("=" * 72)
 
+    if not ODDS_KEY:
+        print("ODDS_API_KEY is EMPTY in this repo's Actions secrets. "
+              "Re-add it under GitHub → Settings → Secrets → Actions, "
+              "then re-run this probe.")
+        return
     sports, err = http_json(odds_url("/sports"), "sports list")
     if err:
         print(f"/sports failed -- key may be dead: {err}")
