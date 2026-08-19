@@ -2,7 +2,63 @@ SPORTS PROBE -- read-only. No bets, no CSV writes, no card.
 ========================================================================
 PART 1: WHAT THE ODDS API KEY CAN PULL
 ========================================================================
-ODDS_API_KEY is EMPTY in this repo's Actions secrets. Re-add it under GitHub → Settings → Secrets → Actions, then re-run this probe.
+    [sports list] odds-api quota: used=0 remaining=500
+
+Active sports on the feed right now: 78
+  americanfootball_cfl         CFL
+  americanfootball_ncaaf       NCAAF
+  americanfootball_ncaaf_championship_winner NCAAF Championship Winner
+  americanfootball_nfl         NFL
+  americanfootball_nfl_preseason NFL Preseason
+  americanfootball_nfl_super_bowl_winner NFL Super Bowl Winner
+  baseball_kbo                 KBO
+  baseball_milb                MiLB
+  baseball_mlb                 MLB
+  baseball_mlb_world_series_winner MLB World Series Winner
+  baseball_npb                 NPB
+  basketball_nba               NBA
+  basketball_nba_championship_winner NBA Championship Winner
+  basketball_ncaab_championship_winner NCAAB Championship Winner
+  basketball_wnba              WNBA
+  icehockey_nhl                NHL
+  icehockey_nhl_championship_winner NHL Championship Winner
+
+-- Featured markets (h2h,spreads,totals) on baseball_mlb --
+    [featured mlb] odds-api quota: used=3 remaining=497
+  20 MLB games returned, books per game: [5, 6, 9]
+  market keys present: ['h2h', 'spreads', 'totals']
+
+-- Per-event MLB prop/period markets --
+    [events] odds-api quota: used=3 remaining=497
+  probing event: Arizona Diamondbacks @ Boston Red Sox (2026-08-19T20:10:26Z)
+    [event-odds batch] odds-api quota: used=8 remaining=492
+  batched per-event call SUCCEEDED. Markets returned:
+    none h2h_1st_5_innings        no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    none spreads_1st_5_innings    no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    none totals_1st_5_innings     no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    none h2h_1st_3_innings        no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    OK   h2h_1st_7_innings        1 book(s), 2 outcome rows
+    none totals_1st_1_innings     no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    none pitcher_strikeouts       no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    none pitcher_outs             no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    none pitcher_record_a_win     no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    none batter_home_runs         no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    OK   batter_hits              2 book(s), 16 outcome rows
+    OK   batter_total_bases       2 book(s), 12 outcome rows
+    OK   batter_runs_scored       2 book(s), 18 outcome rows
+    OK   batter_rbis              2 book(s), 14 outcome rows
+
+-- Per-event NFL prop/period markets (preseason) --
+    [events] odds-api quota: used=8 remaining=492
+  probing event: New England Patriots @ Seattle Seahawks (2026-09-10T00:15:00Z)
+    [event-odds batch] odds-api quota: used=9 remaining=491
+  batched per-event call SUCCEEDED. Markets returned:
+    none h2h_h1                   no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    none spreads_h1               no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    none totals_h1                no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    none player_pass_tds          no book returned it (not offered on this game, or not on this plan -- see per-key test)
+    OK   player_anytime_td        1 book(s), 24 outcome rows
+    none player_pass_yds          no book returned it (not offered on this game, or not on this plan -- see per-key test)
 
 ========================================================================
 PART 2: KALSHI SPORTS INVENTORY (open markets, real volume)
@@ -290,25 +346,25 @@ Priority series, open markets right now:
   KXMLBF7                       60         0           0         0  First 7 Innings Winner
   KXMLBSPREAD                  122         0           0         0  Pro Baseball Spread
   KXMLBTOTAL                   200         0           0         0  Pro Baseball Total Points
-  KXMLBKS                      148         0           0         0  Pro Baseball Strikeouts
+  KXMLBKS                      162         0           0         0  Pro Baseball Strikeouts
   KXMLBHIT                     200         0           0         0  Pro Baseball Hits
   KXMLBHR                      200         0           0         0  Pro Baseball Home Runs
   KXMLBHRR                     200         0           0         0  Pro Baseball Hits Runs RBIs
-  KXMLBHA                       95         0           0         0  Pro Baseball Hits Allowed
-  KXNFLGAME                     94         0           0         0  Professional Football Game
+  KXMLBHA                      105         0           0         0  Pro Baseball Hits Allowed
+  KXNFLGAME                     96         0           0         0  Professional Football Game
   KXNFLSPREAD                  200         0           0         0  Pro Football Spread
   KXNFLTOTAL                   200         0           0         0  Pro Football Total Points
 
 RAW MARKET DUMPS (full JSON of one open market per series, so field names and ticker anatomy can be read):
   -- KXMLBGAME:
-     {"can_close_early": true, "close_time": "2026-08-25T20:10:00Z", "created_time": "2026-08-19T20:15:39.683486Z", "custom_strike": {"baseball_team": "517134f6-9c3a-4fbe-bad5-3fbe925f9a02"}, "early_close_condition": "This market will close and expire after a winner is declared.", "event_ticker": "KXMLBGAME-26AUG221610WSHMIA", "exchange_index": 0, "expected_expiration_time": "2026-08-22T23:10:00Z", "expiration_time": "2026-08-25T20:10:00Z", "expiration_value": "", "last_price_dollars": "0.4000", "latest_expiration_time": "2026-08-25T20:10:00Z", "liquidity_dollars": "0.0000", "market_type": "binary", "no_ask_dollars": "0.7100", "no_bid_dollars": "0.6100", "no_sub_title": "Washington", "notional_value_dollars": "1.0000", "occurrence_datetime": "2026-08-22T23:10:00Z", "open_interest_fp": "1.00", "open_time": "2026-08-19T20:25:00Z", "previous_price_dollars": "0.0000", "previous_yes_ask_dollars": "0.0000", "previous_yes_bid_dollars": "0.0000", "price_level_structure": "linear_cent", "price_ranges": [{"end": "1.0000", "start": "0.0000", "step": "0.0100"}], "result": "", "rules_primary": "If Washington wins the Washington vs Miami professional baseball game originally scheduled for Aug 22, 2026 at 4:10 PM EDT, then the market resolves to Yes.", "rules_secondary": "The following market refers to the Washington vs Miami professional baseball game originally scheduled for Aug 22, 2026 at 4:10 PM EDT. If this game is postponed or delayed, the market will remain open and close after the rescheduled game has finished (within two days). If the game is cancelled or rescheduled to over two days away, the market will resolve to a fair price in accordance with the rules.\n\nKalshi is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the Governing League. All trademarks, logos, and brand names are the property of their respective owners.", "settlement_timer_seconds": 120, "status": "active", "strike_type": "structured", "ticker": "KXMLBGAME-26AUG221610WSHMIA-WSH", "title": "Washington wins", "updated_time": "2026-08-19T20:25:00.442659Z", "volume_24h_fp": "1.00", "volume_fp": "1.00", "yes_ask_dollars": "0.3900", "yes_ask_size_fp": "1054.00", "yes_bid_dollars": "0.2900", "yes_bid_size_fp": "947.00", "yes_sub_title": "Washington"}
+     {"can_close_early": true, "close_time": "2026-08-25T20:10:00Z", "created_time": "2026-08-19T20:15:39.683486Z", "custom_strike": {"baseball_team": "517134f6-9c3a-4fbe-bad5-3fbe925f9a02"}, "early_close_condition": "This market will close and expire after a winner is declared.", "event_ticker": "KXMLBGAME-26AUG221610WSHMIA", "exchange_index": 0, "expected_expiration_time": "2026-08-22T23:10:00Z", "expiration_time": "2026-08-25T20:10:00Z", "expiration_value": "", "last_price_dollars": "0.4000", "latest_expiration_time": "2026-08-25T20:10:00Z", "liquidity_dollars": "0.0000", "market_type": "binary", "no_ask_dollars": "0.7000", "no_bid_dollars": "0.6100", "no_sub_title": "Washington", "notional_value_dollars": "1.0000", "occurrence_datetime": "2026-08-22T23:10:00Z", "open_interest_fp": "1.00", "open_time": "2026-08-19T20:25:00Z", "previous_price_dollars": "0.0000", "previous_yes_ask_dollars": "0.0000", "previous_yes_bid_dollars": "0.0000", "price_level_structure": "linear_cent", "price_ranges": [{"end": "1.0000", "start": "0.0000", "step": "0.0100"}], "result": "", "rules_primary": "If Washington wins the Washington vs Miami professional baseball game originally scheduled for Aug 22, 2026 at 4:10 PM EDT, then the market resolves to Yes.", "rules_secondary": "The following market refers to the Washington vs Miami professional baseball game originally scheduled for Aug 22, 2026 at 4:10 PM EDT. If this game is postponed or delayed, the market will remain open and close after the rescheduled game has finished (within two days). If the game is cancelled or rescheduled to over two days away, the market will resolve to a fair price in accordance with the rules.\n\nKalshi is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the Governing League. All trademarks, logos, and brand names are the property of their respective owners.", "settlement_timer_seconds": 120, "status": "active", "strike_type": "structured", "ticker": "KXMLBGAME-26AUG221610WSHMIA-WSH", "title": "Washington wins", "updated_time": "2026-08-19T20:25:00.442659Z", "volume_24h_fp": "1.00", "volume_fp": "1.00", "yes_ask_dollars": "0.3900", "yes_ask_size_fp": "1186.00", "yes_bid_dollars": "0.3000", "yes_bid_size_fp": "664.00", "yes_sub_title": "Washington"}
      also: KXMLBGAME-26AUG221610WSHMIA-MIA  yes_sub='Miami'
      also: KXMLBGAME-26AUG221410ATLMIL-MIL  yes_sub='Milwaukee'
      also: KXMLBGAME-26AUG221410ATLMIL-ATL  yes_sub='Atlanta'
      also: KXMLBGAME-26AUG221335TORNYY-TOR  yes_sub='Toronto'
      also: KXMLBGAME-26AUG221335TORNYY-NYY  yes_sub='New York Y'
   -- KXMLBF5:
-     {"can_close_early": true, "close_time": "2026-08-24T00:05:00Z", "created_time": "2026-08-19T21:50:51.403127Z", "custom_strike": {"baseball_team": "517134f6-9c3a-4fbe-bad5-3fbe925f9a02"}, "early_close_condition": "This market will close and expire after a winner is declared.", "event_ticker": "KXMLBF5-26AUG202005WSHTEX", "exchange_index": 0, "expected_expiration_time": "2026-08-21T03:05:00Z", "expiration_time": "2026-08-24T00:05:00Z", "expiration_value": "", "last_price_dollars": "0.0000", "latest_expiration_time": "2026-08-24T00:05:00Z", "liquidity_dollars": "0.0000", "market_type": "binary", "no_ask_dollars": "0.8800", "no_bid_dollars": "0.3100", "no_sub_title": "Washington wins first 5 innings", "notional_value_dollars": "1.0000", "occurrence_datetime": "2026-08-21T05:05:00Z", "open_interest_fp": "0.00", "open_time": "2026-08-19T22:00:00Z", "previous_price_dollars": "0.0000", "previous_yes_ask_dollars": "0.0000", "previous_yes_bid_dollars": "0.0000", "price_level_structure": "linear_cent", "price_ranges": [{"end": "1.0000", "start": "0.0000", "step": "0.0100"}], "result": "", "rules_primary": "If Washington wins the first 5 innings of the Washington vs Texas professional baseball game originally scheduled for Aug 20, 2026 at 8:05 PM EDT, then the market resolves to Yes.", "rules_secondary": "This market refers to the first 5 innings of the Washington vs Texas professional baseball game originally scheduled for Aug 20, 2026 at 8:05 PM EDT. If the score at the end of the first 5 innings is tied, the \"Tie\" strike will resolve to Yes and all team strikes will resolve to No. If this game is postponed or delayed, the market will remain open and close after the rescheduled game has finished (within two days).\n\nKalshi is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the Governing League. All trademarks, logos, and brand names are the property of their respective owners.", "settlement_timer_seconds": 300, "status": "active", "strike_type": "structured", "ticker": "KXMLBF5-26AUG202005WSHTEX-WSH", "title": "Washington first 5 innings winner", "updated_time": "2026-08-19T22:00:01.906741Z", "volume_24h_fp": "0.00", "volume_fp": "0.00", "yes_ask_dollars": "0.6900", "yes_ask_size_fp": "50.00", "yes_bid_dollars": "0.1200", "yes_bid_size_fp": "30.00", "yes_sub_title": "Washington wins first 5 innings"}
+     {"can_close_early": true, "close_time": "2026-08-24T00:05:00Z", "created_time": "2026-08-19T21:50:51.403127Z", "custom_strike": {"baseball_team": "517134f6-9c3a-4fbe-bad5-3fbe925f9a02"}, "early_close_condition": "This market will close and expire after a winner is declared.", "event_ticker": "KXMLBF5-26AUG202005WSHTEX", "exchange_index": 0, "expected_expiration_time": "2026-08-21T03:05:00Z", "expiration_time": "2026-08-24T00:05:00Z", "expiration_value": "", "last_price_dollars": "0.0000", "latest_expiration_time": "2026-08-24T00:05:00Z", "liquidity_dollars": "0.0000", "market_type": "binary", "no_ask_dollars": "0.7700", "no_bid_dollars": "0.3200", "no_sub_title": "Washington wins first 5 innings", "notional_value_dollars": "1.0000", "occurrence_datetime": "2026-08-21T05:05:00Z", "open_interest_fp": "0.00", "open_time": "2026-08-19T22:00:00Z", "previous_price_dollars": "0.0000", "previous_yes_ask_dollars": "0.0000", "previous_yes_bid_dollars": "0.0000", "price_level_structure": "linear_cent", "price_ranges": [{"end": "1.0000", "start": "0.0000", "step": "0.0100"}], "result": "", "rules_primary": "If Washington wins the first 5 innings of the Washington vs Texas professional baseball game originally scheduled for Aug 20, 2026 at 8:05 PM EDT, then the market resolves to Yes.", "rules_secondary": "This market refers to the first 5 innings of the Washington vs Texas professional baseball game originally scheduled for Aug 20, 2026 at 8:05 PM EDT. If the score at the end of the first 5 innings is tied, the \"Tie\" strike will resolve to Yes and all team strikes will resolve to No. If this game is postponed or delayed, the market will remain open and close after the rescheduled game has finished (within two days).\n\nKalshi is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the Governing League. All trademarks, logos, and brand names are the property of their respective owners.", "settlement_timer_seconds": 300, "status": "active", "strike_type": "structured", "ticker": "KXMLBF5-26AUG202005WSHTEX-WSH", "title": "Washington first 5 innings winner", "updated_time": "2026-08-19T22:00:01.906741Z", "volume_24h_fp": "0.00", "volume_fp": "0.00", "yes_ask_dollars": "0.6800", "yes_ask_size_fp": "39.00", "yes_bid_dollars": "0.2300", "yes_bid_size_fp": "4.34", "yes_sub_title": "Washington wins first 5 innings"}
      also: KXMLBF5-26AUG202005WSHTEX-TIE  yes_sub='Tie'
      also: KXMLBF5-26AUG202005WSHTEX-TEX  yes_sub='Texas wins first 5 innings'
      also: KXMLBF5-26AUG201410ATHKC-TIE  yes_sub='Tie'
@@ -322,11 +378,11 @@ RAW MARKET DUMPS (full JSON of one open market per series, so field names and ti
      also: KXMLBF5TOTAL-26AUG202005WSHTEX-3  yes_sub='Over 2.5 runs in the first 5 innings'
      also: KXMLBF5TOTAL-26AUG202005WSHTEX-2  yes_sub='Over 1.5 runs in the first 5 innings'
   -- KXMLBKS:
-     {"can_close_early": true, "close_time": "2026-08-22T23:40:00Z", "created_time": "2026-08-19T21:17:56.288097Z", "custom_strike": {"baseball_player": "9fc388c8-3adb-4a89-8988-f99d530111c8", "baseball_team": "cd1bf455-5181-4740-9e7c-d88eb72baa3e"}, "early_close_condition": "This market will close and expire after the event occurs.", "event_ticker": "KXMLBKS-26AUG191940ATHKC", "exchange_index": 0, "expected_expiration_time": "2026-08-20T05:40:00Z", "expiration_time": "2026-08-22T23:40:00Z", "expiration_value": "", "floor_strike": 6.5, "last_price_dollars": "0.0800", "latest_expiration_time": "2026-08-22T23:40:00Z", "liquidity_dollars": "0.0000", "market_type": "binary", "no_ask_dollars": "0.9500", "no_bid_dollars": "0.9300", "no_sub_title": "Jeffrey Springs: 7+", "notional_value_dollars": "1.0000", "occurrence_datetime": "2026-08-20T02:40:00Z", "open_interest_fp": "6.00", "open_time": "2026-08-19T21:35:00Z", "previous_price_dollars": "0.0000", "previous_yes_ask_dollars": "0.0000", "previous_yes_bid_dollars": "0.0000", "price_level_structure": "linear_cent", "price_ranges": [{"end": "1.0000", "start": "0.0000", "step": "0.0100"}], "primary_participant_key": "baseball_player", "result": "", "rules_primary": "If Jeffrey Springs records 7+ strikeouts in the A's vs Kansas City professional baseball game originally scheduled for Aug 19, 2026 at 7:40 PM EDT, then the market resolves to Yes.", "rules_secondary": "Player Participation & Settlement Criteria\nIf Jeffrey Springs is scratched or is not a starting pitcher, the market will resolve to the fair market price.\nIf Jeffrey Springs is not a starting pitcher but later enters the game, the market will resolve to the fair market price, relief appearances will not count towards this market.\nIf Jeffrey Springs is a starting pitcher and records at least one batter faced the market will settle based on strikeouts recorded.\n\nKalshi is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the Governing League. All trademarks, logos, and brand names are the property of their respective owners.", "settlement_timer_seconds": 300, "status": "active", "strike_type": "structured", "ticker": "KXMLBKS-26AUG191940ATHKC-ATHJSPRINGS59-7", "title": "Jeffrey Springs: 7+ strikeouts?", "updated_time": "2026-08-19T21:35:00.445171Z", "volume_24h_fp": "6.00", "volume_fp": "6.00", "yes_ask_dollars": "0.0700", "yes_ask_size_fp": "1949.00", "yes_bid_dollars": "0.0500", "yes_bid_size_fp": "5.00", "yes_s
-     also: KXMLBKS-26AUG191940ATHKC-ATHJSPRINGS59-6  yes_sub='Jeffrey Springs: 6+'
-     also: KXMLBKS-26AUG191940ATHKC-ATHJSPRINGS59-5  yes_sub='Jeffrey Springs: 5+'
-     also: KXMLBKS-26AUG191940ATHKC-ATHJSPRINGS59-4  yes_sub='Jeffrey Springs: 4+'
-     also: KXMLBKS-26AUG191940ATHKC-ATHJSPRINGS59-3  yes_sub='Jeffrey Springs: 3+'
-     also: KXMLBKS-26AUG191940ATHKC-ATHJSPRINGS59-2  yes_sub='Jeffrey Springs: 2+'
+     {"can_close_early": true, "close_time": "2026-08-23T00:10:00Z", "created_time": "2026-08-19T21:52:12.957875Z", "custom_strike": {"baseball_player": "88c3de0c-3b0d-4728-83fd-febfd1bf8970", "baseball_team": "9f4268d7-a294-4698-98c5-c16e37e4ac3d"}, "early_close_condition": "This market will close and expire after the event occurs.", "event_ticker": "KXMLBKS-26AUG192010LAAHOU", "exchange_index": 0, "expected_expiration_time": "2026-08-20T06:10:00Z", "expiration_time": "2026-08-23T00:10:00Z", "expiration_value": "", "floor_strike": 9.5, "last_price_dollars": "0.0000", "latest_expiration_time": "2026-08-23T00:10:00Z", "liquidity_dollars": "0.0000", "market_type": "binary", "no_ask_dollars": "0.9500", "no_bid_dollars": "0.9300", "no_sub_title": "Ethan Pecko: 10+", "notional_value_dollars": "1.0000", "occurrence_datetime": "2026-08-20T03:10:00Z", "open_interest_fp": "0.00", "open_time": "2026-08-19T22:10:00Z", "previous_price_dollars": "0.0000", "previous_yes_ask_dollars": "0.0000", "previous_yes_bid_dollars": "0.0000", "price_level_structure": "linear_cent", "price_ranges": [{"end": "1.0000", "start": "0.0000", "step": "0.0100"}], "primary_participant_key": "baseball_player", "result": "", "rules_primary": "If Ethan Pecko records 10+ strikeouts in the Los Angeles A vs Houston professional baseball game originally scheduled for Aug 19, 2026 at 8:10 PM EDT, then the market resolves to Yes.", "rules_secondary": "Player Participation & Settlement Criteria\nIf Ethan Pecko is scratched or is not a starting pitcher, the market will resolve to the fair market price.\nIf Ethan Pecko is not a starting pitcher but later enters the game, the market will resolve to the fair market price, relief appearances will not count towards this market.\nIf Ethan Pecko is a starting pitcher and records at least one batter faced the market will settle based on strikeouts recorded.\n\nKalshi is not affiliated, associated, authorized, endorsed by, or in any way officially connected with the Governing League. All trademarks, logos, and brand names are the property of their respective owners.", "settlement_timer_seconds": 300, "status": "active", "strike_type": "structured", "ticker": "KXMLBKS-26AUG192010LAAHOU-HOUEPECKO70-10", "title": "Ethan Pecko: 10+ strikeouts?", "updated_time": "2026-08-19T22:10:00.441495Z", "volume_24h_fp": "0.00", "volume_fp": "0.00", "yes_ask_dollars": "0.0700", "yes_ask_size_fp": "140.00", "yes_bid_dollars": "0.0500", "yes_bid_size_fp": "4.00", "yes_sub_title": "Eth
+     also: KXMLBKS-26AUG192010LAAHOU-HOUEPECKO70-9  yes_sub='Ethan Pecko: 9+'
+     also: KXMLBKS-26AUG192010LAAHOU-HOUEPECKO70-8  yes_sub='Ethan Pecko: 8+'
+     also: KXMLBKS-26AUG192010LAAHOU-HOUEPECKO70-7  yes_sub='Ethan Pecko: 7+'
+     also: KXMLBKS-26AUG192010LAAHOU-HOUEPECKO70-6  yes_sub='Ethan Pecko: 6+'
+     also: KXMLBKS-26AUG191840SFCLE-SFMWILKINSON71-7  yes_sub='Matt Wilkinson: 7+'
 
 probe complete.
