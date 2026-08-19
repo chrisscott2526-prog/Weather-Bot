@@ -1,0 +1,45 @@
+name: Sports probe (read-only)
+
+# TEMPORARY scaffolding for the pick-first sports rebuild: runs the
+# read-only probe whenever sports_probe.py or probe.trigger changes on the
+# rebuild branch, and commits the report as probe_report.txt so it can be
+# read without Actions log access. Delete this file when the rebuild lands.
+
+on:
+  push:
+    branches: ["claude/sports-pick-first-rebuild-tum11x"]
+    paths:
+      - "sports_probe.py"
+      - "probe.trigger"
+      - ".github/workflows/probe.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo-writes
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run the probe (writes nothing, bets nothing)
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: python -u sports_probe.py 2>&1 | tee probe_report.txt
+
+      - name: Commit the report
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "probe report $(date -u +'%F %H:%M')"
+          git push || (git pull --rebase -X ours && git push)
