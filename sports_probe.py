@@ -172,30 +172,38 @@ def probe_odds_api():
     probe_event_markets("americanfootball_nfl", NFL_PROP_MARKETS)
 
 
-def kalshi_get(path, label):
+def kalshi_get(path, label, tries=4):
     req = urllib.request.Request(KBASE + path,
                                  headers={"User-Agent": "weather-bot-probe"})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            return json.load(r), None
-    except urllib.error.HTTPError as e:
+    for attempt in range(tries):
         try:
-            body = e.read().decode("utf-8", "replace")[:300]
-        except Exception:
-            body = "(no body)"
-        return None, f"{label}: HTTP {e.code}: {body}"
-    except Exception as e:
-        return None, f"{label}: {type(e).__name__}: {e}"
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.load(r), None
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt < tries - 1:
+                time.sleep(2 * (attempt + 1))
+                continue
+            try:
+                body = e.read().decode("utf-8", "replace")[:300]
+            except Exception:
+                body = "(no body)"
+            return None, f"{label}: HTTP {e.code}: {body}"
+        except Exception as e:
+            return None, f"{label}: {type(e).__name__}: {e}"
 
 
-# Leagues we might ever card. The tag is matched against SERIES TICKERS
-# from Kalshi's own category=Sports catalogue purely to shortlist which
-# series get a volume lookup -- a READING AID for hand-verification.
-# Nothing from this list is ever whitelisted automatically.
-LEAGUE_TAGS = ("MLB", "NFL", "NBA", "WNBA", "NHL", "NCAA", "UFC", "PGA",
-               "ATP", "WTA", "F1", "NASCAR", "EPL", "MLS", "SERIEA",
-               "LALIGA", "BUNDES", "UCL", "TENNIS", "SOCCER", "CFB", "CBB")
-MAX_SERIES_LOOKUPS = 90
+# Hand-picked series to inspect first: single-game winner, period, total
+# and player-prop products for the leagues in season. This is a READING
+# AID for hand-verification -- nothing is whitelisted automatically.
+PRIORITY_SERIES = [
+    "KXMLBGAME", "KXMLBF5", "KXMLBF5TOTAL", "KXMLBF5SPREAD", "KXMLBF7",
+    "KXMLBSPREAD", "KXMLBTOTAL", "KXMLBKS", "KXMLBHIT", "KXMLBHR",
+    "KXMLBHRR", "KXMLBHA",
+    "KXNFLGAME", "KXNFLSPREAD", "KXNFLTOTAL",
+]
+# Raw-JSON dump targets: one sample market printed in full so field names
+# (prices, volume, strike floor/cap) and ticker anatomy can be read.
+DUMP_SERIES = ["KXMLBGAME", "KXMLBF5", "KXMLBF5TOTAL", "KXMLBKS"]
 
 
 def probe_kalshi():
@@ -212,24 +220,16 @@ def probe_kalshi():
                  for s in data.get("series", [])}
     print(f"Kalshi lists {len(catalogue)} series under category=Sports")
 
-    short = {t: title for t, title in catalogue.items()
-             if any(tag in t.upper() for tag in LEAGUE_TAGS)}
-    print(f"{len(short)} of them carry a league tag "
-          f"({', '.join(LEAGUE_TAGS)})")
-    # MLB first (it's the season), then NFL, then the rest alphabetically.
-    def league_rank(t):
-        u = t.upper()
-        return (0 if "MLB" in u else 1 if "NFL" in u else 2, t)
-    ordered = sorted(short, key=league_rank)
-    if len(ordered) > MAX_SERIES_LOOKUPS:
-        print(f"capping volume lookups at {MAX_SERIES_LOOKUPS} series -- "
-              f"{len(ordered) - MAX_SERIES_LOOKUPS} tagged series skipped "
-              f"(list below shows which)")
-    lookups, skipped = ordered[:MAX_SERIES_LOOKUPS], ordered[MAX_SERIES_LOOKUPS:]
+    print("\nEvery KXNFL* series in the catalogue (titles only, no lookup):")
+    for t in sorted(catalogue):
+        if t.startswith("KXNFL"):
+            print(f"  {t:<28} {catalogue[t][:70]}")
 
-    rows = []
-    samples = {}
-    for t in lookups:
+    rows, samples = [], {}
+    for t in PRIORITY_SERIES:
+        if t not in catalogue:
+            print(f"  {t}: NOT in the Sports catalogue")
+            continue
         data, err = kalshi_get(
             f"/trade-api/v2/markets?series_ticker={t}&status=open&limit=200",
             t)
@@ -237,8 +237,6 @@ def probe_kalshi():
             print(f"  {t}: {err}")
             continue
         mkts = data.get("markets", [])
-        if not mkts:
-            continue
         rows.append({
             "t": t, "n": len(mkts),
             "vol": sum(m.get("volume") or 0 for m in mkts),
@@ -246,35 +244,27 @@ def probe_kalshi():
             "oi": sum(m.get("open_interest") or 0 for m in mkts),
         })
         samples[t] = mkts
-        time.sleep(0.12)
+        time.sleep(0.7)
 
-    rows.sort(key=lambda r: -r["vol24"])
-    print(f"\n{len(rows)} tagged series have open markets right now. "
-          f"By 24h volume:")
+    print(f"\nPriority series, open markets right now:")
     print(f"  {'SERIES':<26}{'MKTS':>6}{'VOL24H':>10}{'VOLUME':>12}"
           f"{'OPENINT':>10}  TITLE")
-    for r in rows:
+    for r in sorted(rows, key=lambda r: -r["vol24"]):
         print(f"  {r['t']:<26}{r['n']:>6}{r['vol24']:>10,}{r['vol']:>12,}"
               f"{r['oi']:>10,}  {catalogue.get(r['t'], '')[:60]}")
 
-    print("\nSample open markets from the top series (ticker anatomy for "
-          "the matcher):")
-    for r in rows[:12]:
-        t = r["t"]
-        mkts = sorted(samples[t], key=lambda m: -(m.get("volume_24h") or 0))
-        print(f"  -- {t}: {catalogue.get(t, '')}")
-        for m in mkts[:3]:
-            print(f"     {m.get('ticker', '')}")
-            print(f"       title={m.get('title', '')!r} "
+    print("\nRAW MARKET DUMPS (full JSON of one open market per series, so "
+          "field names and ticker anatomy can be read):")
+    for t in DUMP_SERIES:
+        mkts = samples.get(t) or []
+        if not mkts:
+            print(f"  -- {t}: no open markets to dump")
+            continue
+        print(f"  -- {t}:")
+        print("     " + json.dumps(mkts[0], default=str)[:2500])
+        for m in mkts[1:6]:
+            print(f"     also: {m.get('ticker', '')}  "
                   f"yes_sub={m.get('yes_sub_title', '')!r}")
-            print(f"       yes_ask={m.get('yes_ask')} no_ask={m.get('no_ask')} "
-                  f"vol24={m.get('volume_24h')} oi={m.get('open_interest')} "
-                  f"close={m.get('close_time', '')}")
-
-    if skipped:
-        print("\nTagged series skipped by the lookup cap (titles only):")
-        for t in skipped:
-            print(f"  {t:<26} {catalogue.get(t, '')[:70]}")
 
 
 def main():
