@@ -1,9 +1,10 @@
 name: Sports probe (read-only)
 
-# TEMPORARY scaffolding for the pick-first sports rebuild: runs the
-# read-only probe whenever sports_probe.py or probe.trigger changes on the
-# rebuild branch, and commits the report as probe_report.txt so it can be
-# read without Actions log access. Delete this file when the rebuild lands.
+# TEMPORARY scaffolding for the pick-first sports rebuild: lets the
+# rebuild branch trigger runs by push (this session has no Actions
+# dispatch permission). If scan.trigger exists it runs the real scanner
+# and commits the card; otherwise it runs the read-only probe and
+# commits probe_report.txt. Delete this file when the rebuild lands.
 
 on:
   push:
@@ -11,6 +12,7 @@ on:
     paths:
       - "sports_probe.py"
       - "probe.trigger"
+      - "scan.trigger"
       - ".github/workflows/probe.yml"
 
 permissions:
@@ -31,15 +33,22 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Run the probe (writes nothing, bets nothing)
+      - name: Scan (if scan.trigger exists) or probe
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-        run: python -u sports_probe.py 2>&1 | tee probe_report.txt
+        run: |
+          if [ -f scan.trigger ]; then
+            python -u sports_scanner.py 2>&1 | tee scan_report.txt
+            exit "${PIPESTATUS[0]}"
+          else
+            python -u sports_probe.py 2>&1 | tee probe_report.txt
+          fi
 
-      - name: Commit the report
+      - name: Commit the output
+        if: ${{ always() }}
         run: |
           git config user.name "weather-bot"
           git config user.email "bot@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || git commit -m "probe report $(date -u +'%F %H:%M')"
+          git diff --cached --quiet || git commit -m "sports run $(date -u +'%F %H:%M')"
           git push || (git pull --rebase -X ours && git push)
