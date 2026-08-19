@@ -1,0 +1,32 @@
+name: Loss autopsy
+
+on:
+  workflow_run:
+    workflows: ["settle"]
+    types: [completed]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo-writes
+  cancel-in-progress: false
+
+jobs:
+  autopsy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Autopsy the settled bets
+        run: python autopsy.py
+
+      - name: Commit the report
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "autopsy $(date -u +'%F %H:%M')"
+          git push || (git fetch origin main && git rebase --abort 2>/dev/null; git pull --rebase -X ours && git push)
