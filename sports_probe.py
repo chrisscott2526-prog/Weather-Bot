@@ -188,85 +188,93 @@ def kalshi_get(path, label):
         return None, f"{label}: {type(e).__name__}: {e}"
 
 
+# Leagues we might ever card. The tag is matched against SERIES TICKERS
+# from Kalshi's own category=Sports catalogue purely to shortlist which
+# series get a volume lookup -- a READING AID for hand-verification.
+# Nothing from this list is ever whitelisted automatically.
+LEAGUE_TAGS = ("MLB", "NFL", "NBA", "WNBA", "NHL", "NCAA", "UFC", "PGA",
+               "ATP", "WTA", "F1", "NASCAR", "EPL", "MLS", "SERIEA",
+               "LALIGA", "BUNDES", "UCL", "TENNIS", "SOCCER", "CFB", "CBB")
+MAX_SERIES_LOOKUPS = 90
+
+
 def probe_kalshi():
     print()
     print("=" * 72)
     print("PART 2: KALSHI SPORTS INVENTORY (open markets, real volume)")
     print("=" * 72)
 
-    # Series catalogue for the Sports category, if the endpoint cooperates.
-    sports_series = {}
     data, err = kalshi_get("/trade-api/v2/series/?category=Sports", "series")
     if err:
-        print(f"series-by-category failed ({err}); "
-              f"falling back to title-only inventory")
-    else:
-        for s in data.get("series", []):
-            sports_series[s.get("ticker", "")] = s.get("title", "")
-        print(f"Kalshi lists {len(sports_series)} series under category=Sports")
+        print(f"series catalogue failed ({err}) -- cannot inventory")
+        return
+    catalogue = {(s.get("ticker") or ""): (s.get("title") or "")
+                 for s in data.get("series", [])}
+    print(f"Kalshi lists {len(catalogue)} series under category=Sports")
 
-    # Page through every open market and aggregate by series ticker.
-    agg = {}
-    cursor = ""
-    pages = 0
-    while pages < 40:
-        path = "/trade-api/v2/markets?status=open&limit=1000"
-        if cursor:
-            path += f"&cursor={cursor}"
-        data, err = kalshi_get(path, "markets")
+    short = {t: title for t, title in catalogue.items()
+             if any(tag in t.upper() for tag in LEAGUE_TAGS)}
+    print(f"{len(short)} of them carry a league tag "
+          f"({', '.join(LEAGUE_TAGS)})")
+    # MLB first (it's the season), then NFL, then the rest alphabetically.
+    def league_rank(t):
+        u = t.upper()
+        return (0 if "MLB" in u else 1 if "NFL" in u else 2, t)
+    ordered = sorted(short, key=league_rank)
+    if len(ordered) > MAX_SERIES_LOOKUPS:
+        print(f"capping volume lookups at {MAX_SERIES_LOOKUPS} series -- "
+              f"{len(ordered) - MAX_SERIES_LOOKUPS} tagged series skipped "
+              f"(list below shows which)")
+    lookups, skipped = ordered[:MAX_SERIES_LOOKUPS], ordered[MAX_SERIES_LOOKUPS:]
+
+    rows = []
+    samples = {}
+    for t in lookups:
+        data, err = kalshi_get(
+            f"/trade-api/v2/markets?series_ticker={t}&status=open&limit=200",
+            t)
         if err:
-            print(f"market paging stopped: {err}")
-            break
-        pages += 1
-        for m in data.get("markets", []):
-            prefix = (m.get("ticker") or "").split("-")[0]
-            a = agg.setdefault(prefix, {
-                "n": 0, "vol": 0, "vol24": 0, "oi": 0, "title": ""})
-            a["n"] += 1
-            a["vol"] += m.get("volume") or 0
-            a["vol24"] += m.get("volume_24h") or 0
-            a["oi"] += m.get("open_interest") or 0
-            if not a["title"]:
-                a["title"] = (m.get("title") or "")[:70]
-        cursor = data.get("cursor") or ""
-        if not cursor:
-            break
-        time.sleep(0.15)
-    total_mkts = sum(a["n"] for a in agg.values())
-    print(f"paged {pages} page(s), {total_mkts} open markets, "
-          f"{len(agg)} distinct series")
-    if pages == 40 and cursor:
-        print("WARNING: page cap hit -- inventory below is TRUNCATED")
+            print(f"  {t}: {err}")
+            continue
+        mkts = data.get("markets", [])
+        if not mkts:
+            continue
+        rows.append({
+            "t": t, "n": len(mkts),
+            "vol": sum(m.get("volume") or 0 for m in mkts),
+            "vol24": sum(m.get("volume_24h") or 0 for m in mkts),
+            "oi": sum(m.get("open_interest") or 0 for m in mkts),
+        })
+        samples[t] = mkts
+        time.sleep(0.12)
 
-    def rows_for(tickers):
-        rows = [(t, agg[t]) for t in tickers if t in agg]
-        return sorted(rows, key=lambda r: -r[1]["vol"])
+    rows.sort(key=lambda r: -r["vol24"])
+    print(f"\n{len(rows)} tagged series have open markets right now. "
+          f"By 24h volume:")
+    print(f"  {'SERIES':<26}{'MKTS':>6}{'VOL24H':>10}{'VOLUME':>12}"
+          f"{'OPENINT':>10}  TITLE")
+    for r in rows:
+        print(f"  {r['t']:<26}{r['n']:>6}{r['vol24']:>10,}{r['vol']:>12,}"
+              f"{r['oi']:>10,}  {catalogue.get(r['t'], '')[:60]}")
 
-    def show(rows, limit=None):
-        print(f"  {'SERIES':<22}{'MKTS':>6}{'VOLUME':>12}{'VOL24H':>10}"
-              f"{'OPENINT':>10}  EXAMPLE TITLE")
-        for t, a in (rows[:limit] if limit else rows):
-            title = sports_series.get(t) or a["title"]
-            print(f"  {t:<22}{a['n']:>6}{a['vol']:>12,}{a['vol24']:>10,}"
-                  f"{a['oi']:>10,}  {title}")
+    print("\nSample open markets from the top series (ticker anatomy for "
+          "the matcher):")
+    for r in rows[:12]:
+        t = r["t"]
+        mkts = sorted(samples[t], key=lambda m: -(m.get("volume_24h") or 0))
+        print(f"  -- {t}: {catalogue.get(t, '')}")
+        for m in mkts[:3]:
+            print(f"     {m.get('ticker', '')}")
+            print(f"       title={m.get('title', '')!r} "
+                  f"yes_sub={m.get('yes_sub_title', '')!r}")
+            print(f"       yes_ask={m.get('yes_ask')} no_ask={m.get('no_ask')} "
+                  f"vol24={m.get('volume_24h')} oi={m.get('open_interest')} "
+                  f"close={m.get('close_time', '')}")
 
-    if sports_series:
-        print("\nAll category=Sports series with open markets, by volume:")
-        show(rows_for(sports_series.keys()))
-    else:
-        print("\nTop 100 open series by volume (hand-read the titles):")
-        show(sorted(agg.items(), key=lambda r: -r[1]["vol"]), limit=100)
-
-    # Convenience view: likely-baseball series, by title words. This is a
-    # READING AID for the human doing hand-verification -- nothing here is
-    # ever whitelisted automatically.
-    words = ("baseball", "mlb", "innings", "strikeout", "home run", "hits",
-             "run scored", "total runs")
-    print("\nSeries whose example title mentions baseball things:")
-    hits = [(t, a) for t, a in agg.items()
-            if any(w in (sports_series.get(t, "") + " " + a["title"]).lower()
-                   for w in words)]
-    show(sorted(hits, key=lambda r: -r[1]["vol"]))
+    if skipped:
+        print("\nTagged series skipped by the lookup cap (titles only):")
+        for t in skipped:
+            print(f"  {t:<26} {catalogue.get(t, '')[:70]}")
 
 
 def main():
