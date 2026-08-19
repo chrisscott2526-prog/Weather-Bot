@@ -1,0 +1,26 @@
+SPORTS PROBE -- read-only. No bets, no CSV writes, no card.
+========================================================================
+PART 1: WHAT THE ODDS API KEY CAN PULL
+========================================================================
+/sports failed -- key may be dead: HTTP 401: {"message":"API key is missing","error_code":"MISSING_KEY","details_url":"https://the-odds-api.com/liveapi/guides/v4/api-error-codes.html#missing-key"}
+
+
+========================================================================
+PART 2: KALSHI SPORTS INVENTORY (open markets, real volume)
+========================================================================
+Kalshi lists 3458 series under category=Sports
+paged 40 page(s), 40000 open markets, 12 distinct series
+WARNING: page cap hit -- inventory below is TRUNCATED
+
+All category=Sports series with open markets, by volume:
+  SERIES                  MKTS      VOLUME    VOL24H   OPENINT  EXAMPLE TITLE
+  KXMLBSPREAD                1           0         0         0  Pro Baseball Spread
+  KXCLUBFTOTAL               1           0         0         0  Point Total
+  KXCLUBFSPREAD              1           0         0         0  Spread
+  KXCS2GAME                  2           0         0         0  Counter-Strike 2 Game
+
+Series whose example title mentions baseball things:
+  SERIES                  MKTS      VOLUME    VOL24H   OPENINT  EXAMPLE TITLE
+  KXMLBSPREAD                1           0         0         0  Pro Baseball Spread
+
+probe complete.
