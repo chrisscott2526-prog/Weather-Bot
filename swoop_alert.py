@@ -22,15 +22,26 @@ AUDITED + REBUILT Aug 6 2026 -- the $60 Phoenix rules, all enforced:
    measurement's clothes.
 6. Cities come from the ticker via SERIES_TO_CITY (Kalshi omits city
    names from newer market titles); title matching is the fallback.
+7. OVERSHOOT RISK (Aug 19 2026). A YES bracket whose cap the
+   thermometer is within OVERSHOOT_GAP_F degrees of, during the
+   station's local heating hours (~10am-6pm, longitude estimate --
+   same convention as poller.py), gets a loud warning: highs only
+   rise, so a winning-looking card can still get blown past. The
+   card shows the gap to the cap, the reading's age, and what the
+   side currently fetches on the market (the YES bid). The warning
+   outranks a SWOOP tag -- a warning beats an invitation. A STALE
+   reading near the cap is MORE dangerous, not less (the true temp
+   may already be past the cap), so staleness never suppresses this
+   tag. Advisory only: this board never trades or sells.
 
 ALWAYS confirm on weather.gov before sizing up. This board is an
 advisor. The Daily Climate Report is the judge.
 """
 
 import base64, csv, html, json, os, re, time, urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
-from cities import CITY_TO_STATION, SERIES_TO_CITY
+from cities import CITY_TO_STATION, SERIES_TO_CITY, SITES
 from csvio import appender
 
 BASE = "https://api.elections.kalshi.com"
@@ -48,6 +59,24 @@ LOCK_MAX_ASK = 95        # locked-win flag only if price still below this
 SWOOP_EARLIEST_UTC = 20  # no gold tags before ~4pm ET / 1pm PT
 MAX_OBS_AGE_MIN = 60     # readings older than this can never SWOOP
 PRICE_CONTRADICTION = 40 # a "winning" side priced under this kills the tag
+OVERSHOOT_GAP_F = 2.0    # obs within this many deg of a YES cap = risk
+HEAT_START_LOCAL = 10    # station-local heating hours: 10am up to (but
+HEAT_END_LOCAL = 18      # not including) 6pm, via the longitude estimate
+
+# city -> UTC offset in hours (longitude estimate, same convention as
+# poller.py -- good to about an hour, which is all a rough heating
+# window needs)
+CITY_OFFSET = {city: round(lon / 15.0)
+               for _st, (city, _lat, lon) in SITES.items()}
+
+
+def local_hour(city, now_utc):
+    """The station's approximate local hour (0-23), or None if the
+    city is unknown."""
+    off = CITY_OFFSET.get(city)
+    if off is None:
+        return None
+    return (now_utc + timedelta(hours=off)).hour
 
 
 # ---------- kalshi auth ----------
@@ -211,6 +240,46 @@ def grade(side, lo, hi, obs):
                             f"NO wins unless the day climbs into it.")
 
 
+# ---------- overshoot risk ----------
+def overshoot_check(status, side, hi, obs, age, loc_hr, fetch_cents):
+    """OVERSHOOT RISK gate for a graded YES position. Returns
+    (flag, extra_note) -- extra_note is None when the tag does not
+    apply and the caller should leave the card alone.
+
+    Fires when a winning-looking YES card (ON TRACK or AT RISK) sits
+    within OVERSHOOT_GAP_F degrees of its bracket cap during the
+    station's local heating hours. Highs only rise, so the gap can
+    only shrink. A stale or unknown-age reading makes it WORSE (the
+    true temp may already be past the cap), so staleness never
+    suppresses this warning. Advisory only -- alerts, never trades."""
+    if side != "yes" or hi is None:
+        return status, None
+    if status not in ("ON TRACK", "AT RISK"):
+        return status, None
+    if loc_hr is None or not (HEAT_START_LOCAL <= loc_hr < HEAT_END_LOCAL):
+        return status, None
+    gap = float(hi) - obs
+    if gap > OVERSHOOT_GAP_F:
+        return status, None
+    if gap > 0:
+        gap_txt = (f"Observed high {obs:.1f}\u00b0 is only {gap:.1f}\u00b0 "
+                   f"under the {hi:.0f}\u00b0 cap")
+    else:
+        gap_txt = (f"Instrument already reads {obs:.1f}\u00b0 - at or past "
+                   f"the {hi:.0f}\u00b0 cap itself")
+    age_txt = "of unknown age" if age is None else f"{age}m old"
+    fetch_txt = f"{fetch_cents:.0f}c" if fetch_cents else "n/a"
+    note = (f"{gap_txt}, and it is the heat of the day "
+            f"(~{loc_hr}:00 local). Highs only rise - one more push "
+            f"blows past this bracket. Reading is {age_txt}. Our side "
+            f"currently fetches {fetch_txt} on the market.")
+    if age is None or age > MAX_OBS_AGE_MIN:
+        note += (" WARNING: that reading is STALE - the true temp may "
+                 "already be past the cap. Check weather.gov NOW.")
+    note += " Advisory only - this board never sells for you."
+    return "OVERSHOOT RISK", note
+
+
 # ---------- page ----------
 CSS = """
 *{margin:0;padding:0;box-sizing:border-box}
@@ -224,6 +293,7 @@ padding:14px 16px;margin-bottom:12px;border-left:5px solid #2a323b}
 .card.LOCKED{border-left-color:#28a06c}.card.SWOOP{border-left-color:#f3b53c}
 .card.ONTRACK{border-left-color:#3f7fbf}.card.INDANGER{border-left-color:#c2542f}
 .card.ATRISK{border-left-color:#c2542f}
+.card.OVERSHOOTRISK{border-left-color:#e0483e}
 .card.VERIFY{border-left-color:#8a6aa8}
 .card.DEAD{border-left-color:#5c6670;opacity:.65}
 .top{display:flex;justify-content:space-between;align-items:baseline}
@@ -234,6 +304,7 @@ border-radius:3px;background:#2a323b}
 .SWOOP .badge{background:#f3b53c;color:#191203}
 .INDANGER .badge{background:#c2542f}
 .ATRISK .badge{background:#c2542f}
+.OVERSHOOTRISK .badge{background:#e0483e;color:#1a0505}
 .VERIFY .badge{background:#8a6aa8}
 .det{font-size:13px;color:#93a1ad;margin:6px 0}
 .det b{color:#e8e4da}
@@ -248,9 +319,9 @@ border-radius:3px;background:#2a323b}
 def build_page(cards, note, counts):
     now = datetime.now(timezone.utc).strftime("%a %b %d, %H:%M UTC")
     body = ""
-    order = {"SWOOP": 0, "LOCKED": 1, "AT RISK": 2, "IN DANGER": 3,
-             "VERIFY": 4, "ON TRACK": 5, "NEEDS HEAT": 6, "UNKNOWN": 7,
-             "DEAD": 8}
+    order = {"OVERSHOOT RISK": 0, "SWOOP": 1, "LOCKED": 2, "AT RISK": 3,
+             "IN DANGER": 4, "VERIFY": 5, "ON TRACK": 6, "NEEDS HEAT": 7,
+             "UNKNOWN": 8, "DEAD": 9}
     for c in sorted(cards, key=lambda c: order.get(c["flag"], 9)):
         cls = c["flag"].replace(" ", "")
         age_txt = ""
@@ -285,7 +356,13 @@ bracket the thermometer has passed is settled physics, not opinion.
 reading is FRESH (under {MAX_OBS_AGE_MIN}m old), and the market still
 sells it under {SWOOP_MAX_ASK}c. A stale reading or a price that
 disagrees kills the tag. <b>AT RISK</b> = an 'or below' bracket that can
-still climb out - never a swoop. Always eyeball the station on
+still climb out - never a swoop. <b>OVERSHOOT RISK</b> = the observed
+high is within {OVERSHOOT_GAP_F:.0f}&deg; of a YES bracket's cap during
+the station's heating hours (~10am-6pm local) - a winning-looking card
+that one more push of heat kills. The card shows the gap to the cap,
+the reading's age, and what the side currently fetches; a stale reading
+makes it MORE urgent, not less. This board only warns - it never sells
+for you. Always eyeball the station on
 weather.gov before sizing up; this page is only as fresh as the last
 poll. Chase nothing above {SWOOP_MAX_ASK}c; the meat is gone.</div>
 </div></body></html>"""
@@ -367,13 +444,25 @@ def main():
             yes_ask = float(m.get("yes_ask_dollars") or 0) * 100
         except (TypeError, ValueError):
             yes_ask = 0
+        try:
+            yes_bid = float(m.get("yes_bid_dollars") or 0) * 100
+        except (TypeError, ValueError):
+            yes_bid = 0
         my_price = yes_ask if side == "yes" else \
             (100 - yes_ask if yes_ask else 0)
         flag = status
 
+        # OVERSHOOT RISK outranks everything below: a warning beats an
+        # invitation. Fetch price = the YES bid (what selling would
+        # actually get, honestly quoted -- overshoot only fires on YES).
+        oflag, onote = overshoot_check(status, side, hi, obs, age,
+                                       local_hour(city, now), yes_bid)
+        if onote is not None:
+            flag = oflag
+            gnote += " " + onote
         # SWOOP gate: fresh reading, right hour, sane price, and the
         # market must not contradict us.
-        if status == "ON TRACK" and side == "yes" and \
+        elif status == "ON TRACK" and side == "yes" and \
                 SWOOP_MIN_ASK <= my_price <= SWOOP_MAX_ASK:
             if age is None or age > MAX_OBS_AGE_MIN:
                 flag = "VERIFY"
