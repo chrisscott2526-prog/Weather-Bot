@@ -4,7 +4,12 @@ on:
   schedule:
     - cron: "0 15 * * *"   # ~11am ET: afternoon slates
     - cron: "0 22 * * *"   # ~6pm ET: evening slates
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      probe:
+        description: "Run sports_probe.py instead (read-only inventory report in the log; writes nothing)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -26,14 +31,20 @@ jobs:
 
       - run: pip install cryptography
 
-      - name: Scan for edges and grade picks
+      - name: Scan and grade (or probe, read-only)
         env:
           KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
           KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-        run: python sports_scanner.py
+        run: |
+          if [ "${{ inputs.probe }}" = "true" ]; then
+            python sports_probe.py
+          else
+            python sports_scanner.py
+          fi
 
       - name: Commit the card
+        if: ${{ inputs.probe != 'true' }}
         run: |
           git config user.name "weather-bot"
           git config user.email "bot@users.noreply.github.com"
