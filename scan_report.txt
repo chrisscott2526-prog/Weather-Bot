@@ -1,0 +1,4 @@
+!! ODDS_API_KEY is EMPTY. No sharps, no card. Re-add the secret in GitHub → Settings → Secrets → Actions.
+evaluated 0 sharp-vs-Kalshi pairs, 0 make the card
+graded 0 settled picks
+wrote sports.html

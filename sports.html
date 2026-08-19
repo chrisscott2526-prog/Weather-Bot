@@ -1,6 +1,6 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>The Daily Card - Sports Edges</title>
+<title>The Daily Card - Sharps vs. Kalshi</title>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -18,6 +18,8 @@ h1 span{color:#e8c766}
 .rec{display:flex;gap:22px;margin-top:12px;font-size:14px}
 .rec b{font:600 22px/1 "Barlow Condensed",sans-serif;display:block}
 .upd{margin-top:8px;font-size:12px;opacity:.75}
+.dead{background:var(--red);color:#fff;padding:12px 16px;border-radius:6px;
+margin:18px 0 0;font-size:14px;font-weight:600}
 h2{font:600 15px/1 "Barlow Condensed",sans-serif;letter-spacing:.18em;
 text-transform:uppercase;color:var(--dim);margin:28px 2px 12px}
 .slip{background:var(--paper);border:1px solid var(--line);border-radius:6px;
@@ -36,7 +38,7 @@ padding:4px 8px;border-radius:3px;margin-right:8px}
 .match{font:600 21px/1.25 "Barlow Condensed",sans-serif;margin:8px 0 2px}
 .pick{font-size:15px;margin:6px 0}
 .pick b{color:var(--felt)}
-.nums{display:flex;gap:18px;font-size:13px;color:var(--dim);
+.nums{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--dim);
 margin:8px 0 10px;font-variant-numeric:tabular-nums}
 .nums b{color:var(--ink)}
 .why{font-size:14px;border-top:1px solid var(--line);padding-top:10px}
@@ -44,8 +46,8 @@ margin:8px 0 10px;font-variant-numeric:tabular-nums}
 font:700 15px/1 "Barlow Condensed",sans-serif;letter-spacing:.1em;
 border:2.5px solid;border-radius:4px;padding:6px 9px;
 transform:rotate(6deg);text-transform:uppercase}
-.stamp.edge{color:var(--felt);border-color:var(--felt)}
-.stamp.best{color:var(--gold);border-color:var(--gold)}
+.stamp.gap{color:var(--felt);border-color:var(--felt)}
+.stamp.top{color:var(--gold);border-color:var(--gold)}
 .empty{background:var(--paper);border:1px dashed var(--line);border-radius:6px;
 padding:26px 20px;text-align:center;color:var(--dim);font-size:15px}
 .empty b{color:var(--ink)}
@@ -56,6 +58,7 @@ th{font:600 12px/1 "Barlow Condensed",sans-serif;letter-spacing:.12em;
 text-transform:uppercase;color:var(--dim)}
 tr:last-child td{border-bottom:none}
 .W{color:var(--felt);font-weight:600}.L{color:var(--red);font-weight:600}
+.V{color:var(--dim);font-weight:600}
 .foot{margin-top:26px;font-size:12.5px;color:var(--dim);line-height:1.6}
 @media (prefers-reduced-motion:no-preference){
 .slip{transition:transform .12s}.slip:hover{transform:translateY(-2px)}}
@@ -64,30 +67,26 @@ tr:last-child td{border-bottom:none}
 <h1>The Daily <span>Card</span></h1>
 <div class="rec"><div><b>0-0</b>record</div>
 <div><b>+0.00</b>P&L ($1 slips)</div>
-<div><b>0</b>plays today</div></div>
-<div class="upd">Scanned Wed Aug 19, 15:20 UTC - picks are suggestions, you place the bets.
-</div>
+<div><b>0</b>picks today</div></div>
+<div class="upd">Scanned Wed Aug 19, 18:25 UTC. This card is advice between friends, not a
+robot with your wallet -- it never bets. You do (or don't).</div>
+<div class='dead'>THE ODDS FEED IS DOWN, so today's card is empty -- no picks can exist without the sharps. (Fix: re-add the ODDS_API_KEY secret in GitHub → Settings → Secrets → Actions.) The scoreboard below is still real.</div>
 </div></header>
 <div class="wrap">
-<h2>Today's plays</h2>
-<div class='empty'><b>No edges on today's board.</b><br>The books and the Kalshi crowd agree on every full-game moneyline we can match. Moneylines are efficient, so this is the normal result. When there's nothing mispriced, the best bet is no bet.</div>
+<h2>Today's picks, biggest gap first</h2>
 
-
-
-
-
-
-
-
-<div class="foot"><b>How to read a slip:</b> "Books say" is the de-vigged
-consensus win probability from US sportsbooks (the sharpest public forecast
-that exists). "Net edge" is that probability minus Kalshi's price minus
-Kalshi's trading fee - the estimated profit per $1 contract if the books are
-right. Only FULL-GAME moneyline markets are scanned; inning props, spreads
-and player-movement markets are excluded on purpose. Slips under
-+2c never make the card, and anything claiming more than
-+15c is treated as a bug and suppressed. The record above is
-scored at $1 per slip. Every evaluated game is logged to sports_picks.csv,
-shown or not, and every shown play is graded against final scores in
-sports_results.csv.</div>
+<h2>The card's record</h2><div class='empty'>Fresh scoreboard -- the pick-first card started Aug 19, 2026 and grades itself from day one. Every shown pick lands here as a WIN or LOSS at $1 a slip, settled by Kalshi itself. Give it a few weeks before trusting it with real beer money.</div>
+<div class="foot"><b>How this card works, in one breath:</b> the sharpest
+sportsbooks in the world publish their opinion as prices; we strip out
+their commission to get an honest probability, then check what Kalshi's
+crowd charges for the same thing. When the crowd sells the sharps' pick
+at least 4¢ under the sharps' own number (after Kalshi's
+fee), it makes the card. We never pick against the sharps, never chase
+a "cheap" longshot, and anything over +15¢ is treated as bad
+data and suppressed. Props (first-5-innings, totals, strikeouts) are the
+main event -- moneylines tag along. Sharps must lean at least
+55% -- coin flips don't get picks. Every market we
+evaluate is logged to sports_picks.csv, shown or not, and every shown
+pick is graded by Kalshi's own settlement in sports_results.csv. The
+record above is the only reason to trust (or ignore) this card.</div>
 </div></body></html>
