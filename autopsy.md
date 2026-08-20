@@ -1,4 +1,4 @@
-# Loss autopsy — 2026-08-20 13:16 UTC
+# Loss autopsy — 2026-08-20 18:25 UTC
 
 35 settled bets on the scoreboard. Where did the day's real high land, relative to what we bought?
 
@@ -56,7 +56,7 @@
 | Boston | 1 | 0 | 1 | 0 | 0 | 48% | - |
 | Chicago | 3 | 0 | 0 | 2 | 1 | 47% | every miss leans one way — station may run cold vs our model (calibration should be eating this); winning less than half what the model claims — bench candidate |
 | Dallas | 3 | 1 | 1 | 0 | 1 | 44% | - |
-| Denver | 3 | 0 | 1 | 0 | 2 | 64% | winning less than half what the model claims — bench candidate |
+| Denver | 3 | 0 | 1 | 0 | 2 | 65% | winning less than half what the model claims — bench candidate |
 | Houston | 1 | 0 | 0 | 0 | 1 | 39% | - |
 | Las Vegas | 1 | 0 | 0 | 0 | 1 | 71% | - |
 | Los Angeles | 1 | 0 | 0 | 0 | 1 | 64% | - |
@@ -82,7 +82,28 @@
 
 The question this table exists to answer: when the market prices our pick cheap (under 15¢), is it right and are we wrong? If the cheap band keeps losing while the mid band holds up, that is the case for raising MIN_PICK_COST.
 
-## 4. What this means (plain English)
+## 4. The race: night vs morning
+
+Same pick-first rules, same gates, same $1 sizing. The only difference: NIGHT picks use the night-before forecast (and usually get better prices); MORNING picks use a fresh same-day forecast (and pay whatever the market asks by then). The last row — profit per $1 risked, after fees — is the finish line.
+
+| | Night | Morning |
+|---|---|---|
+| Settled bets | 35 | 0 |
+| Wins | 6 (17%) | 0 (-) |
+| Missed by 1 bracket, high | 8 | 0 |
+| Missed by 1 bracket, low | 8 | 0 |
+| Missed far (2+ brackets) | 13 | 0 |
+| Unresolved | 0 | 0 |
+| Priced under 15¢ (wins/bets) | 0/4 | - |
+| Priced 15–35¢ (wins/bets) | 4/17 | - |
+| Priced over 35¢ (wins/bets) | 2/14 | - |
+| Dollars risked | $29.67 | $0.00 |
+| P&L after fees | $-14.29 | $+0.00 |
+| **Profit per $1 risked** | **-0.48** | **-** |
+
+The morning strategy has no settled bets yet — the race starts scoring once its first picks settle. Until both columns have real samples, the night column is just the scoreboard so far, not a verdict.
+
+## 5. What this means (plain English)
 
 - 16 of 29 losses missed by exactly ONE bracket. Plain English: on those days the forecast found the right neighborhood and knocked on the wrong door. That pattern points at small per-station bias — the calibration's job — not at a broken strategy.
 - But 13 of 29 losses landed 2+ brackets away. Far misses are worse news than near misses: on those days the model wasn't even in the right neighborhood.

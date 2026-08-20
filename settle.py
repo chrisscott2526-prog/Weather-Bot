@@ -19,6 +19,11 @@ AUDITED + FIXED Aug 18 2026:
   rows) are never graded -- no fill means nothing to score.
 - P&L nets out Kalshi's trading fee: ceil-to-cent of
   0.07 * contracts * price * (1 - price), charged win or lose.
+
+THE RACE (Aug 20 2026): the strategy tag (night/morning) is copied
+from trades.csv into results.csv so autopsy.py can score the two
+strategies side by side. Rows that predate the tag are night --
+that is historically what they were.
 """
 
 import base64, csv, json, math, os, re, time, urllib.request
@@ -30,9 +35,12 @@ from csvio import appender
 TRADES = "trades.csv"
 RESULTS = "results.csv"
 FIELDS = ["graded_utc", "ticker", "city", "action", "cost_cents",
-          "count", "fee_cents", "market_result", "result", "pnl"]
+          "count", "fee_cents", "market_result", "result", "pnl",
+          "strategy"]
 LEGACY = (["graded_utc", "ticker", "city", "action", "cost_cents",
-           "count", "market_result", "result", "pnl"],)
+           "count", "fee_cents", "market_result", "result", "pnl"],
+          ["graded_utc", "ticker", "city", "action", "cost_cents",
+           "count", "market_result", "result", "pnl"])
 
 BASE = "https://api.elections.kalshi.com"
 KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
@@ -111,7 +119,9 @@ def load_trades():
             out.append({"ticker": tick, "action": act,
                         "cost_cents": cost, "count": qty,
                         "city": (r.get("city") or "").strip()
-                                or city_from_ticker(tick)})
+                                or city_from_ticker(tick),
+                        # pre-tag rows were all the night strategy
+                        "strategy": (r.get("strategy") or "night").strip()})
     return out
 
 
@@ -160,7 +170,7 @@ def main():
                         "fee_cents": fee,
                         "market_result": result.upper(),
                         "result": "WIN" if won else "LOSS",
-                        "pnl": pnl})
+                        "pnl": pnl, "strategy": t["strategy"]})
             wrote += 1
             print(f"{t['city'] or t['ticker']} {t['action']} "
                   f"@ {t['cost_cents']}c -> {result.upper()} "
