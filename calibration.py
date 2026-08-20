@@ -31,6 +31,7 @@ from datetime import datetime, timedelta, timezone
 from statistics import median
 
 from cities import STATIONS
+from csvio import is_morning_row
 
 FORECASTS = "forecasts.csv"
 HIGHS = "daily_highs.csv"
@@ -75,7 +76,14 @@ def settled_windows():
 # ---------- history ----------
 def load_forecast_history():
     """(date, station) -> forecast median. Skips ERROR/blank rows.
-    Keeps the LAST forecast logged for a date (rerun overwrites)."""
+    Keeps the LAST forecast logged for a date (rerun overwrites).
+
+    NIGHT ROWS ONLY (Aug 20 2026): this bias table corrects the
+    night-before forecast, and it feeds BOTH strategies -- so it must
+    keep measuring the night forecast's error, not the (easier)
+    same-day error. Morning-refresh rows (told apart by timestamp via
+    csvio.is_morning_row) are skipped here; nightly rows -- including
+    runs that slipped past UTC midnight -- are kept."""
     hist = {}
     if not os.path.exists(FORECASTS):
         return hist
@@ -86,6 +94,8 @@ def load_forecast_history():
             v = (r.get("forecast_high_f") or "").strip()
             if not d or not sid or v in ("", "ERROR"):
                 continue
+            if is_morning_row(d, r.get("fetched_utc")):
+                continue   # same-day morning refresh: not this table's job
             try:
                 hist[(d, sid)] = float(v)
             except ValueError:

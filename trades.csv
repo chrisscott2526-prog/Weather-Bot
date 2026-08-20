@@ -1,144 +1,144 @@
-placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,order_id
-2026-08-16T22:30:58+00:00,KXHIGHPHIL-26AUG17-B89.5,89° to 90°,yes,2,46,41.9,,True,submitted,345c70d4-75df-4fd4-803e-07327648b769
-2026-08-16T22:30:58+00:00,KXHIGHCHI-26AUG17-B80.5,80° to 81°,yes,2,40,45.2,,True,submitted,a34308aa-5d26-435d-8404-0a823af3f771
-2026-08-16T22:30:58+00:00,KXHIGHTDC-26AUG17-B92.5,92° to 93°,yes,2,37,45.2,,True,submitted,34e55893-1538-4c79-bf87-ac902d1feaa2
-2026-08-16T22:30:58+00:00,KXHIGHTATL-26AUG17-B97.5,97° to 98°,yes,2,34,71.0,,True,submitted,263547a5-4f15-475a-b912-831db90ef10c
-2026-08-16T22:30:58+00:00,KXHIGHTDAL-26AUG17-B106.5,106° to 107°,yes,5,20,51.6,,True,submitted,132f6984-5969-4f94-8872-163e19e2b9de
-2026-08-16T23:18:02+00:00,KXHIGHDEN-26AUG17-B89.5,89° to 90°,yes,2,36,77.4,,True,submitted,99036ac2-0451-4b97-a3aa-3523c025d966
-2026-08-16T23:18:02+00:00,KXHIGHLAX-26AUG17-B80.5,80° to 81°,yes,6,16,64.5,,True,submitted,bb6ce932-6e42-49bd-b3b2-8a3178e9662f
-2026-08-16T23:18:02+00:00,KXHIGHTLV-26AUG17-B103.5,103° to 104°,yes,3,26,71.0,,True,submitted,afeb1f4f-a744-4b54-8da1-d6a6d725ceda
-2026-08-16T23:18:02+00:00,KXHIGHTOKC-26AUG17-B100.5,100° to 101°,yes,7,14,38.7,,True,submitted,bf6f5c34-b53f-4e8c-b49b-b7cdea2c3fa8
-2026-08-16T23:18:02+00:00,KXHIGHTBOS-26AUG17-T74,73° or below,yes,1,53,48.4,,True,submitted,fb35c097-93b5-4ca4-862f-0398eca82b8b
-2026-08-16T23:33:22+00:00,KXHIGHTSATX-26AUG17-B101.5,101° to 102°,yes,2,36,35.5,,True,submitted,48059aa7-a62a-46ef-9fed-e8d0070bc2df
-2026-08-16T23:33:22+00:00,KXHIGHTNOLA-26AUG17-B97.5,97° to 98°,yes,4,25,51.6,,True,submitted,c486e70b-ea92-48d9-b963-791c8ef4a335
-2026-08-17T19:41:24+00:00,KXHIGHTSFO-26AUG17-T74,75° or above,yes,11,9,54.8,,True,submitted,8bf4bc63-4256-4637-bad1-ca515fd30c6d
-2026-08-17T23:21:44+00:00,KXHIGHNY-26AUG18-T85,84° or below,yes,1,59,83.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:21:44+00:00,KXHIGHMIA-26AUG18-B97.5,97° to 98°,yes,2,45,71.0,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:21:44+00:00,KXHIGHDEN-26AUG18-B91.5,91° to 92°,yes,3,32,67.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:21:44+00:00,KXHIGHPHIL-26AUG18-B90.5,90° to 91°,yes,1,68,54.8,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:21:44+00:00,KXHIGHCHI-26AUG18-B82.5,82° to 83°,yes,2,37,51.6,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:35:15+00:00,KXHIGHNY-26AUG18-T85,84° or below,yes,1,59,83.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:35:15+00:00,KXHIGHMIA-26AUG18-B97.5,97° to 98°,yes,2,45,71.0,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:35:15+00:00,KXHIGHDEN-26AUG18-B91.5,91° to 92°,yes,3,32,67.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:35:15+00:00,KXHIGHPHIL-26AUG18-B90.5,90° to 91°,yes,1,68,54.8,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:35:15+00:00,KXHIGHCHI-26AUG18-B82.5,82° to 83°,yes,2,37,51.6,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:50:26+00:00,KXHIGHNY-26AUG18-T85,84° or below,yes,1,59,83.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:50:26+00:00,KXHIGHMIA-26AUG18-B97.5,97° to 98°,yes,2,45,71.0,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:50:26+00:00,KXHIGHDEN-26AUG18-B91.5,91° to 92°,yes,3,32,67.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:50:26+00:00,KXHIGHPHIL-26AUG18-B90.5,90° to 91°,yes,1,68,54.8,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-17T23:50:26+00:00,KXHIGHCHI-26AUG18-B82.5,82° to 83°,yes,2,37,51.6,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-18T02:20:46+00:00,KXHIGHNY-26AUG18-T85,84° or below,yes,1,61,83.9,,True,submitted,fc30f0c9-3654-449f-8ffe-212e0c40a48e
-2026-08-18T02:20:46+00:00,KXHIGHMIA-26AUG18-B97.5,97° to 98°,yes,2,43,71.0,,True,submitted,fb00632d-4bab-4b91-9bbb-9d8ac107efe1
-2026-08-18T02:20:46+00:00,KXHIGHDEN-26AUG18-B91.5,91° to 92°,yes,3,32,67.7,,True,submitted,83912cb8-2c5e-4e49-8f89-e833811300ab
-2026-08-18T02:20:46+00:00,KXHIGHPHIL-26AUG18-B90.5,90° to 91°,yes,1,66,54.8,,True,submitted,e7cf3831-a66a-4e2b-a009-6a35df347206
-2026-08-18T02:20:46+00:00,KXHIGHCHI-26AUG18-B82.5,82° to 83°,yes,2,39,51.6,,True,submitted,7979ff9e-33c4-4cd3-a5ad-1f943f556d80
-2026-08-18T02:39:51+00:00,KXHIGHTSFO-26AUG18-T75,76° or above,yes,12,8,48.4,,True,submitted,a3792de6-1f1b-43ff-bab3-e2c52ac58528
-2026-08-18T02:39:51+00:00,KXHIGHTDC-26AUG18-B90.5,90° to 91°,yes,3,30,45.2,,True,submitted,00a32909-ae23-426e-aee4-08b155d76605
-2026-08-18T02:39:51+00:00,KXHIGHTDAL-26AUG18-B106.5,106° to 107°,yes,1,64,38.7,,True,submitted,4d6f7802-5d55-4c66-8902-c9efe8bb5d52
-2026-08-18T02:39:51+00:00,KXHIGHTSEA-26AUG18-T76,75° or below,yes,5,17,38.7,,True,submitted,b02143df-046b-461e-8177-5ea6fa3eb594
-2026-08-18T02:39:51+00:00,KXHIGHTOKC-26AUG18-B104.5,104° to 105°,yes,4,22,35.5,,True,submitted,d817dcc4-d296-4eed-bead-5965e20cdc75
-2026-08-18T03:57:06+00:00,KXHIGHTMIN-26AUG18-T82,83° or above,yes,3,32,64.5,,True,submitted,a0888d9e-417f-4eb9-a65b-21da8b1493e8
-2026-08-18T03:57:06+00:00,KXHIGHTNOLA-26AUG18-T95,94° or below,yes,4,23,80.6,,True,submitted,b811ca0f-0a07-43c7-8a2f-a98fd0bfad39
-2026-08-18T03:57:06+00:00,KXHIGHTHOU-26AUG18-B98.5,98° to 99°,yes,4,22,38.7,,True,submitted,78d09797-e5c5-4c93-9f15-b25e15d8d06a
-2026-08-18T23:20:20+00:00,KXHIGHNY-26AUG19-B87.5,87° to 88°,yes,3,33,61.3,,True,submitted,5b4119a2-da79-44d0-8872-74590bc95b2d
-2026-08-18T23:20:20+00:00,KXHIGHMIA-26AUG19-B95.5,95° to 96°,yes,3,32,61.3,,True,submitted,7190447e-d3d3-40ad-a1c0-0597d06e0381
-2026-08-18T23:20:20+00:00,KXHIGHDEN-26AUG19-B86.5,86° to 87°,yes,6,15,48.4,,True,submitted,90e13a7d-a6b2-4faf-a7bc-eeb0d2382eb0
-2026-08-18T23:20:20+00:00,KXHIGHPHIL-26AUG19-B88.5,88° to 89°,yes,2,41,54.8,,True,submitted,647b99af-e59e-4238-94d8-5d196a8e7438
-2026-08-18T23:20:20+00:00,KXHIGHCHI-26AUG19-T81,82° or above,yes,4,22,45.2,,True,submitted,e97f8842-df29-465a-96b8-8fd960356877
-2026-08-18T23:35:26+00:00,KXHIGHTPHX-26AUG19-B109.5,109° to 110°,yes,1,59,48.4,,True,submitted,c630a1e1-74c4-4edb-8e54-932d5c180f2b
-2026-08-18T23:35:26+00:00,KXHIGHTDC-26AUG19-B91.5,91° to 92°,yes,3,27,61.3,,True,submitted,6c311149-8359-4512-9704-680785c785d1
-2026-08-18T23:35:26+00:00,KXHIGHTATL-26AUG19-B95.5,95° to 96°,yes,2,46,38.7,,True,submitted,d2135ed8-d39e-479e-bacb-e97daccc1e53
-2026-08-18T23:35:26+00:00,KXHIGHTDAL-26AUG19-B107.5,107° to 108°,yes,7,13,41.9,,True,submitted,6fb29b70-c65b-4c86-9f92-c89fdfe5bde8
-2026-08-18T23:35:26+00:00,KXHIGHTOKC-26AUG19-B109.5,109° to 110°,yes,2,40,35.5,,True,submitted,ca9b1e25-02c3-446f-a4f9-e93d835f310b
-2026-08-18T23:50:04+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,3,27,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-18T23:50:04+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,15,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-18T23:50:04+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,3,29,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T02:31:20+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,4,23,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T02:31:20+00:00,KXHIGHTSATX-26AUG19-T99,98° or below,yes,12,8,48.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T02:31:20+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,15,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T02:31:20+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,5,19,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T02:42:18+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,4,23,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T02:42:18+00:00,KXHIGHTSATX-26AUG19-T99,98° or below,yes,12,8,48.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T02:42:18+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,15,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T02:42:18+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,5,19,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T03:57:45+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,3,26,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T03:57:45+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,16,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T03:57:45+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,5,17,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T04:10:25+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,3,26,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T04:10:25+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,16,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T04:10:25+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,5,17,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T05:46:04+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,3,26,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T05:46:04+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,4,22,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T05:46:04+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,6,15,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T05:58:15+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,3,26,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T05:58:15+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,4,22,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T05:58:15+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,6,15,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T13:56:43+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,12,8,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T13:56:43+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,8,12,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T14:08:41+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,12,8,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T14:08:41+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,8,12,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T15:45:25+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,10,10,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T15:45:25+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,16,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T15:45:25+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,7,14,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T15:59:33+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,10,10,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T15:59:33+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,16,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T15:59:33+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,7,14,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T17:39:03+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,4,22,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T17:52:59+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,4,22,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:21:03+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,57,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:21:03+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:21:03+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,61,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:21:03+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,45,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:21:03+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,29,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:35:24+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,57,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:35:24+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:35:24+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,61,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:35:24+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,45,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:35:24+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,28,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:50:10+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,57,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:50:10+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:50:10+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,61,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:50:10+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,45,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-19T23:50:10+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,28,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T02:30:49+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,55,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T02:30:49+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T02:30:49+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,66,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T02:30:49+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,50,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T02:30:49+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,27,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T02:40:59+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,55,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T02:40:59+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T02:40:59+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,66,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T02:40:59+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,50,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T02:40:59+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,27,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T03:58:06+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,2,43,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T03:58:06+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T03:58:06+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,65,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T03:58:06+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,49,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T03:58:06+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,30,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T04:10:36+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,2,43,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T04:10:36+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T04:10:36+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,65,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T04:10:36+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,49,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T04:10:36+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,30,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T05:45:32+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,2,38,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T05:45:32+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,12,8,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T05:45:32+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,64,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T05:45:32+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,1,54,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T05:45:32+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,30,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T05:59:15+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,2,38,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T05:59:15+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,12,8,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T05:59:15+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,64,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T05:59:15+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,1,54,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T05:59:15+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,30,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
-2026-08-20T13:45:11+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,58,77.4,,True,submitted,01a01f6b-2a40-7c03-91cc-f9e6684b65a2
-2026-08-20T13:45:11+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,55,45.2,,True,submitted,01a01f6b-2a40-7c1a-bf78-bc208d12f55e
-2026-08-20T13:45:11+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,1,64,41.9,,True,submitted,01a01f6b-2a40-7f3f-9846-3558d56be14c
-2026-08-20T13:45:11+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,30,38.7,,True,submitted,01a01f6b-2a40-7060-9480-a431eb7679a5
-2026-08-20T13:45:11+00:00,KXHIGHTATL-26AUG20-B97.5,97° to 98°,yes,2,48,45.2,,True,submitted,01a01f6b-2a40-7794-a006-cc21ed6a7b6b
-2026-08-20T13:58:07+00:00,KXHIGHTDAL-26AUG20-B107.5,107° to 108°,yes,5,18,38.7,,True,submitted,01a01f76-fd98-7450-95a3-8f0dafd7cfa0
-2026-08-20T13:58:07+00:00,KXHIGHTLV-26AUG20-B107.5,107° to 108°,yes,3,33,51.6,,True,submitted,01a01f76-fd98-7c8d-bbc2-00dc2f60ea3f
-2026-08-20T13:58:07+00:00,KXHIGHTSATX-26AUG20-B102.5,102° to 103°,yes,1,60,38.7,,True,submitted,01a01f76-fd98-70a6-8844-8f6068fb19a8
-2026-08-20T13:58:07+00:00,KXHIGHTNOLA-26AUG20-B97.5,97° to 98°,yes,2,42,58.1,,True,submitted,01a01f76-fd98-779c-9bdd-2807657fd991
-2026-08-20T13:58:07+00:00,KXHIGHTHOU-26AUG20-B100.5,100° to 101°,yes,5,20,64.5,,True,submitted,01a01f76-fd98-7b18-b3dc-30b4e9ea3636
-2026-08-20T15:48:19+00:00,KXHIGHNY-26AUG20-T85,86° or above,yes,9,11,38.7,,True,submitted,01a01fdb-e5a0-70e6-bebe-888d9762bfd6
-2026-08-20T15:48:19+00:00,KXHIGHTSEA-26AUG20-T86,87° or above,yes,4,23,74.2,,True,submitted,01a01fdb-e5a0-70b8-a7bb-b728ed5b0977
+placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,order_id,strategy
+2026-08-16T22:30:58+00:00,KXHIGHPHIL-26AUG17-B89.5,89° to 90°,yes,2,46,41.9,,True,submitted,345c70d4-75df-4fd4-803e-07327648b769,night
+2026-08-16T22:30:58+00:00,KXHIGHCHI-26AUG17-B80.5,80° to 81°,yes,2,40,45.2,,True,submitted,a34308aa-5d26-435d-8404-0a823af3f771,night
+2026-08-16T22:30:58+00:00,KXHIGHTDC-26AUG17-B92.5,92° to 93°,yes,2,37,45.2,,True,submitted,34e55893-1538-4c79-bf87-ac902d1feaa2,night
+2026-08-16T22:30:58+00:00,KXHIGHTATL-26AUG17-B97.5,97° to 98°,yes,2,34,71.0,,True,submitted,263547a5-4f15-475a-b912-831db90ef10c,night
+2026-08-16T22:30:58+00:00,KXHIGHTDAL-26AUG17-B106.5,106° to 107°,yes,5,20,51.6,,True,submitted,132f6984-5969-4f94-8872-163e19e2b9de,night
+2026-08-16T23:18:02+00:00,KXHIGHDEN-26AUG17-B89.5,89° to 90°,yes,2,36,77.4,,True,submitted,99036ac2-0451-4b97-a3aa-3523c025d966,night
+2026-08-16T23:18:02+00:00,KXHIGHLAX-26AUG17-B80.5,80° to 81°,yes,6,16,64.5,,True,submitted,bb6ce932-6e42-49bd-b3b2-8a3178e9662f,night
+2026-08-16T23:18:02+00:00,KXHIGHTLV-26AUG17-B103.5,103° to 104°,yes,3,26,71.0,,True,submitted,afeb1f4f-a744-4b54-8da1-d6a6d725ceda,night
+2026-08-16T23:18:02+00:00,KXHIGHTOKC-26AUG17-B100.5,100° to 101°,yes,7,14,38.7,,True,submitted,bf6f5c34-b53f-4e8c-b49b-b7cdea2c3fa8,night
+2026-08-16T23:18:02+00:00,KXHIGHTBOS-26AUG17-T74,73° or below,yes,1,53,48.4,,True,submitted,fb35c097-93b5-4ca4-862f-0398eca82b8b,night
+2026-08-16T23:33:22+00:00,KXHIGHTSATX-26AUG17-B101.5,101° to 102°,yes,2,36,35.5,,True,submitted,48059aa7-a62a-46ef-9fed-e8d0070bc2df,night
+2026-08-16T23:33:22+00:00,KXHIGHTNOLA-26AUG17-B97.5,97° to 98°,yes,4,25,51.6,,True,submitted,c486e70b-ea92-48d9-b963-791c8ef4a335,night
+2026-08-17T19:41:24+00:00,KXHIGHTSFO-26AUG17-T74,75° or above,yes,11,9,54.8,,True,submitted,8bf4bc63-4256-4637-bad1-ca515fd30c6d,night
+2026-08-17T23:21:44+00:00,KXHIGHNY-26AUG18-T85,84° or below,yes,1,59,83.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:21:44+00:00,KXHIGHMIA-26AUG18-B97.5,97° to 98°,yes,2,45,71.0,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:21:44+00:00,KXHIGHDEN-26AUG18-B91.5,91° to 92°,yes,3,32,67.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:21:44+00:00,KXHIGHPHIL-26AUG18-B90.5,90° to 91°,yes,1,68,54.8,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:21:44+00:00,KXHIGHCHI-26AUG18-B82.5,82° to 83°,yes,2,37,51.6,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:35:15+00:00,KXHIGHNY-26AUG18-T85,84° or below,yes,1,59,83.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:35:15+00:00,KXHIGHMIA-26AUG18-B97.5,97° to 98°,yes,2,45,71.0,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:35:15+00:00,KXHIGHDEN-26AUG18-B91.5,91° to 92°,yes,3,32,67.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:35:15+00:00,KXHIGHPHIL-26AUG18-B90.5,90° to 91°,yes,1,68,54.8,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:35:15+00:00,KXHIGHCHI-26AUG18-B82.5,82° to 83°,yes,2,37,51.6,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:50:26+00:00,KXHIGHNY-26AUG18-T85,84° or below,yes,1,59,83.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:50:26+00:00,KXHIGHMIA-26AUG18-B97.5,97° to 98°,yes,2,45,71.0,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:50:26+00:00,KXHIGHDEN-26AUG18-B91.5,91° to 92°,yes,3,32,67.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:50:26+00:00,KXHIGHPHIL-26AUG18-B90.5,90° to 91°,yes,1,68,54.8,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-17T23:50:26+00:00,KXHIGHCHI-26AUG18-B82.5,82° to 83°,yes,2,37,51.6,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-18T02:20:46+00:00,KXHIGHNY-26AUG18-T85,84° or below,yes,1,61,83.9,,True,submitted,fc30f0c9-3654-449f-8ffe-212e0c40a48e,night
+2026-08-18T02:20:46+00:00,KXHIGHMIA-26AUG18-B97.5,97° to 98°,yes,2,43,71.0,,True,submitted,fb00632d-4bab-4b91-9bbb-9d8ac107efe1,night
+2026-08-18T02:20:46+00:00,KXHIGHDEN-26AUG18-B91.5,91° to 92°,yes,3,32,67.7,,True,submitted,83912cb8-2c5e-4e49-8f89-e833811300ab,night
+2026-08-18T02:20:46+00:00,KXHIGHPHIL-26AUG18-B90.5,90° to 91°,yes,1,66,54.8,,True,submitted,e7cf3831-a66a-4e2b-a009-6a35df347206,night
+2026-08-18T02:20:46+00:00,KXHIGHCHI-26AUG18-B82.5,82° to 83°,yes,2,39,51.6,,True,submitted,7979ff9e-33c4-4cd3-a5ad-1f943f556d80,night
+2026-08-18T02:39:51+00:00,KXHIGHTSFO-26AUG18-T75,76° or above,yes,12,8,48.4,,True,submitted,a3792de6-1f1b-43ff-bab3-e2c52ac58528,night
+2026-08-18T02:39:51+00:00,KXHIGHTDC-26AUG18-B90.5,90° to 91°,yes,3,30,45.2,,True,submitted,00a32909-ae23-426e-aee4-08b155d76605,night
+2026-08-18T02:39:51+00:00,KXHIGHTDAL-26AUG18-B106.5,106° to 107°,yes,1,64,38.7,,True,submitted,4d6f7802-5d55-4c66-8902-c9efe8bb5d52,night
+2026-08-18T02:39:51+00:00,KXHIGHTSEA-26AUG18-T76,75° or below,yes,5,17,38.7,,True,submitted,b02143df-046b-461e-8177-5ea6fa3eb594,night
+2026-08-18T02:39:51+00:00,KXHIGHTOKC-26AUG18-B104.5,104° to 105°,yes,4,22,35.5,,True,submitted,d817dcc4-d296-4eed-bead-5965e20cdc75,night
+2026-08-18T03:57:06+00:00,KXHIGHTMIN-26AUG18-T82,83° or above,yes,3,32,64.5,,True,submitted,a0888d9e-417f-4eb9-a65b-21da8b1493e8,night
+2026-08-18T03:57:06+00:00,KXHIGHTNOLA-26AUG18-T95,94° or below,yes,4,23,80.6,,True,submitted,b811ca0f-0a07-43c7-8a2f-a98fd0bfad39,night
+2026-08-18T03:57:06+00:00,KXHIGHTHOU-26AUG18-B98.5,98° to 99°,yes,4,22,38.7,,True,submitted,78d09797-e5c5-4c93-9f15-b25e15d8d06a,night
+2026-08-18T23:20:20+00:00,KXHIGHNY-26AUG19-B87.5,87° to 88°,yes,3,33,61.3,,True,submitted,5b4119a2-da79-44d0-8872-74590bc95b2d,night
+2026-08-18T23:20:20+00:00,KXHIGHMIA-26AUG19-B95.5,95° to 96°,yes,3,32,61.3,,True,submitted,7190447e-d3d3-40ad-a1c0-0597d06e0381,night
+2026-08-18T23:20:20+00:00,KXHIGHDEN-26AUG19-B86.5,86° to 87°,yes,6,15,48.4,,True,submitted,90e13a7d-a6b2-4faf-a7bc-eeb0d2382eb0,night
+2026-08-18T23:20:20+00:00,KXHIGHPHIL-26AUG19-B88.5,88° to 89°,yes,2,41,54.8,,True,submitted,647b99af-e59e-4238-94d8-5d196a8e7438,night
+2026-08-18T23:20:20+00:00,KXHIGHCHI-26AUG19-T81,82° or above,yes,4,22,45.2,,True,submitted,e97f8842-df29-465a-96b8-8fd960356877,night
+2026-08-18T23:35:26+00:00,KXHIGHTPHX-26AUG19-B109.5,109° to 110°,yes,1,59,48.4,,True,submitted,c630a1e1-74c4-4edb-8e54-932d5c180f2b,night
+2026-08-18T23:35:26+00:00,KXHIGHTDC-26AUG19-B91.5,91° to 92°,yes,3,27,61.3,,True,submitted,6c311149-8359-4512-9704-680785c785d1,night
+2026-08-18T23:35:26+00:00,KXHIGHTATL-26AUG19-B95.5,95° to 96°,yes,2,46,38.7,,True,submitted,d2135ed8-d39e-479e-bacb-e97daccc1e53,night
+2026-08-18T23:35:26+00:00,KXHIGHTDAL-26AUG19-B107.5,107° to 108°,yes,7,13,41.9,,True,submitted,6fb29b70-c65b-4c86-9f92-c89fdfe5bde8,night
+2026-08-18T23:35:26+00:00,KXHIGHTOKC-26AUG19-B109.5,109° to 110°,yes,2,40,35.5,,True,submitted,ca9b1e25-02c3-446f-a4f9-e93d835f310b,night
+2026-08-18T23:50:04+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,3,27,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-18T23:50:04+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,15,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-18T23:50:04+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,3,29,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T02:31:20+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,4,23,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T02:31:20+00:00,KXHIGHTSATX-26AUG19-T99,98° or below,yes,12,8,48.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T02:31:20+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,15,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T02:31:20+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,5,19,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T02:42:18+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,4,23,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T02:42:18+00:00,KXHIGHTSATX-26AUG19-T99,98° or below,yes,12,8,48.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T02:42:18+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,15,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T02:42:18+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,5,19,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T03:57:45+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,3,26,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T03:57:45+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,16,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T03:57:45+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,5,17,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T04:10:25+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,3,26,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T04:10:25+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,16,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T04:10:25+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,5,17,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T05:46:04+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,3,26,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T05:46:04+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,4,22,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T05:46:04+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,6,15,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T05:58:15+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,3,26,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T05:58:15+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,4,22,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T05:58:15+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,6,15,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T13:56:43+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,12,8,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T13:56:43+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,8,12,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T14:08:41+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,12,8,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T14:08:41+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,8,12,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T15:45:25+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,10,10,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T15:45:25+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,16,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T15:45:25+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,7,14,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T15:59:33+00:00,KXHIGHTBOS-26AUG19-B84.5,84° to 85°,yes,10,10,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T15:59:33+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,6,16,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T15:59:33+00:00,KXHIGHTHOU-26AUG19-B99.5,99° to 100°,yes,7,14,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T17:39:03+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,4,22,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T17:52:59+00:00,KXHIGHTNOLA-26AUG19-T94,93° or below,yes,4,22,61.3,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:21:03+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,57,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:21:03+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:21:03+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,61,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:21:03+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,45,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:21:03+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,29,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:35:24+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,57,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:35:24+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:35:24+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,61,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:35:24+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,45,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:35:24+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,28,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:50:10+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,57,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:50:10+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:50:10+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,61,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:50:10+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,45,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-19T23:50:10+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,28,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T02:30:49+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,55,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T02:30:49+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T02:30:49+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,66,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T02:30:49+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,50,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T02:30:49+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,27,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T02:40:59+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,55,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T02:40:59+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T02:40:59+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,66,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T02:40:59+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,50,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T02:40:59+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,27,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T03:58:06+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,2,43,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T03:58:06+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T03:58:06+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,65,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T03:58:06+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,49,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T03:58:06+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,30,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T04:10:36+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,2,43,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T04:10:36+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,7,14,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T04:10:36+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,65,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T04:10:36+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,2,49,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T04:10:36+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,30,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T05:45:32+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,2,38,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T05:45:32+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,12,8,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T05:45:32+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,64,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T05:45:32+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,1,54,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T05:45:32+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,30,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T05:59:15+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,2,38,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T05:59:15+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,12,8,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T05:59:15+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,64,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T05:59:15+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,1,54,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T05:59:15+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,30,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T13:45:11+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,58,77.4,,True,submitted,01a01f6b-2a40-7c03-91cc-f9e6684b65a2,night
+2026-08-20T13:45:11+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,55,45.2,,True,submitted,01a01f6b-2a40-7c1a-bf78-bc208d12f55e,night
+2026-08-20T13:45:11+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,1,64,41.9,,True,submitted,01a01f6b-2a40-7f3f-9846-3558d56be14c,night
+2026-08-20T13:45:11+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,30,38.7,,True,submitted,01a01f6b-2a40-7060-9480-a431eb7679a5,night
+2026-08-20T13:45:11+00:00,KXHIGHTATL-26AUG20-B97.5,97° to 98°,yes,2,48,45.2,,True,submitted,01a01f6b-2a40-7794-a006-cc21ed6a7b6b,night
+2026-08-20T13:58:07+00:00,KXHIGHTDAL-26AUG20-B107.5,107° to 108°,yes,5,18,38.7,,True,submitted,01a01f76-fd98-7450-95a3-8f0dafd7cfa0,night
+2026-08-20T13:58:07+00:00,KXHIGHTLV-26AUG20-B107.5,107° to 108°,yes,3,33,51.6,,True,submitted,01a01f76-fd98-7c8d-bbc2-00dc2f60ea3f,night
+2026-08-20T13:58:07+00:00,KXHIGHTSATX-26AUG20-B102.5,102° to 103°,yes,1,60,38.7,,True,submitted,01a01f76-fd98-70a6-8844-8f6068fb19a8,night
+2026-08-20T13:58:07+00:00,KXHIGHTNOLA-26AUG20-B97.5,97° to 98°,yes,2,42,58.1,,True,submitted,01a01f76-fd98-779c-9bdd-2807657fd991,night
+2026-08-20T13:58:07+00:00,KXHIGHTHOU-26AUG20-B100.5,100° to 101°,yes,5,20,64.5,,True,submitted,01a01f76-fd98-7b18-b3dc-30b4e9ea3636,night
+2026-08-20T15:48:19+00:00,KXHIGHNY-26AUG20-T85,86° or above,yes,9,11,38.7,,True,submitted,01a01fdb-e5a0-70e6-bebe-888d9762bfd6,night
+2026-08-20T15:48:19+00:00,KXHIGHTSEA-26AUG20-T86,87° or above,yes,4,23,74.2,,True,submitted,01a01fdb-e5a0-70b8-a7bb-b728ed5b0977,night

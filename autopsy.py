@@ -23,6 +23,11 @@ Where the "actual high" comes from, in order of trust:
      misses): that is scored MISS-HIGH-BY-1 with source
      "settlement+instrument".
 
+THE RACE (Aug 20 2026): results.csv rows carry a strategy tag (night
+or morning; untagged old rows are night). The report scores the two
+strategies side by side -- wins, miss patterns, price bands, and the
+finish line: profit per $1 risked, after fees.
+
 READ-ONLY against the betting pipeline: this script writes autopsy.md
 and nothing else. It changes no picks, no trades, no guards.
 
@@ -110,7 +115,9 @@ def classify(row, tinfo, highs):
            "cost": row.get("cost_cents", ""), "result": row["result"],
            "pnl": row.get("pnl", ""), "date": "?", "bracket": "?",
            "verdict": "UNRESOLVED", "source": "-", "direction": None,
-           "model_pct": None}
+           "model_pct": None, "count": row.get("count", ""),
+           # rows that predate the tag were all the night strategy
+           "strategy": (row.get("strategy") or "night").strip()}
     if not m:
         print(f"SKIP {tick}: ticker does not parse -- cannot autopsy")
         return out
@@ -178,6 +185,34 @@ def tally(bets):
         else:
             t["unres"] += 1
     return t
+
+
+def money(bets):
+    """(dollars_risked, pnl_after_fees) summed over bets. A row whose
+    numbers don't parse contributes to neither sum -- never guessed."""
+    risked = pnl = 0.0
+    for b in bets:
+        try:
+            r = float(b["cost"]) * float(b["count"] or 1) / 100.0
+            p = float(b["pnl"])
+        except (TypeError, ValueError):
+            continue
+        risked += r
+        pnl += p
+    return risked, pnl
+
+
+def band_line(bets, fits):
+    """'wins/bets' for the bets whose price passes fits()."""
+    bb = []
+    for b in bets:
+        try:
+            if fits(float(b["cost"])):
+                bb.append(b)
+        except (TypeError, ValueError):
+            continue
+    wins = sum(1 for b in bb if b["verdict"] == "WIN")
+    return f"{wins}/{len(bb)}" if bb else "-"
 
 
 def build_report(bets):
@@ -284,8 +319,66 @@ def build_report(bets):
         "holds up, that is the case for raising MIN_PICK_COST.")
     say("")
 
-    # -- 4. what this means --
-    say("## 4. What this means (plain English)")
+    # -- 4. the race: night vs morning --
+    say("## 4. The race: night vs morning")
+    say("")
+    say("Same pick-first rules, same gates, same $1 sizing. The only "
+        "difference: NIGHT picks use the night-before forecast (and "
+        "usually get better prices); MORNING picks use a fresh same-day "
+        "forecast (and pay whatever the market asks by then). The last "
+        "row — profit per $1 risked, after fees — is the finish line.")
+    say("")
+    strat_bets = {"night": [], "morning": []}
+    for b in bets:
+        strat_bets.setdefault(b["strategy"] or "night", []).append(b)
+    stray = sorted(k for k in strat_bets if k not in ("night", "morning"))
+    if stray:
+        say(f"**Data warning:** {sum(len(strat_bets[k]) for k in stray)} "
+            f"bet(s) carry an unknown strategy tag ({', '.join(stray)}) "
+            f"and are shown in the tables above but not in this race "
+            f"table. That tag needs fixing, not guessing.")
+        say("")
+    night, morning = strat_bets["night"], strat_bets["morning"]
+    tn, tm = tally(night), tally(morning)
+    say("| | Night | Morning |")
+    say("|---|---|---|")
+    say(f"| Settled bets | {tn['n']} | {tm['n']} |")
+    say(f"| Wins | {tn['win']} ({pct(tn['win'], tn['n'])}) "
+        f"| {tm['win']} ({pct(tm['win'], tm['n'])}) |")
+    say(f"| Missed by 1 bracket, high | {tn['hi1']} | {tm['hi1']} |")
+    say(f"| Missed by 1 bracket, low | {tn['lo1']} | {tm['lo1']} |")
+    say(f"| Missed far (2+ brackets) | {tn['far']} | {tm['far']} |")
+    say(f"| Unresolved | {tn['unres']} | {tm['unres']} |")
+    for label, fits in [("Priced under 15¢ (wins/bets)",
+                         lambda c: c < 15),
+                        ("Priced 15–35¢ (wins/bets)",
+                         lambda c: 15 <= c <= 35),
+                        ("Priced over 35¢ (wins/bets)",
+                         lambda c: c > 35)]:
+        say(f"| {label} | {band_line(night, fits)} "
+            f"| {band_line(morning, fits)} |")
+    rn, pn = money(night)
+    rm, pm = money(morning)
+    say(f"| Dollars risked | ${rn:.2f} | ${rm:.2f} |")
+    say(f"| P&L after fees | ${pn:+.2f} | ${pm:+.2f} |")
+    ppn = f"{pn / rn:+.2f}" if rn else "-"
+    ppm = f"{pm / rm:+.2f}" if rm else "-"
+    say(f"| **Profit per $1 risked** | **{ppn}** | **{ppm}** |")
+    say("")
+    if not tm["n"]:
+        say("The morning strategy has no settled bets yet — the race "
+            "starts scoring once its first picks settle. Until both "
+            "columns have real samples, the night column is just the "
+            "scoreboard so far, not a verdict.")
+    else:
+        say(f"Both lanes are live: {tn['n']} night vs {tm['n']} morning "
+            "settled bets. Per the roadmap, the scoreboard promotes and "
+            "conviction never does — neither lane changes sizing or "
+            "rules until the sample is big enough to mean something.")
+    say("")
+
+    # -- 5. what this means --
+    say("## 5. What this means (plain English)")
     say("")
     one_off = t["hi1"] + t["lo1"]
     losses = n - t["win"] - t["unres"]

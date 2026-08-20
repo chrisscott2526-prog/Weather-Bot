@@ -97,6 +97,50 @@ translated one-to-one:
      believe it, don't "value-buy".
    - No ensemble members for a (date, city) → **SKIP loudly**.
 
+## THE RACE: NIGHT vs MORNING (Aug 20, 2026)
+
+Two strategies run the same pick-first rules against the same markets,
+and the scoreboard decides which one earns the money:
+
+- **NIGHT** (the original): picks from the 23:00 UTC night-before
+  forecast, bought at night-before prices. Everything that existed
+  before Aug 20, 2026 is night — old CSV rows were backfilled
+  `strategy=night`, and every reader treats a blank tag as night.
+- **MORNING**: `morning.yml` (daily ~13:45 UTC, one job so the steps
+  cannot run out of order) refreshes TODAY's ensemble
+  (`forecast.py --today`), scans with `scanner.py --strategy morning`,
+  trades with `trader.py --strategy morning --keep-resting`.
+
+The laws of the race:
+
+- **Same gates, both lanes.** MIN/MAX_PICK_COST, MIN_PICK_PROB, the
+  sanity gap, the whitelist, the $1 sizing law — identical. Never
+  loosen a gate for one strategy.
+- **Forecast rows are told apart by timestamps, not a new column.**
+  `csvio.is_morning_row` is the one true classifier: morning = fetched
+  on its own `forecast_date` between 06:00–22:59 UTC. (Not just
+  "same date" — a delayed nightly cron slips past UTC midnight and
+  stamps the same date; the real file has dozens of those, and they
+  are night rows.) Night scans load only night rows, morning scans
+  only morning rows (no fresh morning row = SKIP, loudly).
+  Calibration learns bias from night rows only — it corrects the
+  night-before forecast and feeds both lanes; letting same-day rows
+  in would quietly redefine "forecast error".
+- **No double exposure.** One position per city per day TOTAL, both
+  strategies combined — the trader's existing fail-closed exposure
+  check + `MAX_PER_CITY_DAY=1` enforce it. A city the night strategy
+  already owns today is off limits to the morning strategy. Night
+  wins ties (it runs first).
+- **Each trader executes only its own strategy's rows** (the
+  `--strategy` filter), and the morning trader never cancels resting
+  orders (`--keep-resting`) — the cancel-and-reprice sweep belongs to
+  the night runs that placed them.
+- **The tag flows everywhere:** edges.csv → trades.csv → results.csv,
+  read by autopsy.py. The race's finish line is autopsy.md's
+  night-vs-morning table: **profit per $1 risked, after fees**. Per
+  the roadmap, the scoreboard promotes — neither lane gains sizing or
+  loses gates without settled results.
+
 ## SIZING LAW
 
 **$1 per bet** (`BET_DOLLARS = 1` in `trader.py`) until **100+ settled bets
@@ -175,8 +219,16 @@ trader.py    (9x daily + after scan)  latest scan's would_bet=YES rows,
 settle.py    (daily 12:20 UTC)    asks Kalshi how each market settled
      |                            -> results.csv  (THE scoreboard)
      v
-calibration.py  learns per-station bias from forecasts vs actuals,
-                settlement-pinned; feeds back into forecast.py.
+calibration.py  learns per-station bias from NIGHT forecasts vs
+                actuals, settlement-pinned; feeds back into
+                forecast.py (both the nightly and --today pulls).
+
+morning.yml  (daily ~13:45 UTC)   the race's morning lane, one job:
+                                  forecast.py --today ->
+                                  scanner.py --strategy morning ->
+                                  trader.py --strategy morning
+                                            --keep-resting
+                                  (same files, strategy=morning rows)
 
 poller.py    (every 15 min)       NWS METAR temps -> temps_log.csv,
                                   running local-day highs -> daily_highs.csv
@@ -213,13 +265,13 @@ check that line first when a feed dies.
 
 | File | Writer | Header |
 |---|---|---|
-| `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members` (members pipe-separated, already calibrated) |
+| `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members` (members pipe-separated, already calibrated; a morning `--today` row is fetched on its own forecast_date between 06:00–22:59 UTC — `csvio.is_morning_row` is the one true classifier, there is no extra column. The hour window exists because a delayed nightly cron slips past UTC midnight and stamps the same date; those rows are still night) |
 | `temps_log.csv` | `poller.py` | `utc_time,station,city,temp_f,obs_time_utc` |
 | `daily_highs.csv` | `poller.py` (full rewrite each run) | `date,station,city,high_f,last_update_utc,obs_time_utc` |
 | `settlements.csv` | `settlements.py` (full rewrite each run) | `date,station,city,series,low_f,high_f,n_markets,n_settled,source,utc_offset_hours,checked_utc` (blank low/high = unbounded tail; row exists only when a market settled YES — exclusions alone never make a row) |
-| `edges.csv` | `scanner.py` | `scanned_utc,city,market,subtitle,floor,cap,yes_ask,no_ask,model_prob_pct,edge_yes,edge_no,bias_f,spread_scale,n_members,pick,edge_pick,would_bet` |
-| `trades.csv` | `trader.py` | `placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,order_id` |
-| `results.csv` | `settle.py` | `graded_utc,ticker,city,action,cost_cents,count,market_result,result,pnl` |
+| `edges.csv` | `scanner.py` | `scanned_utc,city,market,subtitle,floor,cap,yes_ask,no_ask,model_prob_pct,edge_yes,edge_no,bias_f,spread_scale,n_members,pick,edge_pick,would_bet,strategy` (strategy added Aug 20 2026, old rows backfilled `night`) |
+| `trades.csv` | `trader.py` | `placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,order_id,strategy` (strategy added Aug 20 2026, old rows backfilled `night`) |
+| `results.csv` | `settle.py` | `graded_utc,ticker,city,action,cost_cents,count,fee_cents,market_result,result,pnl,strategy` (fee_cents added Aug 18, strategy Aug 20 2026; old rows backfilled `night`; readers treat a blank strategy as night) |
 | `sports_picks.csv` | `sports_scanner.py` | `scanned_utc,sport,shelf,game,detail,commence_utc,series,ticker,side,pick,books_pct,kalshi_cents,fee_cents,gap_cents,n_books,shown,why` (wiped + new header Aug 19, 2026 — edge-era rows graded a dead rule) |
 | `sports_results.csv` | `sports_scanner.py` | `graded_utc,sport,shelf,game,detail,ticker,side,pick,books_pct,kalshi_cents,gap_cents,market_result,result,pnl` (wiped same commit) |
 
