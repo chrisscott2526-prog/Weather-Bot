@@ -1,0 +1,41 @@
+name: Record settled highs
+
+# Fills settlements.csv: the official settled high per city, straight
+# from Kalshi's result fields (unauthenticated market data -- no
+# secrets needed). Runs a few times a day because events finalize at
+# different hours; settlements.py re-checks the last 3 days and skips
+# anything already pinned from the API. A run goes RED if the Kalshi
+# feed is dead (the Aug 19 scar: dead feeds must never look green).
+
+on:
+  schedule:
+    - cron: "40 12 * * *"   # after settle.py's 12:20 UTC run
+    - cron: "0 15 * * *"
+    - cron: "0 18 * * *"
+    - cron: "0 22 * * *"    # catches late west-coast finalizations
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo-writes
+  cancel-in-progress: false
+
+jobs:
+  settlements:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Record settled highs
+        run: python3 settlements.py
+
+      - name: Commit the record
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "settlements $(date -u +'%Y-%m-%d %H:%M')"
+          git push || (git fetch origin main && git rebase --abort 2>/dev/null; git pull --rebase -X ours && git push)
