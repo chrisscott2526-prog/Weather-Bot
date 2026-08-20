@@ -16,6 +16,27 @@ Everything else unchanged: maintenance-window skip, FAIL CLOSED
 ownership check, per-city daily cap, sanity guard against a model/
 price gap, unverified-city skip, $1 sizing until 100+ settled bets.
 HARD CAPS: 1 contract/market by default, 5 orders/run, $10/run.
+
+AUDITED + FIXED Aug 20 2026 -- honest exposure counting (caps untouched):
+  1. The "N markets owned/exposed" number was a lie of accumulation:
+     every trades.csv row with status "submitted" counted as exposure
+     FOREVER, including markets that settled and paid days ago. The
+     morning it read 36, the account's live exposure was 1 market.
+     Submitted log rows now count only until Kalshi settles the market
+     (graded in results.csv); settled markets are not exposure.
+  2. A resting order the trader itself cancels now gets its trades.csv
+     row marked "cancelled" (only when Kalshi's order object proves
+     zero contracts filled -- otherwise the row stays "submitted",
+     fail-closed). Before, a cancelled unfilled order stayed
+     "submitted" forever, which silently locked its city for the rest
+     of the day via the per-city cap while the account held NOTHING
+     there -- seen live with Dallas on Aug 20. Side effect, on
+     purpose: settle.py grades only "submitted" rows, so bets that
+     never filled stop being scored as wins/losses.
+  3. Picks dropped because the market is already owned/working are now
+     printed (they used to vanish silently).
+The caps themselves (MAX_PER_CITY_DAY, MAX_ORDERS, MAX_RUN_DOLLARS,
+cost band) are exactly as they were.
 """
 
 import base64, csv, json, os, re, time, urllib.request, urllib.error, uuid
@@ -23,7 +44,7 @@ from datetime import datetime, timezone
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from cities import UNVERIFIED
-from csvio import appender
+from csvio import appender, read_header
 
 LIVE = True          # False = log picks only, place nothing
 MAX_ORDERS = 5
@@ -97,6 +118,56 @@ def bot_order_ids():
                     ids.add(row["order_id"])
     return ids
 
+def proven_unfilled(o):
+    """True only when the order object PROVES zero contracts filled.
+    Unknown = False, so the trades.csv row stays "submitted" and keeps
+    counting as exposure (fail closed)."""
+    fills = [o.get(k) for k in ("taker_fill_count", "maker_fill_count",
+                                "fill_count")]
+    fills = [f for f in fills if f not in (None, "")]
+    if fills:
+        try:
+            return sum(float(f) for f in fills) == 0
+        except (TypeError, ValueError):
+            return False
+    ini, rem = o.get("initial_count"), o.get("remaining_count")
+    if ini not in (None, "") and rem not in (None, ""):
+        try:
+            return float(ini) == float(rem)
+        except (TypeError, ValueError):
+            return False
+    return False
+
+def mark_cancelled(oids):
+    """Flip trades.csv status submitted -> cancelled for these order
+    ids. Same columns, same header -- only the status value changes.
+    settle.py and autopsy.py read only "submitted" rows, so a bet that
+    never filled stops being graded or displayed as a real position."""
+    if not oids or not os.path.exists("trades.csv"):
+        return
+    header = read_header("trades.csv")
+    if not header:
+        return
+    with open("trades.csv") as f:
+        rows = list(csv.DictReader(f))
+    changed = 0
+    for r in rows:
+        if r.get("order_id") in oids and \
+                (r.get("status") or "") == "submitted":
+            r["status"] = "cancelled"
+            changed += 1
+    if not changed:
+        return
+    tmp = "trades.csv.tmp"
+    with open(tmp, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=header, extrasaction="ignore")
+        w.writeheader()
+        for r in rows:
+            w.writerow(r)
+    os.replace(tmp, "trades.csv")
+    print(f"trades.csv: {changed} cancelled unfilled order(s) marked "
+          f"-- no longer count as exposure or get graded")
+
 def cancel_resting_orders():
     mine = bot_order_ids()
     if not mine:
@@ -106,6 +177,7 @@ def cancel_resting_orders():
     except Exception as e:
         print(f"cancel: couldn't list resting orders ({e})")
         return
+    unfilled_cancelled = set()
     for o in resp.get("orders", []):
         oid = o.get("order_id")
         if not oid or oid not in mine:
@@ -115,6 +187,11 @@ def cancel_resting_orders():
             try:
                 api("DELETE", path)
                 print(f"cancelled resting {o.get('ticker')} ({oid[:8]})")
+                if proven_unfilled(o):
+                    unfilled_cancelled.add(oid)
+                else:
+                    print(f"  {oid[:8]}: can't prove zero fills -- "
+                          f"leaving its trades.csv row as submitted")
                 break
             except urllib.error.HTTPError as e:
                 if e.code == 404:
@@ -124,23 +201,42 @@ def cancel_resting_orders():
             except Exception as e:
                 print(f"cancel {oid[:8]}: {e}")
                 break
+    mark_cancelled(unfilled_cancelled)
+
+def graded_tickers():
+    """Tickers already graded in results.csv = markets Kalshi settled.
+    A settled market is finished business, not exposure."""
+    done = set()
+    if os.path.exists("results.csv"):
+        with open("results.csv") as f:
+            for r in csv.DictReader(f):
+                if r.get("ticker"):
+                    done.add(r["ticker"])
+    return done
 
 def exposure_tickers():
-    tickers = set()
+    """(positions, resting, pending) ticker sets. positions/resting
+    come from the account (the truth); pending is submitted trades.csv
+    rows for markets not yet settled -- belt and suspenders for orders
+    the API views might not show yet."""
+    positions, resting, pending = set(), set(), set()
     resp = api("GET", "/trade-api/v2/portfolio/positions")
     for p in resp.get("market_positions", []):
         if p.get("ticker") and float(p.get("position") or 0) != 0:
-            tickers.add(p["ticker"])
+            positions.add(p["ticker"])
     resp = api("GET", "/trade-api/v2/portfolio/orders?status=resting")
     for o in resp.get("orders", []):
         if o.get("ticker"):
-            tickers.add(o["ticker"])
+            resting.add(o["ticker"])
+    graded = graded_tickers()
     if os.path.exists("trades.csv"):
         with open("trades.csv") as f:
             for row in csv.DictReader(f):
-                if row.get("status") == "submitted" and row.get("ticker"):
-                    tickers.add(row["ticker"])
-    return tickers
+                if row.get("status") == "submitted" and \
+                        row.get("ticker") and \
+                        row["ticker"] not in graded:
+                    pending.add(row["ticker"])
+    return positions, resting, pending
 
 def ticker_day(ticker):
     try:
@@ -191,11 +287,15 @@ def main():
                   f"from unverified cities: {', '.join(blocked)}")
 
     try:
-        owned = exposure_tickers()
+        positions, resting, pending = exposure_tickers()
     except Exception as e:
         print(f"ABORT: could not verify account positions/orders ({e}). "
               f"Placing no trades this run.")
         return
+    owned = positions | resting | pending
+    already = sorted(r["market"] for r in fresh if r["market"] in owned)
+    if already:
+        print(f"SKIP already owned/working: {', '.join(already)}")
     fresh = [r for r in fresh if r["market"] not in owned]
 
     per_city = {}
@@ -234,7 +334,10 @@ def main():
             break
 
     print(f"Scan {latest} -> {target}: {len(picks)} orders "
-          f"({len(owned)} markets owned/exposed). LIVE={LIVE}")
+          f"({len(owned)} markets owned/exposed: {len(positions)} "
+          f"positions, {len(resting)} resting orders, "
+          f"{len(pending - positions - resting)} pending in log). "
+          f"LIVE={LIVE}")
     if LIVE:
         cancel_resting_orders()
     print("Balance before:", balance())
