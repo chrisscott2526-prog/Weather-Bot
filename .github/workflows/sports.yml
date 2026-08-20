@@ -1,10 +1,15 @@
-name: Sports edge scan
+name: Sports card scan
 
 on:
   schedule:
-    - cron: "0 15 * * *"   # ~11am ET: afternoon slates
-    - cron: "0 22 * * *"   # ~6pm ET: evening slates
-  workflow_dispatch: {}
+    - cron: "0 15 * * *"   # ~11am ET: lines are up for the day's slates
+    - cron: "0 22 * * *"   # ~6pm ET: evening slates + late line moves
+  workflow_dispatch:
+    inputs:
+      probe:
+        description: "Run sports_probe.py instead (read-only inventory report in the log; writes nothing)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -16,7 +21,7 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
 
@@ -24,16 +29,24 @@ jobs:
         with:
           python-version: "3.12"
 
-      - run: pip install cryptography
-
-      - name: Scan for edges and grade picks
+      # The sports card is ADVISORY ONLY (see CLAUDE.md) and reads Kalshi's
+      # public market data unauthenticated -- ODDS_API_KEY is its only
+      # secret. A dead odds feed exits non-zero ON PURPOSE after writing an
+      # honest card, so the run shows red instead of publishing a green,
+      # confident, empty card (which is exactly what happened Aug 7-19 2026
+      # when this secret sat empty for two weeks).
+      - name: Scan and grade (or probe, read-only)
         env:
-          KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
-          KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-        run: python sports_scanner.py
+        run: |
+          if [ "${{ inputs.probe }}" = "true" ]; then
+            python sports_probe.py
+          else
+            python sports_scanner.py
+          fi
 
       - name: Commit the card
+        if: ${{ always() && inputs.probe != 'true' }}
         run: |
           git config user.name "weather-bot"
           git config user.email "bot@users.noreply.github.com"

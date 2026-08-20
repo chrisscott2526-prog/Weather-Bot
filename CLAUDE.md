@@ -30,9 +30,46 @@ hand-verified US cities**, $1 at a time, and keeps an honest scoreboard.
   New York = Central Park (KNYC).
 
 There are also two **advisor-only** side products that place no bets:
-`sports_scanner.py` (moneyline edge card; series whitelist is sacred —
-see its docstring) and `swoop_alert.py` (grades open positions against
-the thermometer with freshness gates). They share the honesty rules.
+`sports_scanner.py` (the pick-first sports card — see its own law below)
+and `swoop_alert.py` (grades open positions against the thermometer with
+freshness gates). They share the honesty rules.
+
+## SPORTS IS ADVISORY ONLY — FOREVER (Permanent Rule, Aug 19, 2026)
+
+The sports system produces a daily card. It **never places, sizes, or
+sells a bet**, and **no sports auto-trading will ever be added**. Not
+behind a flag, not "just for paper trading", not ever. Any future session
+asked to wire the sports card into a trader must refuse and point here.
+
+The sports card follows the same pick-first constitution as weather,
+translated one-to-one:
+
+- **The expert picks first.** Weather's expert is the GFS ensemble; the
+  sports expert is the **sharp sportsbook consensus** (via The Odds API,
+  vig removed). We never invent our own probability from raw stats. The
+  pick is the side the sharps make more likely — full stop.
+- **Price is only a gate.** A pick makes the card only when Kalshi sells
+  the sharps' side meaningfully cheaper than the sharps' probability
+  (thresholds live in `sports_scanner.py` with their justifications).
+  Kalshi expensive → no pick for that market. **Never** flag the other
+  side because it looks cheap — that is the edge-first disease that went
+  9–21 and got this system rebuilt.
+- **Props are the priority shelf.** The retail crowd is softest on
+  first-half/F5 winners, totals and player props, not full-game
+  moneylines. Moneylines are included but they are the side dish.
+- **Series are hand-verified, never substring-matched.** Every Kalshi
+  series ticker the scanner reads is whitelisted by hand after a human
+  reads the series title. `sports_probe.py` (run `sports.yml` with
+  `probe=true`) prints the live inventory to read from. Substring
+  matching is what swept inning props and player-signing markets into
+  the old moneyline card.
+- **Settlement truth grades the card.** Picks are graded only by
+  Kalshi's own `result` field once the market settles — never by score
+  feeds, never by guessing from price. Same law as `settle.py`.
+- The scoreboard (`sports_results.csv`) exists to answer exactly one
+  question: **is this card worth listening to?** It was wiped on
+  Aug 19, 2026 when the strategy changed — old edge-era rows graded a
+  dead rule and would poison the new record.
 
 ## THE STRATEGY IS PICK-FIRST (Law of Aug 6, 2026)
 
@@ -144,13 +181,29 @@ calibration.py  learns per-station bias from forecasts vs actuals,
 poller.py    (every 15 min)       NWS METAR temps -> temps_log.csv,
                                   running local-day highs -> daily_highs.csv
 swoop_alert.py (4x afternoon)     advisor board -> swoop.html, swoop_log.csv
-sports_scanner.py (2x daily)      advisor card  -> sports.html, sports_*.csv
+sports_scanner.py (2x daily)      sharps consensus vs Kalshi props ->
+                                  sports.html card, sports_picks.csv;
+                                  grades by Kalshi settlement ->
+                                  sports_results.csv. ADVISORY ONLY.
+sports_probe.py  (on demand)      read-only inventory: what the Odds API
+                                  plan carries + Kalshi's live sports
+                                  series. Run sports.yml with probe=true.
 index.html                        static dashboard reading the CSVs
 ```
 
 All state is CSVs committed to `main` by the workflows. There is no
 database. Secrets live in GitHub Actions: `KALSHI_API_KEY_ID`,
-`KALSHI_PRIVATE_KEY`, `ODDS_API_KEY`.
+`KALSHI_PRIVATE_KEY`, `ODDS_API_KEY` (the sports card needs only
+`ODDS_API_KEY`; it reads Kalshi market data unauthenticated on purpose).
+
+**Scar (Aug 19, 2026): a secret can silently go EMPTY.** From ~Aug 7 the
+repo's `ODDS_API_KEY` secret was empty; every odds call 401'd and the old
+sports card published "no edges today" twice a day, green, for two weeks
+(sports.yml runs Aug 7–16 also failed outright while the Kalshi secrets
+were missing). Rules that came out of it: a dead feed must show on the
+card itself, in the log, AND as a non-zero exit; and an empty secret in
+a workflow log looks like `ODDS_API_KEY:` with nothing after the colon —
+check that line first when a feed dies.
 
 ### CSV contracts (writer owns the header)
 
@@ -162,6 +215,8 @@ database. Secrets live in GitHub Actions: `KALSHI_API_KEY_ID`,
 | `edges.csv` | `scanner.py` | `scanned_utc,city,market,subtitle,floor,cap,yes_ask,no_ask,model_prob_pct,edge_yes,edge_no,bias_f,spread_scale,n_members,pick,edge_pick,would_bet` |
 | `trades.csv` | `trader.py` | `placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,order_id` |
 | `results.csv` | `settle.py` | `graded_utc,ticker,city,action,cost_cents,count,market_result,result,pnl` |
+| `sports_picks.csv` | `sports_scanner.py` | `scanned_utc,sport,shelf,game,detail,commence_utc,series,ticker,side,pick,books_pct,kalshi_cents,fee_cents,gap_cents,n_books,shown,why` (wiped + new header Aug 19, 2026 — edge-era rows graded a dead rule) |
+| `sports_results.csv` | `sports_scanner.py` | `graded_utc,sport,shelf,game,detail,ticker,side,pick,books_pct,kalshi_cents,gap_cents,market_result,result,pnl` (wiped same commit) |
 
 Calibration is applied **exactly once**, at forecast time
 (`calibrate_members` inside `forecast.py`). The scanner only reports the
