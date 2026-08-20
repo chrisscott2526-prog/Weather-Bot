@@ -140,3 +140,5 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-20T13:58:07+00:00,KXHIGHTSATX-26AUG20-B102.5,102° to 103°,yes,1,60,38.7,,True,submitted,01a01f76-fd98-70a6-8844-8f6068fb19a8
 2026-08-20T13:58:07+00:00,KXHIGHTNOLA-26AUG20-B97.5,97° to 98°,yes,2,42,58.1,,True,submitted,01a01f76-fd98-779c-9bdd-2807657fd991
 2026-08-20T13:58:07+00:00,KXHIGHTHOU-26AUG20-B100.5,100° to 101°,yes,5,20,64.5,,True,submitted,01a01f76-fd98-7b18-b3dc-30b4e9ea3636
+2026-08-20T15:48:19+00:00,KXHIGHNY-26AUG20-T85,86° or above,yes,9,11,38.7,,True,submitted,01a01fdb-e5a0-70e6-bebe-888d9762bfd6
+2026-08-20T15:48:19+00:00,KXHIGHTSEA-26AUG20-T86,87° or above,yes,4,23,74.2,,True,submitted,01a01fdb-e5a0-70b8-a7bb-b728ed5b0977
