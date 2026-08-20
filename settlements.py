@@ -41,7 +41,7 @@ settlements.csv is rewritten in full each run (same pattern as
 daily_highs.csv): one row per (date, station), header owned here.
 """
 
-import csv, json, os, re, sys, urllib.request
+import csv, json, os, re, sys, time, urllib.error, urllib.request
 from datetime import datetime, timedelta, timezone
 
 from cities import CITIES
@@ -56,6 +56,14 @@ EDGES = "edges.csv"
 BASE = "https://api.elections.kalshi.com"
 LOOKBACK_DAYS = 3          # a west-coast event can settle a day late
 DEGREES = frozenset(range(-40, 141))   # every plausible official high
+
+# Kalshi rate-limits an unauthenticated burst: the first scheduled run
+# (Aug 20 2026, 18:42 UTC) got 429 Too Many Requests on every call
+# after the 17th and wasted the rest of the run. Pace the calls and
+# retry a 429 once after a real pause -- 60 paced calls still finish
+# well inside the workflow's 5-minute timeout.
+FETCH_GAP_SECONDS = 0.7
+RETRY_429_WAIT = 5.0
 
 
 # ---------- bracket text -> integer range ----------
@@ -116,8 +124,16 @@ def fetch_event(series, code):
            f"&limit=200")
     req = urllib.request.Request(
         url, headers={"User-Agent": "weather-bot-personal"})
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.load(r).get("markets", [])
+    time.sleep(FETCH_GAP_SECONDS)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r).get("markets", [])
+    except urllib.error.HTTPError as e:
+        if e.code != 429:
+            raise
+        time.sleep(RETRY_429_WAIT)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            return json.load(r).get("markets", [])
 
 
 def pin_from_event(markets, label):
