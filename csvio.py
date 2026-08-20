@@ -35,6 +35,39 @@ import os
 from contextlib import contextmanager
 
 
+# ---------------------------------------------------------------------
+# forecasts.csv row semantics, shared by scanner.py and calibration.py
+# (it lives here and not in forecast.py only because forecast.py
+# imports calibration.py, and calibration.py needs this too -- putting
+# it there would make a circle).
+
+MORNING_FETCH_START_HOUR = 6   # UTC
+
+
+def is_morning_row(forecast_date, fetched_utc):
+    """True if a forecasts.csv row came from the same-day MORNING
+    refresh (forecast.py --today) rather than the night-before pull.
+
+    The naive rule -- "fetched on its own forecast date" -- is a trap
+    the real data exposed: the 23:00 UTC nightly cron sometimes slips
+    past UTC midnight, stamping fetched_utc 00:xx-04:xx on the SAME
+    date it forecasts. Those are still night-before forecasts (it is
+    evening, local, in every one of our cities). So a row counts as
+    morning only when it is BOTH same-UTC-day-or-later AND fetched
+    between 06:00 and 22:59 UTC: the morning refresh runs ~13:45,
+    while nightly runs and their past-midnight stragglers land
+    23:00-05:59. Rows with no fetched_utc are old nightly rows."""
+    d = (forecast_date or "").strip()
+    f = (fetched_utc or "").strip()
+    if not d or not f or f[:10] < d:
+        return False
+    try:
+        hour = int(f[11:13])
+    except (ValueError, IndexError):
+        return False
+    return MORNING_FETCH_START_HOUR <= hour < 23
+
+
 def read_header(path):
     """First row of the file, or None if missing/empty."""
     if not os.path.exists(path):

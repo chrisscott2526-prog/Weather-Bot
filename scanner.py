@@ -38,20 +38,53 @@ trader.py and the dashboards keep working. would_bet is YES on the
 picked bracket when the price gate passes, else empty. The NO side is
 no longer traded by this scanner at all. One city, one pick, one buy
 or no buy.
+
+THE RACE (Aug 20 2026): night vs morning, same rules, one tag.
+    python scanner.py                      -> strategy=night (default)
+    python scanner.py --strategy morning   -> strategy=morning
+The question: do day-of picks made with fresh same-day forecasts beat
+night-before picks made at better prices? The strategy column rides
+every edges.csv row so trades.csv and results.csv can keep score.
+
+The two modes differ ONLY in which forecast rows they trust and which
+market dates they look at -- every gate (MIN/MAX_PICK_COST,
+MIN_PICK_PROB, whitelist, no-members-SKIP) is identical on purpose:
+  - night: uses only forecast rows fetched BEFORE their forecast date
+    (the 23:00 UTC nightly pull). It never sees the morning refresh,
+    so afternoon night-scans stay an honest night-before strategy.
+  - morning: uses only forecast rows fetched ON their forecast date
+    (the ~13:45 UTC same-day refresh), and only looks at TODAY's
+    markets. No same-day row for a city = SKIP loudly -- a morning
+    pick made from night data would poison the race's scoreboard.
 """
 
-import base64, csv, json, math, os, re, time, urllib.request
+import base64, csv, json, math, os, re, sys, time, urllib.request
 from datetime import datetime, timezone
 
 from cities import CITIES, STATIONS
 from calibration import compute_calibration
-from csvio import appender
+from csvio import appender, is_morning_row
 
 OUT = "edges.csv"
 FIELDS = ["scanned_utc", "city", "market", "subtitle", "floor", "cap",
           "yes_ask", "no_ask", "model_prob_pct", "edge_yes", "edge_no",
           "bias_f", "spread_scale", "n_members", "pick", "edge_pick",
-          "would_bet"]
+          "would_bet", "strategy"]
+# layout before the strategy column (Aug 20 2026)
+LEGACY = ([c for c in FIELDS if c != "strategy"],)
+
+
+def strategy_from_argv():
+    if "--strategy" in sys.argv:
+        val = sys.argv[sys.argv.index("--strategy") + 1].strip().lower()
+        if val not in ("night", "morning"):
+            raise SystemExit(f"unknown --strategy {val!r} "
+                             f"(night or morning)")
+        return val
+    return "night"
+
+
+STRATEGY = strategy_from_argv()
 
 # ---- THE TWO RULES' NUMBERS ----
 MAX_PICK_COST = 68.0   # past this, no buy for that city today
@@ -100,9 +133,17 @@ def ksigned(path):
 
 
 # ---------- forecast members ----------
-def load_members():
-    """(date, city) -> [calibrated member highs]. Latest row per pair
-    wins. ERROR/blank rows from old files are skipped."""
+def load_members(strategy="night"):
+    """(date, city) -> [calibrated member highs]. Latest QUALIFYING row
+    per pair wins (the file is append-only, so later rows are fresher).
+    ERROR/blank rows from old files are skipped.
+
+    Which rows qualify depends on the strategy (the split lives in
+    csvio.is_morning_row and is by timestamp, not a column):
+      night   -> night-before rows only (the nightly pull, including
+                 runs that slipped past UTC midnight).
+      morning -> same-day refresh rows only. Missing = the city SKIPs.
+    """
     out = {}
     if not os.path.exists("forecasts.csv"):
         return out
@@ -112,6 +153,11 @@ def load_members():
             city = (r.get("city") or "").strip()
             raw = (r.get("members") or "").strip()
             if not d or not city or not raw:
+                continue
+            morning_row = is_morning_row(d, r.get("fetched_utc"))
+            if strategy == "morning" and not morning_row:
+                continue
+            if strategy == "night" and morning_row:
                 continue
             try:
                 members = [float(x) for x in raw.split("|") if x]
@@ -175,7 +221,11 @@ def cents(m, field):
 # ---------- main ----------
 def main():
     stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
-    members_by = load_members()
+    today = datetime.now(timezone.utc).date().isoformat()
+    print(f"Strategy: {STRATEGY.upper()}"
+          + (f" -- same-day members only, {today}'s markets only"
+             if STRATEGY == "morning" else ""))
+    members_by = load_members(STRATEGY)
     dates = sorted({d for d, _ in members_by})
     print(f"Ensemble dates loaded: {dates[-5:] if len(dates) > 5 else dates}")
 
@@ -188,7 +238,7 @@ def main():
 
     rows_written = 0
     buys = 0
-    with appender(OUT, FIELDS) as w:
+    with appender(OUT, FIELDS, LEGACY) as w:
         for series, (city, _station, _lat, _lon, _v) in CITIES.items():
             try:
                 data = ksigned(f"/trade-api/v2/markets?series_ticker={series}"
@@ -213,9 +263,14 @@ def main():
                 by_date.setdefault(mdate, []).append(m)
 
             for mdate, board in sorted(by_date.items()):
+                if STRATEGY == "morning" and mdate != today:
+                    print(f"  SKIP {city} {mdate}: morning strategy "
+                          f"trades today only")
+                    continue
                 members = members_by.get((mdate, city))
                 if not members:
-                    print(f"  SKIP {city} {mdate}: no ensemble members "
+                    print(f"  SKIP {city} {mdate}: no "
+                          f"{STRATEGY}-qualified ensemble members "
                           f"- refusing to invent a spread")
                     continue
 
@@ -301,7 +356,8 @@ def main():
                                 "pick": "1" if is_pick else "",
                                 "edge_pick": "1" if tick == edge_pick
                                              else "",
-                                "would_bet": would})
+                                "would_bet": would,
+                                "strategy": STRATEGY})
                     rows_written += 1
 
     print(f"Scan complete. {rows_written} rows, {buys} buys flagged.")

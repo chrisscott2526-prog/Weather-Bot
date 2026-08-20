@@ -37,9 +37,25 @@ AUDITED + FIXED Aug 20 2026 -- honest exposure counting (caps untouched):
      printed (they used to vanish silently).
 The caps themselves (MAX_PER_CITY_DAY, MAX_ORDERS, MAX_RUN_DOLLARS,
 cost band) are exactly as they were.
+
+THE RACE (Aug 20 2026): the strategy tag rides along, nothing else
+moves. Every edges.csv row now says which strategy scanned it (night
+or morning); this trader only executes rows matching its own
+--strategy (default night), and copies the tag into trades.csv so
+settle.py can keep score per strategy. Both strategies get the same
+$1 sizing, the same caps, the same fail-closed exposure check -- and
+MAX_PER_CITY_DAY=1 counts positions from EITHER strategy, so a city
+the night strategy already owns today is off limits to the morning
+strategy (and vice versa). No double exposure, by the same guard that
+always enforced it.
+
+--keep-resting (the morning run uses it): skip the cancel-resting
+sweep. The sweep exists so a night run can re-price its own stale
+orders; the morning run must not yank the night strategy's resting
+orders off the book mid-race.
 """
 
-import base64, csv, json, os, re, time, urllib.request, urllib.error, uuid
+import base64, csv, json, os, re, sys, time, urllib.request, urllib.error, uuid
 from datetime import datetime, timezone
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -49,12 +65,28 @@ from csvio import appender, read_header
 LIVE = True          # False = log picks only, place nothing
 MAX_ORDERS = 5
 BET_DOLLARS = 1      # $ per bet. Change ONLY after 100+ settled bets
-                     # show positive P&L.
+                     # show positive P&L. Applies to BOTH strategies.
 MAX_RUN_DOLLARS = 10  # hard ceiling on total $ placed in one run
 MIN_COST, MAX_COST = 8, 68   # matches scanner.py's MIN/MAX_PICK_COST
 TRADE_FIELDS = ["placed_utc", "ticker", "subtitle", "side", "count",
                 "limit_cents", "model_pct", "edge", "live",
-                "status", "order_id"]
+                "status", "order_id", "strategy"]
+# layout before the strategy column (Aug 20 2026)
+TRADE_LEGACY = ([c for c in TRADE_FIELDS if c != "strategy"],)
+
+
+def strategy_from_argv():
+    if "--strategy" in sys.argv:
+        val = sys.argv[sys.argv.index("--strategy") + 1].strip().lower()
+        if val not in ("night", "morning"):
+            raise SystemExit(f"unknown --strategy {val!r} "
+                             f"(night or morning)")
+        return val
+    return "night"
+
+
+STRATEGY = strategy_from_argv()
+KEEP_RESTING = "--keep-resting" in sys.argv
 MAX_PER_CITY_DAY = 1         # one position per city per day
 SANITY_GAP = 60             # skip if model% vs implied price gap > this
 SKIP_UNVERIFIED = True
@@ -267,7 +299,13 @@ def main():
         return
     latest = rows[-1]["scanned_utc"]
     fresh = [r for r in rows if r["scanned_utc"] == latest
-             and r.get("would_bet") == "YES"]
+             and r.get("would_bet") == "YES"
+             and (r.get("strategy") or "night").strip() == STRATEGY]
+    if not fresh:
+        print(f"Scan {latest}: no {STRATEGY} picks in the latest scan. "
+              f"Nothing to do (this trader executes only its own "
+              f"strategy's rows).")
+        return
 
     dated = [(ticker_day(r["market"]), r) for r in fresh]
     dated = [(d, r) for d, r in dated if d]
@@ -333,16 +371,19 @@ def main():
         if len(picks) >= MAX_ORDERS:
             break
 
-    print(f"Scan {latest} -> {target}: {len(picks)} orders "
+    print(f"Scan {latest} [{STRATEGY}] -> {target}: {len(picks)} orders "
           f"({len(owned)} markets owned/exposed: {len(positions)} "
           f"positions, {len(resting)} resting orders, "
           f"{len(pending - positions - resting)} pending in log). "
           f"LIVE={LIVE}")
-    if LIVE:
+    if LIVE and KEEP_RESTING:
+        print("--keep-resting: leaving all resting orders on the book "
+              "(they belong to the other strategy's runs)")
+    elif LIVE:
         cancel_resting_orders()
     print("Balance before:", balance())
 
-    with appender("trades.csv", TRADE_FIELDS) as w:
+    with appender("trades.csv", TRADE_FIELDS, TRADE_LEGACY) as w:
         run_spent = 0.0
         for cost, r in picks:
             cost = int(cost)
@@ -379,7 +420,8 @@ def main():
                         "subtitle": r["subtitle"], "side": "yes",
                         "count": count, "limit_cents": cost,
                         "model_pct": r["model_prob_pct"], "edge": "",
-                        "live": LIVE, "status": status, "order_id": oid})
+                        "live": LIVE, "status": status, "order_id": oid,
+                        "strategy": (r.get("strategy") or "night").strip()})
     print("Balance after:", balance())
 
 

@@ -1,0 +1,66 @@
+name: Morning strategy (refresh, scan, trade)
+
+# The night-vs-morning race, morning lane. One job, three ordered
+# steps, every day of the week:
+#   1. forecast.py --today            fresh same-day GFS ensemble
+#   2. scanner.py --strategy morning  same pick-first rules, today only
+#   3. trader.py  --strategy morning --keep-resting
+# One job on purpose: the repo-writes concurrency group keeps at most
+# one run PENDING per group, so chaining three separate workflows at
+# 13:30-14:00 against the 13:17 scan and 13:35 trade crons risks a
+# queued run being silently replaced. Three steps in one job cannot
+# run out of order and take one concurrency slot. 13:45 UTC also
+# keeps the slot itself clear of those two crons.
+# --keep-resting: the morning trader must not cancel the night
+# strategy's resting orders; the cancel sweep belongs to night runs.
+
+on:
+  schedule:
+    - cron: "45 13 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo-writes
+  cancel-in-progress: false
+
+jobs:
+  morning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Install crypto library
+        run: pip install cryptography
+
+      - name: Refresh today's forecast (same-day ensemble)
+        run: python forecast.py --today
+
+      - name: Scan today's markets (morning strategy)
+        env:
+          KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
+          KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
+        run: python scanner.py --strategy morning
+
+      - name: Place morning trades ($1 law, night-owned cities off limits)
+        env:
+          KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
+          KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
+        run: python trader.py --strategy morning --keep-resting
+
+      # -X theirs like trader.yml, NOT -X ours like the read-only jobs:
+      # this commit carries trades.csv, and losing the record of an
+      # order that was actually placed is the worst possible outcome.
+      - name: Commit the logs
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "morning race $(date -u +'%F %H:%M')"
+          git pull --rebase -X theirs
+          git push
