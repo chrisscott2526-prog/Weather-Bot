@@ -96,6 +96,8 @@
     margin-top:9px;padding-top:8px;
   }
   .hi b{color:var(--ink);font-weight:500}
+  .yday{font-size:12px;color:var(--dim);margin-top:3px}
+  .yday b{color:var(--ink);font-weight:500}
 
   .fresh{
     height:3px;background:var(--line);border-radius:2px;margin-top:9px;
@@ -141,7 +143,12 @@
     that reading &mdash; not when this page loaded. The thin bar drains
     over 60 minutes; a red card means the reading is over an hour old
     and you should not trust it with money. "High so far" is today's
-    running maximum from the same station. This page updates itself
+    running maximum from the same station. "Yesterday" is different in
+    kind: it is the <b>official settled outcome</b> &mdash; the
+    temperature range Kalshi's own markets paid out on, straight from
+    the exchange's result field, never our thermometer. A dash there
+    means yesterday's markets haven't finalized yet (or we haven't
+    been able to check since they did). This page updates itself
     every 2 minutes and whenever you press Refresh, and it can never be
     fresher than the last 15-minute poll. For anything bet-sized, the
     judge is the Daily Climate Report on weather.gov.
@@ -195,16 +202,60 @@ function todaysHighs(rows){
   return best;
 }
 
+// settlements.csv -> station -> {rows: {date: row}, offset}
+function settlementsByStation(rows){
+  const by = {};
+  for(const r of rows){
+    if(!r.station || !r.date) continue;
+    if(!by[r.station])
+      by[r.station] = {rows:{}, offset:Number(r.utc_offset_hours) || 0};
+    by[r.station].rows[r.date] = r;
+  }
+  return by;
+}
+
+// The station's own "yesterday" (same longitude-timezone estimate the
+// poller files daily highs under).
+function stationYesterday(offsetHours, now){
+  const t = new Date(now.getTime() + offsetHours*3600000 - 86400000);
+  return t.toISOString().slice(0, 10);
+}
+
+// What Kalshi actually settled: an exact degree when the markets pin
+// one, otherwise the settled range. Never more precise than the
+// exchange said.
+function settledText(row){
+  const lo = row.low_f === "" ? null : Number(row.low_f);
+  const hi = row.high_f === "" ? null : Number(row.high_f);
+  if(lo === null && hi === null) return null;
+  if(lo !== null && hi !== null)
+    return lo === hi ? `settled ${lo}&deg;`
+                     : `settled ${lo}&ndash;${hi}&deg;`;
+  if(lo !== null) return `settled ${lo}&deg; or above`;
+  return `settled ${hi}&deg; or below`;
+}
+
+function yesterdayLine(sinfo, now){
+  if(sinfo){
+    const row = sinfo.rows[stationYesterday(sinfo.offset, now)];
+    const txt = row ? settledText(row) : null;
+    if(txt) return `Yesterday: <b>${txt}</b>`;
+  }
+  return `Yesterday: <b>&mdash;</b>`;
+}
+
 async function load(){
   const grid = document.getElementById("grid");
   const line = document.getElementById("boardline");
   try{
-    const [temps, highs] = await Promise.all([
+    const [temps, highs, settles] = await Promise.all([
       fetchCSV("temps_log.csv"),
       fetchCSV("daily_highs.csv").catch(() => []),
+      fetchCSV("settlements.csv").catch(() => []),
     ]);
     const latest = latestPerStation(temps);
     const hiBy = todaysHighs(highs);
+    const settleBy = settlementsByStation(settles);
     const now = new Date();
 
     let lastPoll = null;
@@ -237,6 +288,7 @@ async function load(){
       const hiTxt = hi
         ? `High so far today: <b>${Number(hi.high_f).toFixed(1)}&deg;</b>`
         : `High so far today: <b>&mdash;</b>`;
+      const ydTxt = yesterdayLine(settleBy[sid], now);
 
       if(isErr){
         cards.push(`<div class="cell err ${old ? "old" : ""}">
@@ -244,7 +296,8 @@ async function load(){
           <span class="station">${sid}</span></div>
           <div class="temp">no reading</div>
           <div class="when">last poll could not reach this station</div>
-          <div class="hi">${hiTxt}</div></div>`);
+          <div class="hi">${hiTxt}</div>
+          <div class="yday">${ydTxt}</div></div>`);
         continue;
       }
 
@@ -260,7 +313,8 @@ async function load(){
         <div class="temp">${t.toFixed(1)}<span class="deg">&deg;F</span></div>
         <div class="when">${whenTxt}</div>
         <div class="fresh"><i style="width:${pct}%"></i></div>
-        <div class="hi">${hiTxt}</div></div>`);
+        <div class="hi">${hiTxt}</div>
+        <div class="yday">${ydTxt}</div></div>`);
     }
     grid.innerHTML = cards.join("") ||
       `<div class="loading">No stations found in temps_log.csv.</div>`;

@@ -1,0 +1,7 @@
+date,station,city,series,low_f,high_f,n_markets,n_settled,source,utc_offset_hours,checked_utc
+2026-08-17,KATL,Atlanta,KXHIGHTATL,97,98,1,1,results-csv,-6,2026-08-20T15:29:31+00:00
+2026-08-17,KDFW,Dallas,KXHIGHTDAL,106,107,1,1,results-csv,-6,2026-08-20T15:29:31+00:00
+2026-08-17,KPHL,Philadelphia,KXHIGHPHIL,89,90,1,1,results-csv,-5,2026-08-20T15:29:31+00:00
+2026-08-18,KMSP,Minneapolis,KXHIGHTMIN,83,,1,1,results-csv,-6,2026-08-20T15:29:31+00:00
+2026-08-19,KATL,Atlanta,KXHIGHTATL,95,96,1,1,results-csv,-6,2026-08-20T15:29:31+00:00
+2026-08-19,KMIA,Miami,KXHIGHMIA,95,96,1,1,results-csv,-5,2026-08-20T15:29:31+00:00

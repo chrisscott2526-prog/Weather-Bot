@@ -180,6 +180,10 @@ calibration.py  learns per-station bias from forecasts vs actuals,
 
 poller.py    (every 15 min)       NWS METAR temps -> temps_log.csv,
                                   running local-day highs -> daily_highs.csv
+settlements.py (4x daily)         Kalshi settled result fields (unauth)
+                                  -> settlements.csv: the OFFICIAL high
+                                  range each city's markets paid on;
+                                  feeds the board's "Yesterday" line
 swoop_alert.py (4x afternoon)     advisor board -> swoop.html, swoop_log.csv
 sports_scanner.py (2x daily)      sharps consensus vs Kalshi props ->
                                   sports.html card, sports_picks.csv;
@@ -212,6 +216,7 @@ check that line first when a feed dies.
 | `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members` (members pipe-separated, already calibrated) |
 | `temps_log.csv` | `poller.py` | `utc_time,station,city,temp_f,obs_time_utc` |
 | `daily_highs.csv` | `poller.py` (full rewrite each run) | `date,station,city,high_f,last_update_utc,obs_time_utc` |
+| `settlements.csv` | `settlements.py` (full rewrite each run) | `date,station,city,series,low_f,high_f,n_markets,n_settled,source,utc_offset_hours,checked_utc` (blank low/high = unbounded tail; row exists only when a market settled YES — exclusions alone never make a row) |
 | `edges.csv` | `scanner.py` | `scanned_utc,city,market,subtitle,floor,cap,yes_ask,no_ask,model_prob_pct,edge_yes,edge_no,bias_f,spread_scale,n_members,pick,edge_pick,would_bet` |
 | `trades.csv` | `trader.py` | `placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,order_id` |
 | `results.csv` | `settle.py` | `graded_utc,ticker,city,action,cost_cents,count,market_result,result,pnl` |
