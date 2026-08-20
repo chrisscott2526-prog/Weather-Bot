@@ -144,3 +144,8 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-20T15:48:19+00:00,KXHIGHTSEA-26AUG20-T86,87° or above,yes,4,23,74.2,,True,submitted,01a01fdb-e5a0-70b8-a7bb-b728ed5b0977,night
 2026-08-20T21:42:38+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,10,10,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
 2026-08-20T21:55:56+00:00,KXHIGHDEN-26AUG20-B90.5,90° to 91°,yes,10,10,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-20T23:23:32+00:00,KXHIGHNY-26AUG21-B79.5,79° to 80°,yes,5,20,38.7,,True,submitted,01a0217c-a520-765e-95eb-0e93f97785fe,night
+2026-08-20T23:23:32+00:00,KXHIGHMIA-26AUG21-B92.5,92° to 93°,yes,1,60,54.8,,True,submitted,01a0217c-a520-7d5b-9b97-05237fb109b8,night
+2026-08-20T23:23:32+00:00,KXHIGHDEN-26AUG21-B96.5,96° to 97°,yes,3,28,67.7,,True,submitted,01a0217c-a520-73cb-927f-c80bf5f95ec0,night
+2026-08-20T23:23:32+00:00,KXHIGHAUS-26AUG21-B105.5,105° to 106°,yes,2,34,35.5,,True,submitted,01a0217c-a520-7de4-b030-048cc73fa9e2,night
+2026-08-20T23:23:32+00:00,KXHIGHCHI-26AUG21-B80.5,80° to 81°,yes,2,43,48.4,,True,submitted,01a0217c-a520-7b3f-8cad-03585679e478,night
