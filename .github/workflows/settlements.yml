@@ -32,10 +32,22 @@ jobs:
       - name: Record settled highs
         run: python3 settlements.py
 
+      # The repo-standard one-liner fallback dies under this step's
+      # bash -e when no rebase is in progress (git rebase --abort exits
+      # non-zero and -e kills the step before the retry runs). This run
+      # takes ~50s thanks to request pacing, so it races the 15-minute
+      # poller often -- proven by the lost 39-row commit on the very
+      # first paced run (Aug 20 2026, 22:20 UTC). A real retry loop:
       - name: Commit the record
         run: |
           git config user.name "weather-bot"
           git config user.email "bot@users.noreply.github.com"
           git add -A
           git diff --cached --quiet || git commit -m "settlements $(date -u +'%Y-%m-%d %H:%M')"
-          git push || (git fetch origin main && git rebase --abort 2>/dev/null; git pull --rebase -X ours && git push)
+          n=0
+          until git push; do
+            n=$((n+1))
+            if [ "$n" -gt 4 ]; then echo "push failed after $n tries"; exit 1; fi
+            git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
+            sleep $((2*n))
+          done
