@@ -130,3 +130,8 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-20T05:59:15+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,64,45.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
 2026-08-20T05:59:15+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,1,54,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
 2026-08-20T05:59:15+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,30,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",
+2026-08-20T13:45:11+00:00,KXHIGHMIA-26AUG20-B93.5,93° to 94°,yes,1,58,77.4,,True,submitted,01a01f6b-2a40-7c03-91cc-f9e6684b65a2
+2026-08-20T13:45:11+00:00,KXHIGHAUS-26AUG20-B104.5,104° to 105°,yes,1,55,45.2,,True,submitted,01a01f6b-2a40-7c1a-bf78-bc208d12f55e
+2026-08-20T13:45:11+00:00,KXHIGHCHI-26AUG20-B79.5,79° to 80°,yes,1,64,41.9,,True,submitted,01a01f6b-2a40-7f3f-9846-3558d56be14c
+2026-08-20T13:45:11+00:00,KXHIGHTDC-26AUG20-B88.5,88° to 89°,yes,3,30,38.7,,True,submitted,01a01f6b-2a40-7060-9480-a431eb7679a5
+2026-08-20T13:45:11+00:00,KXHIGHTATL-26AUG20-B97.5,97° to 98°,yes,2,48,45.2,,True,submitted,01a01f6b-2a40-7794-a006-cc21ed6a7b6b
