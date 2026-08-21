@@ -166,3 +166,6 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-21T02:36:22+00:00,KXHIGHTNOLA-26AUG21-B96.5,96° to 97°,yes,2,42,67.7,,True,submitted,01a0222d-3458-7e7b-9726-f00dc1cb5105,night
 2026-08-21T02:47:40+00:00,KXHIGHTHOU-26AUG21-B99.5,99° to 100°,yes,1,54,41.9,,True,submitted,01a02237-88e0-7a1e-9dd8-7f0041a33625,night
 2026-08-21T03:59:42+00:00,KXHIGHTLV-26AUG21-B104.5,104° to 105°,yes,9,11,67.7,,True,submitted,01a02279-7f98-79f8-bbab-3062844c1bd9,night
+2026-08-21T14:18:57+00:00,KXHIGHPHIL-26AUG21-B84.5,84° to 85°,yes,3,29,51.6,,True,submitted,01a024b0-7050-71ec-8155-0fe637e0d1bd,morning
+2026-08-21T14:18:57+00:00,KXHIGHTDC-26AUG21-B82.5,82° to 83°,yes,1,55,48.4,,True,submitted,01a024b0-7050-73bf-a608-9952738de527,morning
+2026-08-21T14:18:57+00:00,KXHIGHTMIN-26AUG21-B83.5,83° to 84°,yes,2,49,45.2,,True,submitted,01a024b0-7050-702e-92e4-833736be46d7,morning
