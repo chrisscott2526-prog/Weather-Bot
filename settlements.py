@@ -1,7 +1,8 @@
 """Weather-Bot: yesterday's OFFICIAL settled high per city.
 
 The Station Board shows two thermometers that are NOT the same product:
-the METAR instrument reading (daily_highs.csv) and the settlement.
+the METAR instrument reading (temps_log.csv via highs.py) and the
+settlement.
 Kalshi settles on the NWS CLI Daily Climate Report, and its own
 `result` field is the only thermometer that pays. This script records
 what actually settled, so the board can show "Yesterday: settled X"

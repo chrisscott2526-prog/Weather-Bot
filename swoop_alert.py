@@ -38,11 +38,12 @@ ALWAYS confirm on weather.gov before sizing up. This board is an
 advisor. The Daily Climate Report is the judge.
 """
 
-import base64, csv, html, json, os, re, time, urllib.request
+import base64, html, json, os, re, time, urllib.request
 from datetime import datetime, timedelta, timezone
 
 from cities import CITY_TO_STATION, SERIES_TO_CITY, SITES
 from csvio import appender
+from highs import highs_today
 
 BASE = "https://api.elections.kalshi.com"
 KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
@@ -118,36 +119,20 @@ def ksigned(path):
 
 # ---------- observed highs (with age) ----------
 def observed_highs():
-    """city -> (high_so_far_today, obs_age_minutes or None)."""
-    now = datetime.now(timezone.utc)
-    highs = {}
-    if not os.path.exists("daily_highs.csv"):
-        return highs
-    with open("daily_highs.csv") as f:
-        for row in csv.DictReader(f):
-            city = (row.get("city") or "").strip()
-            d = (row.get("date") or "").strip()
-            v = (row.get("high_f") or "").strip()
-            if not city or not v:
-                continue
-            # keep today's row per the file's own (local) date; the file
-            # holds one row per (date, station) so latest date wins
-            try:
-                t = float(v)
-            except ValueError:
-                continue
-            prev = highs.get(city)
-            if prev is None or d >= prev[2]:
-                age = None
-                ot = (row.get("obs_time_utc") or
-                      row.get("last_update_utc") or "")
-                try:
-                    dt = datetime.fromisoformat(ot.replace("Z", "+00:00"))
-                    age = int((now - dt).total_seconds() // 60)
-                except (ValueError, TypeError):
-                    pass
-                highs[city] = (t, age, d)
-    return {c: (t, a) for c, (t, a, _d) in highs.items()}
+    """city -> (high_so_far_today, latest_reading_age_min), computed
+    straight from the raw poll log by highs.py -- the exact same source
+    and method as the Station Board (index.html), so the two surfaces
+    can never disagree at the same commit.
+
+    This used to read daily_highs.csv, a derived snapshot, and that
+    lagged the raw log on money-relevant boards twice (Vegas Aug 20,
+    Minneapolis Aug 21 2026). The derived file also stamped the PEAK's
+    own timestamp as the reading age, so a quiet afternoon made a
+    current board look 10 hours stale. The age here is the age of the
+    station's LATEST reading today: how current our knowledge is. The
+    high itself is a floor that never expires. A city with no reading
+    today is absent, and grading skips it loudly -- never a guess."""
+    return highs_today()
 
 
 def match_city(title, ticker=""):

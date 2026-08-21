@@ -169,10 +169,16 @@ Trader hard caps, all enforced in `trader.py` — do not loosen:
 - Every temperature reading carries its **observation timestamp**
   (`obs_time_utc`). Downstream code must be able to refuse stale data;
   `swoop_alert.py` refuses readings older than 60 minutes for SWOOP tags.
-- `daily_highs.csv` is the **hourly METAR instrument reading so far** —
+- Daily highs are the **hourly METAR instrument reading so far** —
   Kalshi settles on the NWS **CLI Daily Climate Report**, a different
   product that catches between-hour peaks. They usually agree; they are not
   the same number. Never present the board as "what will settle."
+- **Daily highs are computed, never stored** (Aug 21, 2026). `highs.py`
+  computes them straight from `temps_log.csv` on every call, and every
+  consumer (swoop board, Station Board, calibration, autopsy) goes
+  through it — one source, one method. `daily_highs.csv` still exists
+  but only as a derived summary the poller regenerates for human eyes;
+  **no code reads it** (retirement candidate). See the scar below.
 - **Settlement truth outranks any thermometer.** Kalshi's own `result`
   field is the only thermometer that pays. `settle.py` grades only markets
   Kalshi says are settled/finalized; `calibration.py` overrides the
@@ -203,6 +209,28 @@ Trader hard caps, all enforced in `trader.py` — do not loosen:
 - **Sports whitelist (Aug 2, 2026).** Substring matching on series names
   swept in inning props and player-signing markets and reported fantasy
   40¢ "edges". Real moneyline edges are 2–5¢ and rare. Whitelist only.
+- **Derived data lagging its raw source — twice (Vegas Aug 20,
+  Minneapolis Aug 21, 2026).** The swoop board graded real positions
+  from `daily_highs.csv`, a derived snapshot, while the raw readings in
+  `temps_log.csv` already knew better: Vegas sat on 105.8° through a
+  107.6° climb toward a 109° settlement; Minneapolis showed 77.0° while
+  the Station Board showed 80.6° at the same moment. Three separate rots
+  were found in the derived file: (1) its "age" was the timestamp of the
+  *peak*, so a quiet afternoon made a current board look 10 hours stale
+  (592–738-minute "ages" in `swoop_log.csv`) while a stale page could
+  wear a fresh age; (2) rows before Aug 5 were filed under **UTC** dates
+  — the regeneration found 63 wrong historical rows plus an entire
+  missing day (Jul 18), including Phoenix's Aug-4 evening 107.6° filed
+  under Aug 5 — the $60 incident's own residue; (3) as incremental
+  state, one dropped commit or push race lost a peak **forever**.
+  **THE LAW: any number displayed or graded on a money path comes from
+  the rawest, freshest source available, and any two surfaces showing
+  the same quantity must compute it from the same source, the same
+  way.** Hence `highs.py`: highs are recomputed from `temps_log.csv` on
+  every call (obs-time day attribution, freshness = age of the latest
+  reading), `index.html` mirrors the same rule in JS, and
+  `daily_highs.csv` is write-only human-readable output. Never
+  reintroduce a stored derived file into a money or display path.
 
 ## HOW THE PIECES FIT (data flow)
 
@@ -230,8 +258,15 @@ morning.yml  (daily ~13:45 UTC)   the race's morning lane, one job:
                                             --keep-resting
                                   (same files, strategy=morning rows)
 
-poller.py    (every 15 min)       NWS METAR temps -> temps_log.csv,
-                                  running local-day highs -> daily_highs.csv
+poller.py    (every 15 min)       NWS METAR temps -> temps_log.csv
+                                  (the RAW source of truth for highs);
+                                  also regenerates daily_highs.csv from
+                                  it -- a derived summary NO code reads
+highs.py     (library, no cron)   THE one way a daily high is computed:
+                                  temps_log.csv -> per-station local-day
+                                  highs + freshness. Used by swoop_alert,
+                                  calibration, autopsy, poller; mirrored
+                                  in JS by index.html
 settlements.py (4x daily)         Kalshi settled result fields (unauth)
                                   -> settlements.csv: the OFFICIAL high
                                   range each city's markets paid on;
@@ -267,7 +302,7 @@ check that line first when a feed dies.
 |---|---|---|
 | `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members` (members pipe-separated, already calibrated; a morning `--today` row is fetched on its own forecast_date between 06:00–22:59 UTC — `csvio.is_morning_row` is the one true classifier, there is no extra column. The hour window exists because a delayed nightly cron slips past UTC midnight and stamps the same date; those rows are still night) |
 | `temps_log.csv` | `poller.py` | `utc_time,station,city,temp_f,obs_time_utc` |
-| `daily_highs.csv` | `poller.py` (full rewrite each run) | `date,station,city,high_f,last_update_utc,obs_time_utc` |
+| `daily_highs.csv` | `poller.py` (full rewrite each run, regenerated from `temps_log.csv` via `highs.py`) | `date,station,city,high_f,last_update_utc,obs_time_utc` (last_update/obs_time = poll/observation time of the day's peak; derived human-readable summary ONLY — since Aug 21 2026 **no code reads it**; retirement candidate) |
 | `settlements.csv` | `settlements.py` (full rewrite each run) | `date,station,city,series,low_f,high_f,n_markets,n_settled,source,utc_offset_hours,checked_utc` (blank low/high = unbounded tail; row exists only when a market settled YES — exclusions alone never make a row) |
 | `edges.csv` | `scanner.py` | `scanned_utc,city,market,subtitle,floor,cap,yes_ask,no_ask,model_prob_pct,edge_yes,edge_no,bias_f,spread_scale,n_members,pick,edge_pick,would_bet,strategy` (strategy added Aug 20 2026, old rows backfilled `night`) |
 | `trades.csv` | `trader.py` | `placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,order_id,strategy` (strategy added Aug 20 2026, old rows backfilled `night`) |

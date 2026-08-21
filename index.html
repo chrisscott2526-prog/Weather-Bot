@@ -143,7 +143,10 @@
     that reading &mdash; not when this page loaded. The thin bar drains
     over 60 minutes; a red card means the reading is over an hour old
     and you should not trust it with money. "High so far" is today's
-    running maximum from the same station. "Yesterday" is different in
+    running maximum, computed on the spot from the same raw poll log as
+    the big number &mdash; the swoop board computes its highs from the
+    identical log with the identical rule, so the two can never
+    disagree. "Yesterday" is different in
     kind: it is the <b>official settled outcome</b> &mdash; the
     temperature range Kalshi's own markets paid out on, straight from
     the exchange's result field, never our thermometer. A dash there
@@ -160,6 +163,23 @@
 
 const OLD_MIN = 60;
 const LOCAL_TZ = "America/Chicago";
+
+// station -> UTC offset in hours: round(longitude / 15), generated
+// from cities.py (the source of truth). highs.py uses the exact same
+// numbers -- if a city is ever added or moved, regenerate BOTH in the
+// same commit. Used to file each reading under the STATION'S own
+// calendar day (the $60 Phoenix lesson).
+const STATION_OFFSET = {
+  KATL:-6, KAUS:-7, KBOS:-5, KDCA:-5, KDEN:-7, KDFW:-6, KHOU:-6,
+  KLAS:-8, KLAX:-8, KMDW:-6, KMIA:-5, KMSP:-6, KMSY:-6, KNYC:-5,
+  KOKC:-7, KPHL:-5, KPHX:-7, KSAT:-7, KSEA:-8, KSFO:-8};
+
+// The station's own calendar date (YYYY-MM-DD) for a UTC millisecond
+// timestamp -- same rule as highs.py local_date().
+function stationDay(sid, ms){
+  const off = STATION_OFFSET[sid] || 0;
+  return new Date(ms + off*3600000).toISOString().slice(0, 10);
+}
 
 function fmtLocal(d){
   return d.toLocaleTimeString("en-US",
@@ -192,12 +212,24 @@ function latestPerStation(rows){
   return seen;
 }
 
-function todaysHighs(rows){
+// station -> high so far TODAY (the station's own day), computed
+// directly from the raw poll log -- the same source and method as
+// highs.py, which the swoop board and the graders use. The derived
+// daily_highs.csv lagged this raw log on money-relevant boards twice
+// (Vegas Aug 20, Minneapolis Aug 21 2026) and is not read here
+// anymore. A reading is filed under the day of its OBSERVATION time
+// (falling back to poll time for old rows); ERROR rows are skipped.
+function todaysHighs(temps, now){
   const best = {};
-  for(const r of rows){
-    if(!r.station) continue;
-    const b = best[r.station];
-    if(!b || r.date > b.date) best[r.station] = r;
+  for(const r of temps){
+    if(!(r.station in STATION_OFFSET)) continue;
+    const t = Number(r.temp_f);
+    if(r.temp_f === "" || isNaN(t)) continue;
+    const ms = Date.parse(r.obs_time_utc || r.utc_time);
+    if(isNaN(ms)) continue;
+    if(stationDay(r.station, ms) !== stationDay(r.station, now.getTime()))
+      continue;
+    if(!(r.station in best) || t > best[r.station]) best[r.station] = t;
   }
   return best;
 }
@@ -248,15 +280,14 @@ async function load(){
   const grid = document.getElementById("grid");
   const line = document.getElementById("boardline");
   try{
-    const [temps, highs, settles] = await Promise.all([
+    const [temps, settles] = await Promise.all([
       fetchCSV("temps_log.csv"),
-      fetchCSV("daily_highs.csv").catch(() => []),
       fetchCSV("settlements.csv").catch(() => []),
     ]);
-    const latest = latestPerStation(temps);
-    const hiBy = todaysHighs(highs);
-    const settleBy = settlementsByStation(settles);
     const now = new Date();
+    const latest = latestPerStation(temps);
+    const hiBy = todaysHighs(temps, now);
+    const settleBy = settlementsByStation(settles);
 
     let lastPoll = null;
     for(const s in latest){
@@ -285,8 +316,8 @@ async function load(){
         : Math.max(0, 100 - (ageMin / OLD_MIN) * 100);
 
       const hi = hiBy[sid];
-      const hiTxt = hi
-        ? `High so far today: <b>${Number(hi.high_f).toFixed(1)}&deg;</b>`
+      const hiTxt = hi !== undefined
+        ? `High so far today: <b>${hi.toFixed(1)}&deg;</b>`
         : `High so far today: <b>&mdash;</b>`;
       const ydTxt = yesterdayLine(settleBy[sid], now);
 
