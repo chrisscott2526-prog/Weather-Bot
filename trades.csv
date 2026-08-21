@@ -171,3 +171,8 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-21T14:18:57+00:00,KXHIGHTMIN-26AUG21-B83.5,83° to 84°,yes,2,49,45.2,,True,submitted,01a024b0-7050-702e-92e4-833736be46d7,morning
 2026-08-21T17:43:56+00:00,KXHIGHTSATX-26AUG21-T100,99° or below,yes,11,9,48.4,,True,submitted,01a0256c-1b48-75bf-869a-76cb05d9be8c,night
 2026-08-21T19:36:30+00:00,KXHIGHLAX-26AUG21-T83,84° or above,yes,1,51,100.0,,True,submitted,01a025d3-2a18-7b08-8e58-5f8e70b9ea57,night
+2026-08-21T23:21:42+00:00,KXHIGHMIA-26AUG22-B92.5,92° to 93°,yes,1,53,58.1,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-21T23:21:42+00:00,KXHIGHAUS-26AUG22-B106.5,106° to 107°,yes,2,36,38.7,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-21T23:21:42+00:00,KXHIGHCHI-26AUG22-B82.5,82° to 83°,yes,3,31,41.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-21T23:21:42+00:00,KXHIGHTPHX-26AUG22-B112.5,112° to 113°,yes,2,34,77.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
+2026-08-21T23:21:42+00:00,KXHIGHTDC-26AUG22-T77,76° or below,yes,3,33,74.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,night
