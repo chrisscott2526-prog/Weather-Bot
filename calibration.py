@@ -32,9 +32,9 @@ from statistics import median
 
 from cities import STATIONS
 from csvio import is_morning_row
+from highs import day_high_map
 
 FORECASTS = "forecasts.csv"
-HIGHS = "daily_highs.csv"
 RESULTS = "results.csv"
 
 WINDOW_DAYS = 14          # how far back to learn from
@@ -104,23 +104,12 @@ def load_forecast_history():
 
 
 def load_actuals():
-    """(date, station) -> observed high from the poller (instrument
-    reading -- may be corrected by settlement below)."""
-    acts = {}
-    if not os.path.exists(HIGHS):
-        return acts
-    with open(HIGHS) as f:
-        for r in csv.DictReader(f):
-            d = (r.get("date") or "").strip()
-            sid = (r.get("station") or "").strip()
-            v = (r.get("high_f") or "").strip()
-            if not d or not sid or not v:
-                continue
-            try:
-                acts[(d, sid)] = float(v)
-            except ValueError:
-                continue
-    return acts
+    """(date, station) -> observed high (instrument reading -- may be
+    corrected by settlement below). Computed directly from the raw
+    temps_log.csv by highs.py -- the single source of truth for daily
+    highs since Aug 21 2026; the derived daily_highs.csv lagged its raw
+    source in two money-relevant incidents and is no longer read."""
+    return day_high_map()
 
 
 # ---------- the model ----------

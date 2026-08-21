@@ -1,6 +1,7 @@
 """Weather-Bot: loss autopsy. Reads results.csv (the scoreboard),
-trades.csv (prices, subtitles, model confidence) and daily_highs.csv
-(the poller's instrument readings) and answers, for every settled bet:
+trades.csv (prices, subtitles, model confidence) and the poller's raw
+instrument readings (temps_log.csv, computed into daily highs by
+highs.py) and answers, for every settled bet:
 where did the day's actual high land relative to the bracket we bought?
 
 Verdicts per bet:
@@ -14,7 +15,7 @@ Verdicts per bet:
 Where the "actual high" comes from, in order of trust:
   1. Settlement. A WIN pins the high inside our bracket -- Kalshi's
      result is the only thermometer that pays.
-  2. Instrument (daily_highs.csv) for losses. One physical fact does
+  2. Instrument (temps_log.csv via highs.py) for losses. One physical fact does
      real work here: the poller's number is a floored running max of
      hourly readings, so the OFFICIAL high can only be equal or
      HIGHER -- never lower. So when we lost but the instrument reading
@@ -39,10 +40,10 @@ import csv, math, os, re
 from datetime import datetime, timezone
 
 from cities import CITY_TO_STATION
+from highs import day_high_map
 
 RESULTS = "results.csv"
 TRADES = "trades.csv"
-HIGHS = "daily_highs.csv"
 OUT = "autopsy.md"
 
 BRACKET_WIDTH = 2          # Kalshi HIGH brackets cover 2 whole degrees
@@ -78,17 +79,11 @@ def load_trade_info():
 
 
 def load_instrument_highs():
-    """(date, station) -> floored METAR running high."""
-    out = {}
-    if not os.path.exists(HIGHS):
-        return out
-    with open(HIGHS) as f:
-        for r in csv.DictReader(f):
-            try:
-                out[(r["date"], r["station"])] = float(r["high_f"])
-            except (KeyError, ValueError):
-                continue
-    return out
+    """(date, station) -> floored METAR daily high, computed directly
+    from the raw temps_log.csv by highs.py (single source of truth --
+    the derived daily_highs.csv lagged its raw source twice and is no
+    longer read anywhere)."""
+    return day_high_map()
 
 
 def bracket_bounds(kind, num, subtitle):
