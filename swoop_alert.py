@@ -117,9 +117,42 @@ def ksigned(path):
 
 
 # ---------- observed highs (with age) ----------
+def latest_reading_ages(now):
+    """city -> minutes since the station's newest successful reading in
+    temps_log.csv. This is the SAME age the Station Board (index.html)
+    shows. The daily high's own timestamp is NOT freshness: it marks when
+    the day's peak was set, which is hours old by every afternoon even
+    when the station reported minutes ago (the 162m-vs-41m bug, fixed
+    Aug 21 2026). A fresh latest reading is what proves the observed high
+    is still the running maximum."""
+    ages = {}
+    if not os.path.exists("temps_log.csv"):
+        return ages
+    with open("temps_log.csv") as f:
+        for row in csv.DictReader(f):
+            city = (row.get("city") or "").strip()
+            v = (row.get("temp_f") or "").strip()
+            if not city or not v or v == "ERROR":
+                continue
+            # file is append-ordered, so the last good row per city wins
+            ot = (row.get("obs_time_utc") or row.get("utc_time") or "")
+            try:
+                dt = datetime.fromisoformat(ot.replace("Z", "+00:00"))
+                ages[city] = int((now - dt).total_seconds() // 60)
+            except (ValueError, TypeError):
+                continue
+    return ages
+
+
 def observed_highs():
-    """city -> (high_so_far_today, obs_age_minutes or None)."""
+    """city -> (high_so_far_today, obs_age_minutes or None).
+
+    The HIGH comes from daily_highs.csv. The AGE comes from the latest
+    reading in temps_log.csv (see latest_reading_ages) -- never from the
+    high's own timestamp. Falls back to the high row's timestamps only
+    when the station has no readable row in temps_log.csv."""
     now = datetime.now(timezone.utc)
+    reading_age = latest_reading_ages(now)
     highs = {}
     if not os.path.exists("daily_highs.csv"):
         return highs
@@ -138,14 +171,16 @@ def observed_highs():
                 continue
             prev = highs.get(city)
             if prev is None or d >= prev[2]:
-                age = None
-                ot = (row.get("obs_time_utc") or
-                      row.get("last_update_utc") or "")
-                try:
-                    dt = datetime.fromisoformat(ot.replace("Z", "+00:00"))
-                    age = int((now - dt).total_seconds() // 60)
-                except (ValueError, TypeError):
-                    pass
+                age = reading_age.get(city)
+                if age is None:
+                    ot = (row.get("obs_time_utc") or
+                          row.get("last_update_utc") or "")
+                    try:
+                        dt = datetime.fromisoformat(
+                            ot.replace("Z", "+00:00"))
+                        age = int((now - dt).total_seconds() // 60)
+                    except (ValueError, TypeError):
+                        pass
                 highs[city] = (t, age, d)
     return {c: (t, a) for c, (t, a, _d) in highs.items()}
 

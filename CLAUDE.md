@@ -180,6 +180,22 @@ Trader hard caps, all enforced in `trader.py` — do not loosen:
   landed in a different bracket.
 - Failures print and skip. An "ERROR" row with a blank date is a trap for
   every downstream reader (this exact trap poisoned `forecasts.csv` once).
+- **A finished day's high is never answered from repo CSVs alone.** When
+  asked what a day's high WAS (past tense, day complete), the poller's
+  running max in `daily_highs.csv` is a **floor, not the final** — it only
+  samples hourly METARs. The authoritative answer is the NWS **CLI Daily
+  Climate Report** for that station (published ~5:30 PM local); fetch it
+  or weather.gov's station page live if network access allows. If it
+  can't be fetched, say plainly: "our last logged reading was X at
+  [time], but the official CLI high may be higher — check weather.gov."
+  Never present the logged running max as the day's final high after the
+  day ends.
+- **Reading age = minutes since the station's latest reading** in
+  `temps_log.csv` (what the Station Board shows) — never the timestamp of
+  the reading that set the daily high, which is hours old by every
+  afternoon. The swoop board once called a 41-minute-fresh thermometer
+  "162m old" that way and suppressed valid tags (fixed Aug 21, 2026 in
+  `latest_reading_ages` in `swoop_alert.py`).
 
 ## HISTORY — THE SCARS (do not repeat these)
 
