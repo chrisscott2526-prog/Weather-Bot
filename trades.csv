@@ -169,3 +169,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-21T14:18:57+00:00,KXHIGHPHIL-26AUG21-B84.5,84° to 85°,yes,3,29,51.6,,True,submitted,01a024b0-7050-71ec-8155-0fe637e0d1bd,morning
 2026-08-21T14:18:57+00:00,KXHIGHTDC-26AUG21-B82.5,82° to 83°,yes,1,55,48.4,,True,submitted,01a024b0-7050-73bf-a608-9952738de527,morning
 2026-08-21T14:18:57+00:00,KXHIGHTMIN-26AUG21-B83.5,83° to 84°,yes,2,49,45.2,,True,submitted,01a024b0-7050-702e-92e4-833736be46d7,morning
+2026-08-21T17:43:56+00:00,KXHIGHTSATX-26AUG21-T100,99° or below,yes,11,9,48.4,,True,submitted,01a0256c-1b48-75bf-869a-76cb05d9be8c,night
