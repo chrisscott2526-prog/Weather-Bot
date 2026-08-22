@@ -221,3 +221,7 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-22T10:13:39+00:00,KXHIGHCHI-26AUG22-B82.5,82° to 83°,yes,2,45,41.9,,True,submitted,01a028f6-3820-7fa4-8d8a-9c38b263d13a,night
 2026-08-22T10:13:39+00:00,KXHIGHTPHX-26AUG22-B112.5,112° to 113°,yes,2,41,77.4,,True,submitted,01a028f6-3820-7883-9932-1695d436ad45,night
 2026-08-22T10:13:39+00:00,KXHIGHTDC-26AUG22-T77,76° or below,yes,5,17,74.2,,True,submitted,01a028f6-3820-75cd-a96f-341dd2ae282a,night
+2026-08-22T13:44:04+00:00,KXHIGHTATL-26AUG22-B93.5,93° to 94°,yes,1,57,45.2,,True,submitted,01a029b6-dc88-72a0-86ac-fc4e2cd282d1,night
+2026-08-22T13:44:04+00:00,KXHIGHTDAL-26AUG22-B108.5,108° to 109°,yes,12,8,35.5,,True,submitted,01a029b6-dc88-7617-9a0e-cbb77feafaf3,night
+2026-08-22T13:44:04+00:00,KXHIGHTOKC-26AUG22-B106.5,106° to 107°,yes,7,14,51.6,,True,submitted,01a029b6-dc88-7307-823a-5b2c7701764a,night
+2026-08-22T13:44:04+00:00,KXHIGHTHOU-26AUG22-B101.5,101° to 102°,yes,2,47,48.4,,True,submitted,01a029b6-dc88-75d9-8414-58e7eb08d6f2,night
