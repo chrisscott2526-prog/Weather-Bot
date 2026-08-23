@@ -241,3 +241,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-22T23:34:23+00:00,KXHIGHTSATX-26AUG23-B105.5,105° to 106°,yes,5,20,45.2,,True,submitted,01a02bd3-5000-7860-9cd1-360de87520e9,night
 2026-08-22T23:34:23+00:00,KXHIGHTNOLA-26AUG23-B98.5,98° to 99°,yes,2,48,54.8,,True,submitted,01a02bd3-5000-7bb0-bb03-5bf341f8a193,night
 2026-08-22T23:48:28+00:00,KXHIGHTHOU-26AUG23-B102.5,102° to 103°,yes,5,19,51.6,,True,submitted,01a02be0-34c8-73ef-a536-8faec1a63ba9,night
+2026-08-23T03:59:31+00:00,KXHIGHLAX-26AUG23-T84,85° or above,yes,2,45,100.0,,True,submitted,01a02cc6-0ca0-7e53-9f09-e9ef8f4655a9,night
