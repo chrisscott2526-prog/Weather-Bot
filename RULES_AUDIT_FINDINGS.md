@@ -79,8 +79,9 @@ official: Kalshi names TWC, not the NWS CLI product.
   boilerplate is series-level, so one market per series is
   representative.
 
-Note on this branch: the audit workflow lives at
-`.github/workflows/probe.yml` because GitHub only lets us dispatch
-workflow paths it already knows, and the retired sports-probe path was
-registered. It is manual-only, read-only, and safe to delete with this
-branch once the findings are absorbed.
+Note: the audit ran through a temporary manual-only workflow at
+`.github/workflows/probe.yml` (GitHub will only dispatch workflow
+paths it already knows, and the retired sports-probe path was the one
+registered). That workflow was deleted when this branch merged.
+`rules_audit.py` stays in the repo and can be wired to a fresh
+workflow any time the rules text needs re-auditing.
