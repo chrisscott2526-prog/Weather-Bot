@@ -28,6 +28,12 @@ hand-verified US cities**, $1 at a time, and keeps an honest scoreboard.
   trades. Known gotchas already baked in: Chicago = Midway (KMDW),
   Dallas = DFW, Houston = **Hobby** (KHOU, not Intercontinental),
   New York = Central Park (KNYC).
+- **Settlement source (audited Aug 23, 2026):** all 20 rules panels name
+  **The Weather Company** as the official source of the settled station
+  max — none name the NWS. The NWS is TWC's underlying data source; the
+  station map still verifies against the CLI codes in the rules panels
+  (`RULES_AUDIT_FINDINGS.md` has the 20/20 table and the verbatim rules
+  text; `rules_audit.py` re-runs the check).
 
 There are also two **advisor-only** side products that place no bets:
 `sports_scanner.py` (the pick-first sports card — see its own law below)
@@ -170,9 +176,13 @@ Trader hard caps, all enforced in `trader.py` — do not loosen:
   (`obs_time_utc`). Downstream code must be able to refuse stale data;
   `swoop_alert.py` refuses readings older than 60 minutes for SWOOP tags.
 - Daily highs are the **hourly METAR instrument reading so far** —
-  Kalshi settles on the NWS **CLI Daily Climate Report**, a different
-  product that catches between-hour peaks. They usually agree; they are not
-  the same number. Never present the board as "what will settle."
+  Kalshi settles on **The Weather Company's reported station max**
+  (per the rules panels, all 20 series, audited Aug 23 2026). TWC
+  builds its number from the same NWS station observations, catches
+  between-hour peaks our hourly reading misses, and warns of its own
+  rounding/conversion differences. The two usually agree; they are not
+  the same number. Our METAR boards are honest approximations and must
+  never be presented as "what will settle."
 - **Daily highs are computed, never stored** (Aug 21, 2026). `highs.py`
   computes them straight from `temps_log.csv` on every call, and every
   consumer (swoop board, Station Board, calibration, autopsy) goes

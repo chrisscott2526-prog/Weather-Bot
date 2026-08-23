@@ -2,11 +2,16 @@
 cities. Import this from poller.py, forecast.py, and scanner.py so
 every script agrees on names and stations.
 
-STATION = the NWS station whose Daily Climate Report settles the
-market. All 20 stations verified by hand against Kalshi's rules on
-Aug 3 2026 (the CLI trick: each market's rules panel names a code
-like CLIPHX -- CLI plus the station letters. Match it to the station
-here). Wrong station = garbage calibration = losing trades.
+STATION = the observation station each market's rules panel points at
+via its CLI code (the trick: CLIPHX -- CLI plus the station letters.
+Match it to the station here). Settlement is officially The Weather
+Company's reported max for that station: the Aug 23 2026 audit found
+all 20 rules panels name TWC as the official source, none the NWS
+(see RULES_AUDIT_FINDINGS.md). The NWS station observations are TWC's
+underlying source, so the station mapping is still what makes or
+breaks calibration. All 20 verified by hand Aug 3 2026 and re-verified
+against the live CLI codes Aug 23 2026.
+Wrong station = garbage calibration = losing trades.
 Known Kalshi gotchas already baked in: Chicago=Midway, Dallas=DFW,
 Houston=Hobby (NOT Intercontinental).
 """
