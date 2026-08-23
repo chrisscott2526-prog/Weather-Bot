@@ -93,6 +93,8 @@ date,station,city,series,low_f,high_f,n_markets,n_settled,source,utc_offset_hour
 2026-08-22,KDEN,Denver,KXHIGHDEN,92,93,6,6,kalshi-api,-7,2026-08-23T13:17:50+00:00
 2026-08-22,KDFW,Dallas,KXHIGHTDAL,104,105,6,6,kalshi-api,-6,2026-08-23T13:17:50+00:00
 2026-08-22,KHOU,Houston,KXHIGHTHOU,101,102,6,6,kalshi-api,-6,2026-08-23T13:17:50+00:00
+2026-08-22,KLAS,Las Vegas,KXHIGHTLV,109,110,6,6,kalshi-api,-8,2026-08-23T15:09:56+00:00
+2026-08-22,KLAX,Los Angeles,KXHIGHLAX,82,83,6,6,kalshi-api,-8,2026-08-23T15:09:56+00:00
 2026-08-22,KMDW,Chicago,KXHIGHCHI,82,83,6,6,kalshi-api,-6,2026-08-23T13:17:50+00:00
 2026-08-22,KMIA,Miami,KXHIGHMIA,94,95,6,6,kalshi-api,-5,2026-08-23T13:17:50+00:00
 2026-08-22,KMSP,Minneapolis,KXHIGHTMIN,80,81,6,6,kalshi-api,-6,2026-08-23T13:17:50+00:00
@@ -100,4 +102,7 @@ date,station,city,series,low_f,high_f,n_markets,n_settled,source,utc_offset_hour
 2026-08-22,KNYC,New York City,KXHIGHNY,77,78,6,6,kalshi-api,-5,2026-08-23T13:17:50+00:00
 2026-08-22,KOKC,Oklahoma City,KXHIGHTOKC,,101,6,6,kalshi-api,-7,2026-08-23T13:17:50+00:00
 2026-08-22,KPHL,Philadelphia,KXHIGHPHIL,80,81,6,6,kalshi-api,-5,2026-08-23T13:17:50+00:00
+2026-08-22,KPHX,Phoenix,KXHIGHTPHX,114,115,6,6,kalshi-api,-7,2026-08-23T15:09:56+00:00
 2026-08-22,KSAT,San Antonio,KXHIGHTSATX,103,104,6,6,kalshi-api,-7,2026-08-23T13:17:50+00:00
+2026-08-22,KSEA,Seattle,KXHIGHTSEA,75,76,6,6,kalshi-api,-8,2026-08-23T15:09:56+00:00
+2026-08-22,KSFO,San Francisco,KXHIGHTSFO,69,70,6,6,kalshi-api,-8,2026-08-23T15:09:56+00:00
