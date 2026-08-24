@@ -260,3 +260,8 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-23T23:48:59+00:00,KXHIGHDEN-26AUG24-B89.5,89° to 90°,yes,6,15,74.2,,True,submitted,01a03107-09e0-72f6-94ee-e55dceb462be,night
 2026-08-23T23:48:59+00:00,KXHIGHPHIL-26AUG24-B82.5,82° to 83°,yes,1,53,54.8,,True,submitted,01a03107-09e0-758d-ba03-ba6610fd35fc,night
 2026-08-23T23:48:59+00:00,KXHIGHAUS-26AUG24-B106.5,106° to 107°,yes,3,27,38.7,,True,submitted,01a03107-09e0-706f-875c-23e8e623bf3d,night
+2026-08-24T02:37:30+00:00,KXHIGHCHI-26AUG24-B77.5,77° to 78°,yes,2,40,41.9,,True,submitted,01a031a1-51f8-798d-be7e-c788f12a4d0e,night
+2026-08-24T02:37:30+00:00,KXHIGHTPHX-26AUG24-B110.5,110° to 111°,yes,2,41,41.9,,True,submitted,01a031a1-55e0-79e9-8121-12f15207915b,night
+2026-08-24T02:37:30+00:00,KXHIGHTDC-26AUG24-B85.5,85° to 86°,yes,2,46,35.5,,True,submitted,01a031a1-55e0-7ba6-8bea-1bbfd945fce7,night
+2026-08-24T02:37:30+00:00,KXHIGHTATL-26AUG24-B90.5,90° to 91°,yes,3,31,48.4,,True,submitted,01a031a1-55e0-708f-b3a8-e0088950eb06,night
+2026-08-24T02:37:30+00:00,KXHIGHTSEA-26AUG24-B79.5,79° to 80°,yes,2,41,35.5,,True,submitted,01a031a1-55e0-75e0-b4bd-f63a43dc298f,night
