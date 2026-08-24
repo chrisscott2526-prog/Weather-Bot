@@ -67,7 +67,10 @@ MAX_ORDERS = 5
 BET_DOLLARS = 1      # $ per bet. Change ONLY after 100+ settled bets
                      # show positive P&L. Applies to BOTH strategies.
 MAX_RUN_DOLLARS = 10  # hard ceiling on total $ placed in one run
-MIN_COST, MAX_COST = 8, 68   # matches scanner.py's MIN/MAX_PICK_COST
+MIN_COST, MAX_COST = 15, 68  # matches scanner.py's MIN/MAX_PICK_COST
+                     # (raised 8 -> 15 Aug 24 2026 with the scanner:
+                     # under-15c picks settled 0-for-10 on the
+                     # scoreboard. The two bands must stay identical.)
 TRADE_FIELDS = ["placed_utc", "ticker", "subtitle", "side", "count",
                 "limit_cents", "model_pct", "edge", "live",
                 "status", "order_id", "strategy"]

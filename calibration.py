@@ -8,11 +8,7 @@ REBUILT Aug 5 2026 -- the honest-thermometer rewrite:
 1. MEDIAN, not mean. One storm-capped day can no longer steer a city's
    correction for two weeks.
 2. SETTLEMENT-PINNED ACTUALS. The bias target is what actually SETTLED
-   whenever we can prove it. Any of our own bets that resolved YES pins
-   the day's high inside that bracket (results.csv, B-tickers only --
-   tail tickers are ambiguous). When the poller's instrument reading
-   disagrees with a settled bracket, the settlement wins: it is the only
-   thermometer that pays.
+   whenever we can prove it.
 3. CONFIDENCE RAMP instead of the MIN_SAMPLES cliff. Less history means
    a wider spread, which means the scanner takes fewer, safer bets in
    that city -- instead of zero correction with full confidence.
@@ -20,9 +16,41 @@ REBUILT Aug 5 2026 -- the honest-thermometer rewrite:
    forecasts.csv, and reads all CSVs by column name so added columns
    (obs_time_utc) never break it.
 
+UPGRADED Aug 24 2026 -- learn from the official scoreboard, not our
+own thermometer:
+
+1. THE ACTUAL IS THE OFFICIAL SETTLEMENT, whenever settlements.csv has
+   the day's settled bracket (settlements.py pins it from Kalshi's own
+   result fields, all 20 cities, unauthenticated). The old target was
+   the METAR instrument high -- which UNDERSTATES BY DESIGN (hourly
+   readings, floored, and TWC's settled max catches between-hour peaks
+   the METAR misses). Learning "forecast error" against an understated
+   actual mis-corrected exactly the stations the autopsy flagged: Las
+   Vegas ran 3.4F below the settled number while this table said the
+   correction was 1.1F. Priority of actuals now: official settled
+   bracket midpoint > our own settled bets pinning the instrument >
+   raw instrument. (settlements.csv is a cache of Kalshi's immutable
+   settlement facts, rewritten in full each run -- not the derived-
+   aggregate trap of the daily_highs scar. A settled result never
+   changes, so a missing row only means "fall back", never "stale".)
+2. THE SPREAD IS LEARNED TOO, not just the bias. The old spread_scale
+   only widened when history was thin -- with 14 days of history every
+   station sat at x1.00 forever, and the raw GFS member spread is
+   narrower than the real error: the scanner claimed ~50% and won 30%.
+   Now each station's realized error spread (robust sigma of residuals
+   after bias removal) becomes a TARGET SIGMA, and calibrate_members
+   widens the member spread to match it. Members are never narrowed
+   (scale floors at x1.0): we may claim less confidence than the raw
+   ensemble, never more.
+
 Interface (unchanged): forecast.py calls
     members, bias = calibrate_members(station, members)
-which returns bias-shifted, spread-scaled members plus the bias used.
+which returns bias-shifted, spread-matched members plus the bias used.
+compute_calibration() now returns station -> (bias_f, sigma_f, n):
+the third-of-three is still n, but the middle value is the target
+error sigma in DEGREES F, no longer a unitless scale. scanner.py logs
+it in its own sigma_f column (edges.csv's old spread_scale column is
+retired, kept only so old rows keep their meaning).
 Run standalone to print the calibration table.
 """
 
@@ -36,17 +64,59 @@ from highs import day_high_map
 
 FORECASTS = "forecasts.csv"
 RESULTS = "results.csv"
+SETTLEMENTS = "settlements.csv"
 
 WINDOW_DAYS = 14          # how far back to learn from
 MAX_ABS_BIAS = 6.0        # sanity clamp; a "bias" beyond this is a data bug
 
+# Spread targets, all in degrees F. MIN_SIGMA: a settled bracket is 2F
+# wide, so the actual is only known to ~half a bracket -- claiming a
+# tighter error than 1F would be inventing precision. DEFAULT_SIGMA:
+# no history at all = very wide = few bets (the old x2.5 ramp rung).
+MIN_SIGMA = 1.0
+MAX_SIGMA = 6.0
+DEFAULT_SIGMA = 4.0
+MIN_RAW_SIGMA = 0.3       # guard against a near-zero raw member spread
+# (No separate cap on the widening ratio: the scaling is
+# self-normalizing -- the adjusted spread lands AT sigma_f, which is
+# itself capped at MAX_SIGMA -- and real raw spreads of 0.5F with
+# realized errors of 2-4F legitimately need x4-x8.)
+
 
 # ---------- settlement truth ----------
+def settlement_actuals():
+    """(date, station) -> (lo_f, hi_f): the OFFICIAL settled range from
+    settlements.csv -- Kalshi's own result fields, pinned by
+    settlements.py for all 20 cities. A None end = unbounded tail.
+    This is the thermometer that pays; it outranks the instrument."""
+    out = {}
+    if not os.path.exists(SETTLEMENTS):
+        return out
+    with open(SETTLEMENTS) as f:
+        for r in csv.DictReader(f):
+            d = (r.get("date") or "").strip()
+            sid = (r.get("station") or "").strip()
+            if not d or not sid:
+                continue
+            lo = (r.get("low_f") or "").strip()
+            hi = (r.get("high_f") or "").strip()
+            try:
+                lo_v = float(lo) if lo else None
+                hi_v = float(hi) if hi else None
+            except ValueError:
+                continue
+            if lo_v is None and hi_v is None:
+                continue
+            out[(d, sid)] = (lo_v, hi_v)
+    return out
+
+
 def settled_windows():
     """(date, city) -> (lo, hi): a 2-degree window the day's high provably
     landed in, from our own settled bets. A market resolved YES when we
     won a YES or lost a NO. B-tickers only; T (tail) tickers are
-    ambiguous about direction and are skipped."""
+    ambiguous about direction and are skipped. Fallback only -- used
+    when settlements.csv has no row for the day."""
     out = {}
     if not os.path.exists(RESULTS):
         return out
@@ -104,88 +174,140 @@ def load_forecast_history():
 
 
 def load_actuals():
-    """(date, station) -> observed high (instrument reading -- may be
-    corrected by settlement below). Computed directly from the raw
-    temps_log.csv by highs.py -- the single source of truth for daily
-    highs since Aug 21 2026; the derived daily_highs.csv lagged its raw
-    source in two money-relevant incidents and is no longer read."""
+    """(date, station) -> observed high (instrument reading -- outranked
+    by settlement wherever settlement exists). Computed directly from
+    the raw temps_log.csv by highs.py -- the single source of truth for
+    daily highs since Aug 21 2026; the derived daily_highs.csv lagged
+    its raw source in two money-relevant incidents and is no longer
+    read."""
     return day_high_map()
+
+
+def resolve_actual(d, sid, official, instrument, windows):
+    """The day's high for (date, station), in order of trust:
+    1. Official settled bracket, both bounds known -> its midpoint.
+    2. Official settled TAIL (one bound) -> the instrument reading
+       clamped into the proven range; no instrument reading = skip
+       (never guess how far past the bound the high ran).
+    3. Our own settled bet pinning the day -> instrument overridden
+       into that 2-degree window (the pre-Aug-24 rule, kept as
+       fallback for days settlements.csv is missing).
+    4. Raw instrument reading.
+    Returns (actual, source) or (None, None)."""
+    off = official.get((d, sid))
+    inst = instrument.get((d, sid))
+    if off:
+        lo, hi = off
+        if lo is not None and hi is not None:
+            return (lo + hi) / 2.0, "settlement"
+        if inst is not None:
+            if lo is not None:
+                return max(inst, lo), "settlement-tail"
+            return min(inst, hi), "settlement-tail"
+        return None, None
+    if inst is None:
+        return None, None
+    city = STATIONS.get(sid, "")
+    win = windows.get((d, city))
+    if win:
+        lo, hi = win
+        if not (lo - 0.25 <= inst <= hi + 0.25):
+            return (lo + hi) / 2.0, "own-bet"
+    return inst, "instrument"
 
 
 # ---------- the model ----------
 def compute_calibration():
-    """station -> (bias_f, spread_scale, n_samples).
-    bias_f = median(forecast - actual): positive means the model runs hot,
-    so members get shifted DOWN by bias_f. spread_scale widens the member
-    spread when history is thin."""
+    """station -> (bias_f, sigma_f, n_samples).
+    bias_f = median(forecast - actual): positive means the model runs
+    hot, so members get shifted DOWN by bias_f.
+    sigma_f = the TARGET error spread in degrees F: a robust sigma
+    (1.4826 x median absolute deviation) of the residual errors after
+    the bias is removed, floored by the confidence ramp when history
+    is thin. calibrate_members widens the member spread to match it."""
     windows = settled_windows()
+    official = settlement_actuals()
     forecasts = load_forecast_history()
-    actuals = load_actuals()
+    instrument = load_actuals()
     cutoff = (datetime.now(timezone.utc).date()
               - timedelta(days=WINDOW_DAYS)).isoformat()
 
-    errors = {}   # station -> [forecast - actual]
+    errors = {}    # station -> [forecast - actual]
+    sources = {}   # how each actual was located, for the honest printout
     for (d, sid), fc in forecasts.items():
         if d < cutoff:
             continue
-        act = actuals.get((d, sid))
+        act, src = resolve_actual(d, sid, official, instrument, windows)
         if act is None:
             continue
-        # settlement beats the instrument when they disagree
-        city = STATIONS.get(sid, "")
-        win = windows.get((d, city))
-        if win:
-            lo, hi = win
-            if not (lo - 0.25 <= act <= hi + 0.25):
-                act = (lo + hi) / 2.0
         err = fc - act
         if abs(err) <= 25:          # discard corrupt joins outright
             errors.setdefault(sid, []).append(err)
+            sources[src] = sources.get(src, 0) + 1
 
     cal = {}
     for sid in STATIONS:
         errs = errors.get(sid, [])
         n = len(errs)
+        if n < 2:
+            # no usable history: no correction, maximum humility
+            cal[sid] = (0.0, DEFAULT_SIGMA, n)
+            continue
+        bias = median(errs)
+        resid = [e - bias for e in errs]
+        sigma = 1.4826 * median(abs(r) for r in resid)
         if n >= 10:
-            bias, scale = median(errs), 1.0
+            floor = MIN_SIGMA
         elif n >= 5:
-            bias, scale = median(errs), 1.3
-        elif n >= 2:
-            bias, scale = median(errs), 1.8
+            floor = 2.0            # thin history = stay wide
         else:
-            bias, scale = 0.0, 2.5   # no history = wide spread = few bets
+            floor = 3.0
+        sigma = max(floor, min(MAX_SIGMA, sigma))
         bias = max(-MAX_ABS_BIAS, min(MAX_ABS_BIAS, bias))
-        cal[sid] = (round(bias, 2), scale, n)
-    return cal
+        cal[sid] = (round(bias, 2), round(sigma, 2), n)
+    return cal, sources
 
 
 _CAL_CACHE = None
 
 
-def calibrate_members(station, members):
-    """Shift members down by the learned bias and widen the spread by the
-    confidence scale. Returns (adjusted_members, bias_used)."""
+def _cal_table():
     global _CAL_CACHE
     if _CAL_CACHE is None:
-        _CAL_CACHE = compute_calibration()
-    bias, scale, _n = _CAL_CACHE.get(station, (0.0, 2.5, 0))
+        _CAL_CACHE = compute_calibration()[0]
+    return _CAL_CACHE
+
+
+def calibrate_members(station, members):
+    """Shift members down by the learned bias, then widen their spread
+    (around the median) until it matches the station's realized error
+    sigma. Members are never narrowed: scale floors at x1.0 -- we may
+    claim less confidence than the raw ensemble, never more.
+    Returns (adjusted_members, bias_used)."""
+    bias, sigma_t, _n = _cal_table().get(station, (0.0, DEFAULT_SIGMA, 0))
     if not members:
         return members, bias
     shifted = [m - bias for m in members]
     med = median(shifted)
+    raw_sigma = (sum((m - med) ** 2 for m in shifted)
+                 / len(shifted)) ** 0.5
+    scale = max(1.0, sigma_t / max(raw_sigma, MIN_RAW_SIGMA))
     adjusted = [round(med + (m - med) * scale, 1) for m in shifted]
     return adjusted, bias
 
 
 def main():
-    cal = compute_calibration()
+    cal, sources = compute_calibration()
     for sid in sorted(cal, key=lambda s: STATIONS[s]):
-        bias, scale, n = cal[sid]
+        bias, sigma, n = cal[sid]
         print(f"cal {STATIONS[sid]}: bias={bias:+.2f}F "
-              f"spread x{scale:.2f} (n={n})")
+              f"target sigma={sigma:.2f}F (n={n})")
+    total = sum(sources.values())
+    if total:
+        parts = ", ".join(f"{k}={v}" for k, v in sorted(sources.items()))
+        print(f"actuals located by: {parts} ({total} samples; "
+              f"settlement outranks the instrument wherever it exists)")
 
 
 if __name__ == "__main__":
     main()
-
-
