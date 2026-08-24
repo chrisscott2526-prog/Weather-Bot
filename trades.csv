@@ -269,3 +269,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-24T02:48:53+00:00,KXHIGHTBOS-26AUG24-B83.5,83° to 84°,yes,2,50,45.2,,True,submitted,01a031ab-bdf0-78b3-bdbf-bd69b522f389,night
 2026-08-24T02:48:53+00:00,KXHIGHTNOLA-26AUG24-B97.5,97° to 98°,yes,5,17,61.3,,True,submitted,01a031ab-bdf0-79b0-8882-a5034601fc41,night
 2026-08-24T02:48:53+00:00,KXHIGHTHOU-26AUG24-B99.5,99° to 100°,yes,2,49,45.2,,True,submitted,01a031ab-bdf0-7bd2-bcee-7ac81de3473f,night
+2026-08-24T04:04:12+00:00,KXHIGHTMIN-26AUG24-T85,86° or above,yes,10,10,67.7,,True,submitted,01a031f0-b248-7047-9277-502a9b62804e,night
