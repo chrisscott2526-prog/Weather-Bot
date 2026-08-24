@@ -1,0 +1,42 @@
+name: Afternoon forecast log (research only, no trading)
+
+# Logs a LATE same-day ensemble pull to afternoon_forecasts.csv so the
+# scoreboard can eventually measure how much accuracy each extra hour
+# of forecast freshness buys (the morning lane already beats night on
+# every accuracy measure -- this asks whether later is better still).
+# SEPARATE FILE ON PURPOSE: scanner.py and calibration.py read only
+# forecasts.csv, so nothing here can leak into a pick, a trade, or
+# the bias table. No Kalshi secrets, no trading step, ever.
+# 19:30 UTC = same-day afternoon in every one of the 20 cities.
+
+on:
+  schedule:
+    - cron: "30 19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo-writes
+  cancel-in-progress: false
+
+jobs:
+  afternoon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Fetch today's afternoon ensemble (log only)
+        run: python forecast.py --today --out afternoon_forecasts.csv
+
+      - name: Commit the log
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "afternoon forecast log $(date -u +'%F')"
+          git push || (git fetch origin main && git rebase --abort 2>/dev/null; git pull --rebase -X ours && git push)

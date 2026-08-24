@@ -79,11 +79,14 @@ translated one-to-one:
 
 ## THE STRATEGY IS PICK-FIRST (Law of Aug 6, 2026)
 
-1. **Pick the bracket.** For each city and market date, the GFS ensemble
-   votes: the bracket containing the **most ensemble members** is the pick.
+1. **Pick the bracket.** For each city and market date, the ensemble
+   (GFS + ECMWF pooled since Aug 24 2026, ~82 members) votes: the
+   bracket containing the **most ensemble members** is the pick.
    Full stop. Price plays **no part** in choosing it.
 2. **Price is only a gate.** If the pick's YES ask is inside
-   `MIN_PICK_COST..MAX_PICK_COST` (8¢–68¢ in `scanner.py`), buy is flagged.
+   `MIN_PICK_COST..MAX_PICK_COST` (15¢–68¢ in `scanner.py`; floor
+   raised from 8¢ on Aug 24 2026 — see the accuracy rebuild below),
+   buy is flagged.
    Outside the band → **NO BUY for that city that day. No substitutes.**
    Never fall back to a cheaper neighboring bracket — a week of babysitting
    proved the discounted second-favorite loses, and rolling out of it costs
@@ -99,8 +102,10 @@ translated one-to-one:
 5. Additional seatbelts in `scanner.py` (paid for in losses — keep them):
    - `MIN_PICK_PROB = 35`: if even the top bracket has under 35% of
      members, the day is too uncertain — no bet.
-   - Under `MIN_PICK_COST` (8¢): the market is screaming we're wrong —
-     believe it, don't "value-buy".
+   - Under `MIN_PICK_COST` (15¢): the market is screaming we're wrong —
+     believe it, don't "value-buy". (Raised from 8¢ on Aug 24 2026 on
+     the owner's call: under-15¢ picks settled **0-for-10** on the
+     scoreboard — the market was right every single time.)
    - No ensemble members for a (date, city) → **SKIP loudly**.
 
 ## THE RACE: NIGHT vs MORNING (Aug 20, 2026)
@@ -158,9 +163,10 @@ Trader hard caps, all enforced in `trader.py` — do not loosen:
 - `MAX_PER_CITY_DAY = 1` position per city per day (counts existing
   positions and resting orders via the FAIL-CLOSED exposure check — if the
   account can't be read, **no trades are placed that run**).
-- `MIN_COST, MAX_COST = 8, 68` — must always equal the scanner's gate.
+- `MIN_COST, MAX_COST = 15, 68` — must always equal the scanner's gate.
   (They were once 15/10, an impossible range that silently placed zero
-  trades for days.)
+  trades for days. Floor raised 8 → 15 with the scanner's on
+  Aug 24 2026 — the two moved in one commit, as they always must.)
 - `SANITY_GAP = 60`: skip if model% and price disagree by more than 60
   points — that gap means bad data, not free money.
 - Kalshi maintenance window 06:45–08:15 UTC is skipped (the API 503s).
@@ -245,8 +251,10 @@ Trader hard caps, all enforced in `trader.py` — do not loosen:
 ## HOW THE PIECES FIT (data flow)
 
 ```
-forecast.py  (nightly 23:00 UTC)  GFS 31-member ensemble via Open-Meteo,
-     |                            calibrated per-station -> forecasts.csv
+forecast.py  (nightly 23:00 UTC)  GFS (31) + ECMWF (51) ensembles via
+     |                            Open-Meteo, one call per model,
+     |                            pooled (~82 members), calibrated
+     |                            per-station -> forecasts.csv
      v
 scanner.py   (9x daily + after forecast)  Kalshi open markets + ensemble
      |                            votes -> picks + gates -> edges.csv
@@ -257,9 +265,16 @@ trader.py    (9x daily + after scan)  latest scan's would_bet=YES rows,
 settle.py    (daily 12:20 UTC)    asks Kalshi how each market settled
      |                            -> results.csv  (THE scoreboard)
      v
-calibration.py  learns per-station bias from NIGHT forecasts vs
-                actuals, settlement-pinned; feeds back into
-                forecast.py (both the nightly and --today pulls).
+calibration.py  learns per-station bias AND error spread from NIGHT
+                forecasts vs actuals. The actual, in order of trust
+                (Aug 24 2026): official settled bracket from
+                settlements.csv > our own settled bets pinning the
+                instrument > raw instrument (which understates by
+                design — the old target, and the reason Vegas was
+                mis-corrected by 2°F). Feeds back into forecast.py
+                (both the nightly and --today pulls): members are
+                bias-shifted, then widened to the station's realized
+                error sigma — never narrowed.
 
 morning.yml  (daily ~13:45 UTC)   the race's morning lane, one job:
                                   forecast.py --today ->
@@ -267,6 +282,15 @@ morning.yml  (daily ~13:45 UTC)   the race's morning lane, one job:
                                   trader.py --strategy morning
                                             --keep-resting
                                   (same files, strategy=morning rows)
+
+afternoon.yml (daily 19:30 UTC)   forecast.py --today
+                                    --out afternoon_forecasts.csv
+                                  RESEARCH LOG ONLY: measures how much
+                                  accuracy later-in-the-day forecasts
+                                  buy. Separate file so nothing can
+                                  leak into a scan, a trade, or the
+                                  bias table. No Kalshi secrets, no
+                                  trading step, ever.
 
 poller.py    (every 15 min)       NWS METAR temps -> temps_log.csv
                                   (the RAW source of truth for highs);
@@ -281,6 +305,8 @@ settlements.py (4x daily)         Kalshi settled result fields (unauth)
                                   -> settlements.csv: the OFFICIAL high
                                   range each city's markets paid on;
                                   feeds the board's "Yesterday" line
+                                  AND (Aug 24 2026) the actuals that
+                                  calibration and autopsy learn from
 swoop_alert.py (4x afternoon)     advisor board -> swoop.html, swoop_log.csv
 sports_scanner.py (2x daily)      sharps consensus vs Kalshi props ->
                                   sports.html card, sports_picks.csv;
@@ -310,19 +336,70 @@ check that line first when a feed dies.
 
 | File | Writer | Header |
 |---|---|---|
-| `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members` (members pipe-separated, already calibrated; a morning `--today` row is fetched on its own forecast_date between 06:00–22:59 UTC — `csvio.is_morning_row` is the one true classifier, there is no extra column. The hour window exists because a delayed nightly cron slips past UTC midnight and stamps the same date; those rows are still night) |
+| `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members` (members pipe-separated, already calibrated, pooled across GFS+ECMWF since Aug 24 2026; a morning `--today` row is fetched on its own forecast_date between 06:00–22:59 UTC — `csvio.is_morning_row` is the one true classifier, there is no extra column. The hour window exists because a delayed nightly cron slips past UTC midnight and stamps the same date; those rows are still night) |
+| `afternoon_forecasts.csv` | `forecast.py --today --out afternoon_forecasts.csv` (afternoon.yml, 19:30 UTC) | same header as `forecasts.csv` (RESEARCH LOG ONLY, added Aug 24 2026 — measures the value of forecast freshness; **no trading or calibration code reads it**, and it must stay that way: pointing scanner/calibration at it would poison the race and the bias table) |
 | `temps_log.csv` | `poller.py` | `utc_time,station,city,temp_f,obs_time_utc` |
 | `daily_highs.csv` | `poller.py` (full rewrite each run, regenerated from `temps_log.csv` via `highs.py`) | `date,station,city,high_f,last_update_utc,obs_time_utc` (last_update/obs_time = poll/observation time of the day's peak; derived human-readable summary ONLY — since Aug 21 2026 **no code reads it**; retirement candidate) |
 | `settlements.csv` | `settlements.py` (full rewrite each run) | `date,station,city,series,low_f,high_f,n_markets,n_settled,source,utc_offset_hours,checked_utc` (blank low/high = unbounded tail; row exists only when a market settled YES — exclusions alone never make a row) |
-| `edges.csv` | `scanner.py` | `scanned_utc,city,market,subtitle,floor,cap,yes_ask,no_ask,model_prob_pct,edge_yes,edge_no,bias_f,spread_scale,n_members,pick,edge_pick,would_bet,strategy` (strategy added Aug 20 2026, old rows backfilled `night`) |
+| `edges.csv` | `scanner.py` | `scanned_utc,city,market,subtitle,floor,cap,yes_ask,no_ask,model_prob_pct,edge_yes,edge_no,bias_f,spread_scale,sigma_f,n_members,pick,edge_pick,would_bet,strategy` (strategy added Aug 20 2026, old rows backfilled `night`; sigma_f added Aug 24 2026 = the calibration's learned target error spread in °F — it replaces the old unitless spread_scale ratio, whose column stays so old rows keep meaning; new rows leave spread_scale blank, the two numbers must never share a column) |
 | `trades.csv` | `trader.py` | `placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,order_id,strategy` (strategy added Aug 20 2026, old rows backfilled `night`) |
 | `results.csv` | `settle.py` | `graded_utc,ticker,city,action,cost_cents,count,fee_cents,market_result,result,pnl,strategy` (fee_cents added Aug 18, strategy Aug 20 2026; old rows backfilled `night`; readers treat a blank strategy as night) |
 | `sports_picks.csv` | `sports_scanner.py` | `scanned_utc,sport,shelf,game,detail,commence_utc,series,ticker,side,pick,books_pct,kalshi_cents,fee_cents,gap_cents,n_books,shown,why` (wiped + new header Aug 19, 2026 — edge-era rows graded a dead rule) |
 | `sports_results.csv` | `sports_scanner.py` | `graded_utc,sport,shelf,game,detail,ticker,side,pick,books_pct,kalshi_cents,gap_cents,market_result,result,pnl` (wiped same commit) |
 
 Calibration is applied **exactly once**, at forecast time
-(`calibrate_members` inside `forecast.py`). The scanner only reports the
-calibration table for display — never re-apply it.
+(`calibrate_members` inside `forecast.py`) — both the bias shift and
+the spread widening. The scanner only reports the calibration table
+for display — never re-apply either.
+
+## THE ACCURACY REBUILD (Aug 24, 2026)
+
+Ninety-three settled bets said the same four things; all four were
+fixed in one commit, on the owner's explicit call:
+
+1. **Calibration now learns from the official settlement, not our own
+   thermometer.** The old "actual" was the METAR instrument high,
+   which understates by design (hourly, floored, misses between-hour
+   peaks TWC's settled max catches). Learning bias against an
+   understated actual mis-corrected exactly the cities the autopsy
+   flagged — Las Vegas ran 3.4°F below the settled number while the
+   table prescribed 1.1°F. `calibration.resolve_actual` order of
+   trust: settled bracket midpoint from `settlements.csv` > our own
+   settled bets pinning the instrument > raw instrument. (Why reading
+   `settlements.csv` here doesn't violate the derived-file law: it is
+   a cache of Kalshi's **immutable** settlement facts, rewritten in
+   full each run — a settled result never changes, so a missing row
+   only ever means "fall back", never "stale". The daily_highs rot
+   was incremental state over *changing* raw data; this is neither.)
+2. **The spread is learned, not assumed.** The scanner claimed ~50%
+   average confidence and won 30% (autopsy §4 has the table: the 65%+
+   claims won 19%). Root cause: raw ensemble spread (~1.4°F median)
+   is narrower than realized forecast error (~2–4°F), and the old
+   spread_scale only widened on thin history — at n≥10 every station
+   sat at ×1.00 forever. Now each station's robust residual sigma is
+   a **target**, and `calibrate_members` widens members to match it.
+   Members are never narrowed (scale floors at ×1.0): we may claim
+   less confidence than the raw ensemble, never more. Expect FEWER
+   flagged buys — honest probabilities fail MIN_PICK_PROB more often.
+   That is the fix working, not a bug.
+3. **The ensemble is a two-model pool.** GFS (31) + ECMWF (51)
+   members, one Open-Meteo call per model so a dead model prints
+   loudly and the other carries on (dead-feed scar applies); the city
+   is skipped only when no model delivers. ECMWF outvotes GFS ~5:3 on
+   purpose — it is the stronger surface-temperature model.
+4. **MIN_PICK_COST raised 8¢ → 15¢** (scanner + trader in the same
+   commit, bands identical as always). Scoreboard evidence: under-15¢
+   picks settled 0-for-10 — the market was right every time.
+
+Also in the rebuild: autopsy.py locates losses with the official
+settled range (both-bounds rows in `settlements.csv`) before falling
+back to the instrument, and its §4 reliability table (claimed % vs
+delivered %) is the permanent monitor for fix #2 — if the claimed-vs-
+won gap doesn't shrink as post-rebuild bets settle, say so loudly.
+And `afternoon.yml` logs a 19:30 UTC same-day forecast to
+`afternoon_forecasts.csv` (research only, nothing trades from it) to
+measure what forecast freshness is worth before the race promotes
+anything.
 
 ## ROADMAP — how this grows
 

@@ -14,13 +14,18 @@ Verdicts per bet:
 
 Where the "actual high" comes from, in order of trust:
   1. Settlement. A WIN pins the high inside our bracket -- Kalshi's
-     result is the only thermometer that pays.
-  2. Instrument (temps_log.csv via highs.py) for losses. One physical fact does
+     result is the only thermometer that pays. And for LOSSES (added
+     Aug 24 2026): the OFFICIAL settled bracket from settlements.csv,
+     when it has both bounds, locates the high exactly -- for every
+     city, bet or not. That range is built from the same result
+     fields, so it outranks the instrument everywhere it exists.
+  2. Instrument (temps_log.csv via highs.py) for losses the
+     settlements file cannot place. One physical fact does
      real work here: the poller's number is a floored running max of
      hourly readings, so the OFFICIAL high can only be equal or
      HIGHER -- never lower. So when we lost but the instrument reading
      sits inside our bracket, the official high must have escaped out
-     the TOP (the CLI report catches between-hour peaks the METAR
+     the TOP (TWC's settled max catches between-hour peaks the METAR
      misses): that is scored MISS-HIGH-BY-1 with source
      "settlement+instrument".
 
@@ -39,6 +44,7 @@ Automated:     .github/workflows/autopsy.yml after every settle sweep.
 import csv, math, os, re
 from datetime import datetime, timezone
 
+from calibration import settlement_actuals
 from cities import CITY_TO_STATION
 from highs import day_high_map
 
@@ -102,7 +108,7 @@ def bracket_bounds(kind, num, subtitle):
     return None, edge
 
 
-def classify(row, tinfo, highs):
+def classify(row, tinfo, highs, official):
     """One graded bet -> dict with verdict, actual-high source, etc."""
     tick = row["ticker"]
     m = TICKER_RE.search(tick)
@@ -129,8 +135,31 @@ def classify(row, tinfo, highs):
         out.update(verdict="WIN", source="settlement")
         return out
 
-    # A loss: locate the high with the instrument reading.
     station = CITY_TO_STATION.get(out["city"], "")
+
+    # A loss: the OFFICIAL settled bracket locates the high best
+    # (both bounds known = the high is pinned to a 2-degree window).
+    off = official.get((out["date"], station))
+    if off and off[0] is not None and off[1] is not None:
+        h = (off[0] + off[1]) / 2.0
+        if hi is not None and h > hi:
+            n = math.ceil((h - hi) / BRACKET_WIDTH)
+            out["direction"] = "high"
+        elif lo is not None and h < lo:
+            n = math.ceil((lo - h) / BRACKET_WIDTH)
+            out["direction"] = "low"
+        else:
+            n = None
+            print(f"CONTRADICTION {tick}: lost, but the official "
+                  f"settled range {off[0]:g}-{off[1]:g} sits inside "
+                  f"our bracket -- falling back to the instrument")
+        if n:
+            out["source"] = "settlement"
+            out["verdict"] = (f"MISS-{out['direction'].upper()}-BY-1"
+                              if n == 1 else "MISS-FAR")
+            return out
+
+    # No settled range on file: locate with the instrument reading.
     reading = highs.get((out["date"], station))
     if reading is None:
         print(f"UNRESOLVED {out['city']} {out['date']}: lost, but no "
@@ -311,11 +340,67 @@ def build_report(bets):
     say("The question this table exists to answer: when the market "
         "prices our pick cheap (under 15¢), is it right and are we "
         "wrong? If the cheap band keeps losing while the mid band "
-        "holds up, that is the case for raising MIN_PICK_COST.")
+        "holds up, that is the case for raising MIN_PICK_COST. "
+        "(It was: raised 8¢ → 15¢ on Aug 24 2026, on 0-for-10.)")
     say("")
 
-    # -- 4. the race: night vs morning --
-    say("## 4. The race: night vs morning")
+    # -- 4. reliability: was the claimed confidence honest? --
+    say("## 4. Was the model's confidence honest?")
+    say("")
+    say("When the scanner said a pick had a given chance, how often "
+        "did it actually win? A calibrated model wins about as often "
+        "as it claims. Winning far less than claimed = overconfident "
+        "= the spread correction has more work to do.")
+    say("")
+    say("| Model claimed | Bets | Wins | Won | Claimed (avg) |")
+    say("|---|---|---|---|---|")
+    known = [b for b in bets if b["model_pct"] is not None]
+    rel_buckets = [("under 35%", lambda p: p < 35),
+                   ("35–45%", lambda p: 35 <= p < 45),
+                   ("45–55%", lambda p: 45 <= p < 55),
+                   ("55–65%", lambda p: 55 <= p < 65),
+                   ("65% and up", lambda p: p >= 65)]
+    for label, fits in rel_buckets:
+        bb = [b for b in known if fits(b["model_pct"])]
+        if not bb:
+            continue
+        wins = sum(1 for b in bb if b["verdict"] == "WIN")
+        claimed = sum(b["model_pct"] for b in bb) / len(bb)
+        say(f"| {label} | {len(bb)} | {wins} | {pct(wins, len(bb))} "
+            f"| {claimed:.0f}% |")
+    if known:
+        wins_k = sum(1 for b in known if b["verdict"] == "WIN")
+        claimed_all = sum(b["model_pct"] for b in known) / len(known)
+        say(f"| **All** | {len(known)} | {wins_k} "
+            f"| {pct(wins_k, len(known))} | {claimed_all:.0f}% |")
+        say("")
+        gap = claimed_all - 100.0 * wins_k / len(known)
+        if gap > 10:
+            say(f"The model claimed {claimed_all:.0f}% on average and "
+                f"delivered {pct(wins_k, len(known))} — overconfident "
+                f"by {gap:.0f} points. The learned spread correction "
+                f"(Aug 24 2026) exists to close this gap; watch it "
+                f"shrink here, or call the correction out if it "
+                f"doesn't.")
+        elif gap < -10:
+            say(f"The model claimed {claimed_all:.0f}% on average and "
+                f"delivered {pct(wins_k, len(known))} — it is now "
+                f"UNDER-claiming. If this persists, the spread has "
+                f"been widened too far.")
+        else:
+            say(f"Claimed {claimed_all:.0f}% on average, delivered "
+                f"{pct(wins_k, len(known))} — honest within 10 "
+                f"points. That is what calibration is supposed to "
+                f"look like.")
+    unknown = len(bets) - len(known)
+    if unknown:
+        say("")
+        say(f"({unknown} bet(s) have no recorded model confidence and "
+            f"are left out of this table — never guessed.)")
+    say("")
+
+    # -- 5. the race: night vs morning --
+    say("## 5. The race: night vs morning")
     say("")
     say("Same pick-first rules, same gates, same $1 sizing. The only "
         "difference: NIGHT picks use the night-before forecast (and "
@@ -372,8 +457,8 @@ def build_report(bets):
             "rules until the sample is big enough to mean something.")
     say("")
 
-    # -- 5. what this means --
-    say("## 5. What this means (plain English)")
+    # -- 6. what this means --
+    say("## 6. What this means (plain English)")
     say("")
     one_off = t["hi1"] + t["lo1"]
     losses = n - t["win"] - t["unres"]
@@ -403,7 +488,9 @@ def build_report(bets):
     if cheap[1] >= 3 and cheap[2] == 0:
         say(f"- The cheap band (under 15¢) is 0 for {cheap[1]}. The "
             "market priced those picks against us and was right every "
-            "time — evidence toward raising MIN_PICK_COST.")
+            "time — which is why MIN_PICK_COST was raised to 15¢ on "
+            "Aug 24 2026. New bets can no longer land in this band; "
+            "these rows are its tombstone.")
     elif cheap[1]:
         say(f"- Under-15¢ picks: {cheap[2]} win(s) in {cheap[1]} bet(s). "
             "Not enough of them yet to judge the cheap-pick rule.")
@@ -411,19 +498,31 @@ def build_report(bets):
         say("- No settled bets under 15¢ yet, so the cheap-pick "
             "question is still open.")
     say("")
-    say(f"**The honest caveat:** with fewer than ~{MIN_BETS_FOR_HINTS} "
-        f"settled bets ({n} so far), every pattern above is a HINT, not "
-        f"a conclusion. {n} coin flips can look like a trend. Per the "
-        "roadmap: the scoreboard promotes, conviction never does — no "
-        "rule changes, no benchings, no sizing moves on this sample.")
+    if n < MIN_BETS_FOR_HINTS:
+        say(f"**The honest caveat:** with fewer than "
+            f"~{MIN_BETS_FOR_HINTS} settled bets ({n} so far), every "
+            f"pattern above is a HINT, not a conclusion. {n} coin "
+            f"flips can look like a trend. Per the roadmap: the "
+            "scoreboard promotes, conviction never does — no rule "
+            "changes, no benchings, no sizing moves on this sample.")
+    else:
+        say(f"**The honest caveat:** {n} settled bets is enough for "
+            "the overall patterns to mean something, but the per-city "
+            "and per-strategy slices are still single-digit samples — "
+            "treat those as hints. Per the roadmap: the scoreboard "
+            "promotes, conviction never does.")
     say("")
-    say("*Sources: `settlement` = Kalshi's own result pinned the high; "
-        "`instrument` = the poller's floored METAR running max; "
+    say("*Sources: `settlement` = Kalshi's own results located the "
+        "high (a win pinning our bracket, or the official settled "
+        "range from settlements.csv placing a loss); "
+        "`instrument` = the poller's floored METAR running max, used "
+        "only when no settled range is on file; "
         "`settlement+instrument` = the instrument read inside our "
         "bracket but Kalshi settled NO, and since the instrument can "
         "only understate, the official high must have escaped out the "
-        "top. Note the instrument understates by design, so a rare "
-        "loss scored `low` could in truth have overshot instead.*")
+        "top. The instrument understates by design, so an "
+        "instrument-sourced loss scored `low` could in truth have "
+        "overshot instead.*")
     return "\n".join(lines) + "\n"
 
 
@@ -433,6 +532,7 @@ def main():
         return
     tinfo = load_trade_info()
     highs = load_instrument_highs()
+    official = settlement_actuals()   # (date, station) -> settled range
     bets = []
     with open(RESULTS) as f:
         for r in csv.DictReader(f):
@@ -444,7 +544,7 @@ def main():
                 continue
             if (r.get("result") or "").upper() not in ("WIN", "LOSS"):
                 continue
-            bets.append(classify(r, tinfo, highs))
+            bets.append(classify(r, tinfo, highs, official))
     if not bets:
         print("Scoreboard is empty -- nothing to autopsy yet.")
         return

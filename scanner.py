@@ -68,10 +68,16 @@ from csvio import appender, is_morning_row
 OUT = "edges.csv"
 FIELDS = ["scanned_utc", "city", "market", "subtitle", "floor", "cap",
           "yes_ask", "no_ask", "model_prob_pct", "edge_yes", "edge_no",
-          "bias_f", "spread_scale", "n_members", "pick", "edge_pick",
-          "would_bet", "strategy"]
-# layout before the strategy column (Aug 20 2026)
-LEGACY = ([c for c in FIELDS if c != "strategy"],)
+          "bias_f", "spread_scale", "sigma_f", "n_members", "pick",
+          "edge_pick", "would_bet", "strategy"]
+# sigma_f (Aug 24 2026): the calibration's learned target error spread
+# in degrees F -- replaces the old unitless spread_scale ratio, whose
+# column stays so old rows keep their meaning (new rows leave it
+# blank; the two numbers must never share a column).
+# Older layouts: 18 columns with spread_scale but no sigma_f
+# (Aug 20-24 2026), 17 columns also without strategy (pre Aug 20).
+LEGACY = ([c for c in FIELDS if c != "sigma_f"],
+          [c for c in FIELDS if c not in ("sigma_f", "strategy")])
 
 
 def strategy_from_argv():
@@ -88,7 +94,11 @@ STRATEGY = strategy_from_argv()
 
 # ---- THE TWO RULES' NUMBERS ----
 MAX_PICK_COST = 68.0   # past this, no buy for that city today
-MIN_PICK_COST = 8.0    # under this the market is screaming we're wrong
+MIN_PICK_COST = 15.0   # under this the market is screaming we're wrong
+# Raised 8 -> 15 on Aug 24 2026, on the owner's call, off the
+# scoreboard: picks priced under 15c settled 0-for-10 (autopsy.md
+# section 3) -- the market priced those picks against us and was
+# right every time. Must always match trader.py's MIN_COST.
 MIN_PICK_PROB = 35.0   # top bracket weaker than this = day too uncertain
 
 BASE = "https://api.elections.kalshi.com"
@@ -229,11 +239,12 @@ def main():
     dates = sorted({d for d, _ in members_by})
     print(f"Ensemble dates loaded: {dates[-5:] if len(dates) > 5 else dates}")
 
-    cal = compute_calibration()   # display only
+    cal = compute_calibration()[0]   # display only
     cal_by_city = {}
-    for sid, (bias, scale, n) in cal.items():
-        cal_by_city[STATIONS[sid]] = (bias, scale)
-        print(f"cal {STATIONS[sid]}: bias={bias:+.2f}F spread x{scale:.2f} "
+    for sid, (bias, sigma, n) in cal.items():
+        cal_by_city[STATIONS[sid]] = (bias, sigma)
+        print(f"cal {STATIONS[sid]}: bias={bias:+.2f}F "
+              f"target sigma={sigma:.2f}F "
               f"(n={n}) [applied at forecast time]")
 
     rows_written = 0
@@ -338,7 +349,7 @@ def main():
                                   f"({pct:.0f}% of members) @ "
                                   f"{yes_ask:.0f}c")
 
-                    bias, scale = cal_by_city.get(city, (0.0, 2.5))
+                    bias, sigma = cal_by_city.get(city, (0.0, 4.0))
                     w.writerow({"scanned_utc": stamp, "city": city,
                                 "market": tick,
                                 "subtitle": m.get("yes_sub_title")
@@ -351,7 +362,8 @@ def main():
                                           else round(no_ask, 1),
                                 "model_prob_pct": p_pct,
                                 "edge_yes": ey, "edge_no": en,
-                                "bias_f": bias, "spread_scale": scale,
+                                "bias_f": bias, "spread_scale": "",
+                                "sigma_f": sigma,
                                 "n_members": len(members),
                                 "pick": "1" if is_pick else "",
                                 "edge_pick": "1" if tick == edge_pick
