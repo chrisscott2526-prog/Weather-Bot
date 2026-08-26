@@ -336,7 +336,7 @@ check that line first when a feed dies.
 
 | File | Writer | Header |
 |---|---|---|
-| `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members` (members pipe-separated, already calibrated, pooled across GFS+ECMWF since Aug 24 2026; a morning `--today` row is fetched on its own forecast_date between 06:00–22:59 UTC — `csvio.is_morning_row` is the one true classifier, there is no extra column. The hour window exists because a delayed nightly cron slips past UTC midnight and stamps the same date; those rows are still night) |
+| `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members,bias_applied` (members pipe-separated, already calibrated, pooled across GFS+ECMWF since Aug 24 2026; bias_applied added Aug 26 2026 = the correction already subtracted from that row's members, so calibration can reconstruct the raw error — blank on old rows, read as 0; a morning `--today` row is fetched on its own forecast_date between 06:00–22:59 UTC — `csvio.is_morning_row` is the one true classifier, there is no extra column. The hour window exists because a delayed nightly cron slips past UTC midnight and stamps the same date; those rows are still night) |
 | `afternoon_forecasts.csv` | `forecast.py --today --out afternoon_forecasts.csv` (afternoon.yml, 19:30 UTC) | same header as `forecasts.csv` (RESEARCH LOG ONLY, added Aug 24 2026 — measures the value of forecast freshness; **no trading or calibration code reads it**, and it must stay that way: pointing scanner/calibration at it would poison the race and the bias table) |
 | `temps_log.csv` | `poller.py` | `utc_time,station,city,temp_f,obs_time_utc` |
 | `daily_highs.csv` | `poller.py` (full rewrite each run, regenerated from `temps_log.csv` via `highs.py`) | `date,station,city,high_f,last_update_utc,obs_time_utc` (last_update/obs_time = poll/observation time of the day's peak; derived human-readable summary ONLY — since Aug 21 2026 **no code reads it**; retirement candidate) |
@@ -400,6 +400,35 @@ And `afternoon.yml` logs a 19:30 UTC same-day forecast to
 `afternoon_forecasts.csv` (research only, nothing trades from it) to
 measure what forecast freshness is worth before the race promotes
 anything.
+
+## THE FEEDBACK FIX (Aug 26, 2026)
+
+The calibration graded its own corrected homework. `forecasts.csv`
+stores the forecast AFTER the bias shift, and `calibration.py` learned
+"forecast error" from those corrected rows — then applied what it
+learned to the next night's raw members as the WHOLE correction,
+throwing away the correction already inside every history row. At a
+station with a stable raw bias B, the applied correction stalls near
+B/2 (learned = B − applied, applied anew each night). Found the day
+San Francisco bet "80° or above" off a calibrated 80.6°F forecast
+while the market screamed mid-70s: the table prescribed −3.9°F while
+SF's corrected forecasts still ran +3.6°F hot — true raw bias ~7°F,
+half-corrected forever. SF settled bets were 0-for-3, all warm-side;
+Las Vegas had the same disease cold-side (−3.0°F leftover).
+
+The fix, one commit: `forecast.py` records `bias_applied` in every
+row, and `calibration.py` reconstructs each night's raw error as
+(corrected forecast − actual) + bias_applied before learning. Old
+rows read as bias_applied 0 (the old assumption) and age out of the
+14-day window — expect the table to take up to two weeks to fully
+converge, biases roughly doubling at the worst stations. The
+`MAX_ABS_BIAS` ±6°F clamp now WARNS in the log when it binds instead
+of capping silently: it exists for corrupt joins, but SF's real bias
+can reach it — if the same station warns daily, the bias is real, and
+raising the clamp is an owner decision on that evidence, never a
+silent edit. The monitor for this fix is the same as the rebuild's:
+autopsy §4 claimed-vs-delivered, plus the leftover biases in the
+calibration printout collapsing toward zero.
 
 ## ROADMAP — how this grows
 
