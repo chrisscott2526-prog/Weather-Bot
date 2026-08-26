@@ -1,11 +1,20 @@
 name: Place trades
 
+# BENCHED Aug 26 2026 (owner's call -- the DAY-OF switch): this was
+# the night lane's buyer, placing bets the night before off the 23:00
+# UTC forecast. The scoreboard read night at 29% wins / -33c per $1
+# over 105 settled bets vs the day-of lane's 62% / +87c over 13, and
+# the owner had watched the same pattern live: the night-before pick
+# too often bought a bracket the morning's own thermometer readings
+# already argued against. All money now moves through morning.yml
+# (day-of, 9-11 AM local window). The nightly forecast (forecast.yml)
+# and the 9x-daily scans (scan.yml) still run -- calibration learns
+# from night forecast rows, and the night lane's would_bet rows keep
+# an honest paper record so the bench decision itself stays gradeable.
+# Manual dispatch is kept for emergencies only; no schedule, no
+# scan-completion trigger. Re-arming this lane is an owner decision.
+
 on:
-  schedule:
-    - cron: "35 1,3,5,13,15,17,19,21,23 * * *"
-  workflow_run:
-    workflows: ["Scan Kalshi markets"]
-    types: [completed]
   workflow_dispatch:
 
 permissions:

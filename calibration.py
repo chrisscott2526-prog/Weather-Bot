@@ -43,6 +43,30 @@ own thermometer:
    (scale floors at x1.0): we may claim less confidence than the raw
    ensemble, never more.
 
+FIXED Aug 26 2026 -- the feedback loop:
+
+Rows in forecasts.csv are the CALIBRATED forecast (forecast.py stores
+members after the bias shift). This table used to learn "forecast
+error" from those corrected rows and then apply what it learned to
+the next night's RAW members as if it were the whole correction --
+the correction already inside each history row was thrown away. At a
+station with a stable raw bias B the applied correction stalls near
+B/2 (learned error = B - correction, applied as the new correction):
+San Francisco was prescribed -3.9F while its corrected forecasts
+still ran +3.6F hot -- true raw bias ~7F, half-corrected forever.
+Now forecast.py records bias_applied in every row, and this table
+reconstructs each night's RAW error as
+    (stored corrected forecast - actual) + bias_applied
+so the learned bias converges to the forecast's true bias. Old rows
+have no bias_applied column; they are read as 0 -- exactly the number
+the old code assumed -- and age out of the 14-day window naturally.
+Also: the MAX_ABS_BIAS sanity clamp now prints LOUDLY when it binds
+instead of capping in silence. It was written for corrupt-join
+protection, but a coastal station's real bias can reach it -- if the
+same station's warning keeps appearing run after run, the bias is
+real and the clamp is costing accuracy: say so to the owner instead
+of raising it on vibes.
+
 Interface (unchanged): forecast.py calls
     members, bias = calibrate_members(station, members)
 which returns bias-shifted, spread-matched members plus the bias used.
@@ -145,8 +169,16 @@ def settled_windows():
 
 # ---------- history ----------
 def load_forecast_history():
-    """(date, station) -> forecast median. Skips ERROR/blank rows.
-    Keeps the LAST forecast logged for a date (rerun overwrites).
+    """(date, station) -> (forecast median, bias_applied). Skips
+    ERROR/blank rows. Keeps the LAST forecast logged for a date
+    (rerun overwrites).
+
+    bias_applied (Aug 26 2026) is the correction forecast.py already
+    subtracted from that row's members before storing it. Adding it
+    back turns the stored corrected forecast into the RAW forecast, so
+    the bias table measures the raw model's error -- the feedback-loop
+    fix. Rows from before the column existed read as 0.0, which is
+    exactly what the old code assumed; they age out of the window.
 
     NIGHT ROWS ONLY (Aug 20 2026): this bias table corrects the
     night-before forecast, and it feeds BOTH strategies -- so it must
@@ -166,8 +198,9 @@ def load_forecast_history():
                 continue
             if is_morning_row(d, r.get("fetched_utc")):
                 continue   # same-day morning refresh: not this table's job
+            b = (r.get("bias_applied") or "").strip()
             try:
-                hist[(d, sid)] = float(v)
+                hist[(d, sid)] = (float(v), float(b) if b else 0.0)
             except ValueError:
                 continue
     return hist
@@ -219,8 +252,11 @@ def resolve_actual(d, sid, official, instrument, windows):
 # ---------- the model ----------
 def compute_calibration():
     """station -> (bias_f, sigma_f, n_samples).
-    bias_f = median(forecast - actual): positive means the model runs
-    hot, so members get shifted DOWN by bias_f.
+    bias_f = median(RAW forecast - actual): positive means the model
+    runs hot, so members get shifted DOWN by bias_f. The raw forecast
+    is reconstructed per row as stored (corrected) forecast +
+    bias_applied -- the feedback-loop fix of Aug 26 2026; old rows
+    without bias_applied contribute their corrected error unchanged.
     sigma_f = the TARGET error spread in degrees F: a robust sigma
     (1.4826 x median absolute deviation) of the residual errors after
     the bias is removed, floored by the confidence ramp when history
@@ -232,15 +268,15 @@ def compute_calibration():
     cutoff = (datetime.now(timezone.utc).date()
               - timedelta(days=WINDOW_DAYS)).isoformat()
 
-    errors = {}    # station -> [forecast - actual]
+    errors = {}    # station -> [raw forecast - actual]
     sources = {}   # how each actual was located, for the honest printout
-    for (d, sid), fc in forecasts.items():
+    for (d, sid), (fc, applied) in forecasts.items():
         if d < cutoff:
             continue
         act, src = resolve_actual(d, sid, official, instrument, windows)
         if act is None:
             continue
-        err = fc - act
+        err = (fc - act) + applied     # undo the row's own correction
         if abs(err) <= 25:          # discard corrupt joins outright
             errors.setdefault(sid, []).append(err)
             sources[src] = sources.get(src, 0) + 1
@@ -263,6 +299,15 @@ def compute_calibration():
         else:
             floor = 3.0
         sigma = max(floor, min(MAX_SIGMA, sigma))
+        if abs(bias) > MAX_ABS_BIAS:
+            # The clamp exists to stop corrupt joins, but a real coastal
+            # bias can hit it too. Capping in silence would hide exactly
+            # the station that needs the most correction -- say so.
+            print(f"WARNING {STATIONS.get(sid, sid)}: learned bias "
+                  f"{bias:+.2f}F exceeds the +/-{MAX_ABS_BIAS:.0f}F "
+                  f"sanity clamp -- applying {MAX_ABS_BIAS:.0f}F. If "
+                  f"this repeats daily the bias is real, not a data "
+                  f"bug, and the clamp is costing accuracy.")
         bias = max(-MAX_ABS_BIAS, min(MAX_ABS_BIAS, bias))
         cal[sid] = (round(bias, 2), round(sigma, 2), n)
     return cal, sources

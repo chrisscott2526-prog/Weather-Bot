@@ -1,22 +1,40 @@
 name: Morning strategy (refresh, scan, trade)
 
-# The night-vs-morning race, morning lane. One job, three ordered
-# steps, every day of the week:
-#   1. forecast.py --today            fresh same-day GFS ensemble
-#   2. scanner.py --strategy morning  same pick-first rules, today only
+# THE DAY-OF LANE -- since Aug 26 2026 the ONLY lane that spends money
+# (owner's call; trader.yml, the night-before buyer, is benched to
+# manual-only). One job, three ordered steps:
+#   1. forecast.py --today            fresh same-day GFS+ECMWF ensemble
+#                                     (digests the morning's station
+#                                     observations)
+#   2. scanner.py --strategy morning --window 9-11
+#                                     same pick-first rules, today's
+#                                     markets only, and ONLY cities
+#                                     whose local clock reads 9:00 to
+#                                     10:59 AM right now -- late enough
+#                                     that the settlement station has
+#                                     reported 3-4 morning readings and
+#                                     the fresh ensemble shows how the
+#                                     day is leaning
 #   3. trader.py  --strategy morning --keep-resting
 # One job on purpose: the repo-writes concurrency group keeps at most
-# one run PENDING per group, so chaining three separate workflows at
-# 13:30-14:00 against the 13:17 scan and 13:35 trade crons risks a
-# queued run being silently replaced. Three steps in one job cannot
-# run out of order and take one concurrency slot. 13:45 UTC also
-# keeps the slot itself clear of those two crons.
-# --keep-resting: the morning trader must not cancel the night
-# strategy's resting orders; the cancel sweep belongs to night runs.
+# one run PENDING per group; three steps in one job cannot run out of
+# order and take one concurrency slot.
+# Three schedules so every timezone gets exactly one in-window shot,
+# summer AND winter (verified against IANA tzdata in cities.py):
+#   14:30 UTC  Eastern + Central in summer; Eastern in winter
+#   16:30 UTC  Mountain + Arizona + Pacific in summer; Central +
+#              Mountain in winter
+#   17:30 UTC  Pacific in winter (in summer Pacific is already owned
+#              from 16:30 -- the fail-closed MAX_PER_CITY_DAY exposure
+#              check makes a double-covered hour harmless)
+# --keep-resting: each run must not yank the earlier runs' resting
+# orders; unfilled same-day orders die on their own at market close.
 
 on:
   schedule:
-    - cron: "45 13 * * *"
+    - cron: "30 14 * * *"
+    - cron: "30 16 * * *"
+    - cron: "30 17 * * *"
   workflow_dispatch:
 
 permissions:
@@ -41,13 +59,13 @@ jobs:
       - name: Refresh today's forecast (same-day ensemble)
         run: python forecast.py --today
 
-      - name: Scan today's markets (morning strategy)
+      - name: Scan today's markets (day-of, 9-11 AM local window)
         env:
           KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
           KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
-        run: python scanner.py --strategy morning
+        run: python scanner.py --strategy morning --window 9-11
 
-      - name: Place morning trades ($1 law, night-owned cities off limits)
+      - name: Place day-of trades ($1 law, one position per city per day)
         env:
           KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
           KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
@@ -61,6 +79,6 @@ jobs:
           git config user.name "weather-bot"
           git config user.email "bot@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || git commit -m "morning race $(date -u +'%F %H:%M')"
+          git diff --cached --quiet || git commit -m "day-of run $(date -u +'%F %H:%M')"
           git pull --rebase -X theirs
           git push

@@ -45,6 +45,20 @@ buys. NOTHING trades from that file: scanner.py and calibration.py
 read only forecasts.csv, and rows written elsewhere can never leak
 into a scan or the bias table. Keep it that way: nothing that trades
 or calibrates may ever read an --out file.
+
+THE FEEDBACK FIX (Aug 26 2026): each row now records bias_applied --
+the correction calibrate_members subtracted from the raw members
+before the row was stored. Without it, calibration.py could only
+grade the CORRECTED forecast against reality and then apply that
+leftover error as if it were the whole correction: the correction it
+had already made was thrown away every night, so a station's applied
+bias stalled at roughly HALF its true raw bias forever (San Francisco
+sat at -3.9F applied while its corrected forecasts still ran +3.6F
+hot -- true raw bias ~7F). With bias_applied stored, calibration.py
+reconstructs the raw error (corrected error + bias_applied) and the
+correction converges to the forecast's true bias. Old rows have the
+column blank, which calibration reads as 0 -- the pre-fix behavior --
+so the table heals as the 14-day window refills with new rows.
 """
 
 import csv, json, os, sys, time, urllib.request
@@ -56,9 +70,11 @@ from csvio import appender
 
 OUT_DEFAULT = "forecasts.csv"
 FIELDS = ["forecast_date", "station", "city", "forecast_high_f",
-          "fetched_utc", "members"]
-# layout before ensemble members were logged (Aug 5 2026)
-LEGACY = [[c for c in FIELDS if c != "members"]]
+          "fetched_utc", "members", "bias_applied"]
+# older layouts: before bias_applied (Aug 26 2026) and before
+# ensemble members were logged (Aug 5 2026)
+LEGACY = [[c for c in FIELDS if c != "bias_applied"],
+          [c for c in FIELDS if c not in ("members", "bias_applied")]]
 UA = {"User-Agent": "weather-bot-personal"}
 
 # The pool. gfs_seamless = 31 members (30 perturbed + control),
@@ -164,7 +180,8 @@ def main():
                 w.writerow({"forecast_date": d, "station": sid,
                             "city": city, "forecast_high_f": med,
                             "fetched_utc": fetched,
-                            "members": "|".join(str(m) for m in members)})
+                            "members": "|".join(str(m) for m in members),
+                            "bias_applied": bias})
                 print(f"{city}: median {med}F, "
                       f"{len(members)} pooled members for {d}")
             except Exception as e:
