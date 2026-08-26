@@ -306,3 +306,5 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-25T23:36:42+00:00,KXHIGHTSEA-26AUG26-B77.5,77° to 78°,yes,3,30,41.5,,True,submitted,01a03b48-82f8-72ea-971b-1cef2d05f2d6,night
 2026-08-25T23:36:42+00:00,KXHIGHTLV-26AUG26-B111.5,111° to 112°,yes,2,38,53.7,,True,submitted,01a03b48-82f8-70e9-b66b-0c72f186ab84,night
 2026-08-25T23:36:42+00:00,KXHIGHTHOU-26AUG26-T99,98° or below,yes,3,31,58.5,,True,submitted,01a03b48-82f8-7b22-8000-159e5279db05,night
+2026-08-26T14:26:17+00:00,KXHIGHTATL-26AUG26-B91.5,91° to 92°,yes,1,59,35.4,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,morning
+2026-08-26T14:26:17+00:00,KXHIGHTSATX-26AUG26-B101.5,101° to 102°,yes,1,67,62.2,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,morning
