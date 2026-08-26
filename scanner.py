@@ -61,7 +61,7 @@ MIN_PICK_PROB, whitelist, no-members-SKIP) is identical on purpose:
 import base64, csv, json, math, os, re, sys, time, urllib.request
 from datetime import datetime, timezone
 
-from cities import CITIES, STATIONS
+from cities import CITIES, STATIONS, local_time
 from calibration import compute_calibration
 from csvio import appender, is_morning_row
 
@@ -91,6 +91,33 @@ def strategy_from_argv():
 
 
 STRATEGY = strategy_from_argv()
+
+
+def window_from_argv():
+    """--window 9-11 (the DAY-OF switch, Aug 26 2026, owner's call):
+    scan a city only when its own LOCAL civil clock reads inside
+    [start, end) right now -- e.g. 9-11 means 9:00 AM through 10:59 AM
+    in that city. By then the settlement station has reported 3-4
+    hourly readings for the morning and the same-day ensemble pull in
+    the same job has digested them, so the pick sees how the day is
+    leaning. Cities outside their window are SKIPPED LOUDLY, no row
+    written -- the day-of workflow runs three times (14:30/16:30/17:30
+    UTC) so every timezone gets exactly one in-window shot, summer or
+    winter, and MAX_PER_CITY_DAY keeps a double-covered hour from ever
+    double-buying. No flag = no gate (night paper scans unchanged)."""
+    if "--window" not in sys.argv:
+        return None
+    val = sys.argv[sys.argv.index("--window") + 1].strip()
+    m = re.fullmatch(r"(\d{1,2})-(\d{1,2})", val)
+    if not m:
+        raise SystemExit(f"--window wants START-END hours, got {val!r}")
+    lo, hi = int(m.group(1)), int(m.group(2))
+    if not (0 <= lo < hi <= 24):
+        raise SystemExit(f"--window {val!r}: need 0 <= start < end <= 24")
+    return lo, hi
+
+
+WINDOW = window_from_argv()
 
 # ---- THE TWO RULES' NUMBERS ----
 MAX_PICK_COST = 68.0   # past this, no buy for that city today
@@ -251,6 +278,13 @@ def main():
     buys = 0
     with appender(OUT, FIELDS, LEGACY) as w:
         for series, (city, _station, _lat, _lon, _v) in CITIES.items():
+            if WINDOW:
+                lt = local_time(_station, datetime.now(timezone.utc))
+                if not (WINDOW[0] <= lt.hour < WINDOW[1]):
+                    print(f"{city}: SKIP -- local clock reads "
+                          f"{lt.strftime('%H:%M')}, outside the "
+                          f"{WINDOW[0]}-{WINDOW[1]} AM buying window")
+                    continue
             try:
                 data = ksigned(f"/trade-api/v2/markets?series_ticker={series}"
                                f"&status=open&limit=200")

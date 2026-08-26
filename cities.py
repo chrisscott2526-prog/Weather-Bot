@@ -56,3 +56,41 @@ STATIONS = {v[1]: v[0] for v in CITIES.values()}
 SITES = {v[1]: (v[0], v[2], v[3]) for v in CITIES.values()}
 UNVERIFIED = sorted(v[0] for v in CITIES.values() if v[4])
 
+
+# ---------------------------------------------------------------------
+# Civil timezone per station (hand-verified Aug 26 2026), for the
+# DAY-OF buying window: the owner's rule is that money moves only when
+# a city's own local clock reads 9:00-10:59 AM -- late enough that the
+# morning's hourly settlement-station readings and the fresh same-day
+# ensemble show how the day is leaning, early enough that prices are
+# still reasonable. IANA zone names, not fixed offsets, so daylight
+# saving is always right (Phoenix deliberately America/Phoenix: no DST).
+# NOTE: settlements.py's utc_offset_hours is a longitude/solar estimate
+# used only for filing settled days -- it is NOT civil time; never use
+# it for the buying window.
+from datetime import timezone as _tz
+from zoneinfo import ZoneInfo
+
+TIMEZONES = {
+    "KNYC": "America/New_York",     "KBOS": "America/New_York",
+    "KPHL": "America/New_York",     "KDCA": "America/New_York",
+    "KATL": "America/New_York",     "KMIA": "America/New_York",
+    "KMDW": "America/Chicago",      "KMSP": "America/Chicago",
+    "KDFW": "America/Chicago",      "KAUS": "America/Chicago",
+    "KSAT": "America/Chicago",      "KHOU": "America/Chicago",
+    "KMSY": "America/Chicago",      "KOKC": "America/Chicago",
+    "KDEN": "America/Denver",
+    "KPHX": "America/Phoenix",
+    "KLAS": "America/Los_Angeles",  "KLAX": "America/Los_Angeles",
+    "KSFO": "America/Los_Angeles",  "KSEA": "America/Los_Angeles",
+}
+
+
+def local_time(station, when_utc):
+    """The station's civil local datetime at aware-UTC `when_utc`.
+    DST-correct via the IANA database. KeyError on an unknown station
+    on purpose: a city missing from TIMEZONES must fail loudly, not
+    trade on a guessed clock."""
+    if when_utc.tzinfo is None:
+        when_utc = when_utc.replace(tzinfo=_tz.utc)
+    return when_utc.astimezone(ZoneInfo(TIMEZONES[station]))

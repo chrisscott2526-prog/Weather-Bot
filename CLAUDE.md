@@ -108,10 +108,44 @@ translated one-to-one:
      scoreboard — the market was right every single time.)
    - No ensemble members for a (date, city) → **SKIP loudly**.
 
+## THE DAY-OF SWITCH (Aug 26, 2026) — OWNER DECISION
+
+**Money moves only on the day of the bet, in each city's own
+9:00–10:59 AM local window.** The owner called the race early, on
+the standings (night: 29% wins, −33¢ per $1 over 105 settled bets;
+morning/day-of: 62% wins, +87¢ per $1 over 13) plus weeks of watching
+night-before picks fight the morning's own thermometer readings. Made
+as an explicit owner decree with the sample size stated plainly — 13
+day-of settles is early evidence, not proof, so the per-strategy
+scoreboard keeps running and this decision is re-checkable against it.
+
+How it works now:
+- `trader.yml` (the night-before buyer) is **benched**: no schedule,
+  manual dispatch only. Re-arming it is an owner decision.
+- `morning.yml` is the only money lane. It runs **three times daily —
+  14:30, 16:30, 17:30 UTC** — and each run does, in one job:
+  fresh same-day forecast → `scanner.py --strategy morning
+  --window 9-11` → `trader.py --strategy morning --keep-resting`.
+- The `--window 9-11` gate (scanner) buys a city only when its **local
+  civil clock** reads 9:00–10:59 AM (`cities.TIMEZONES` +
+  `cities.local_time`, IANA zones, DST-correct, hand-verified; never
+  use settlements.csv's solar `utc_offset_hours` for this). By then
+  the settlement station has reported 3–4 hourly morning readings
+  (stations report ~10 minutes before each hour) and the same-job
+  ensemble refresh has digested them. The three UTC runs give every
+  timezone exactly one in-window shot, summer and winter; the
+  fail-closed exposure check makes any double-covered hour harmless.
+- **Night forecasts and night scans still run.** Calibration learns
+  from night forecast rows, and night `would_bet` rows keep a paper
+  record — so the bench itself stays gradeable, and un-benching (or
+  deeper changes) can be argued from settled evidence.
+
 ## THE RACE: NIGHT vs MORNING (Aug 20, 2026)
 
 Two strategies run the same pick-first rules against the same markets,
-and the scoreboard decides which one earns the money:
+and the scoreboard decides which one earns the money. **(Since the
+Day-of Switch above, only the morning lane trades; the night lane
+races on paper.)**
 
 - **NIGHT** (the original): picks from the 23:00 UTC night-before
   forecast, bought at night-before prices. Everything that existed
@@ -259,7 +293,9 @@ forecast.py  (nightly 23:00 UTC)  GFS (31) + ECMWF (51) ensembles via
 scanner.py   (9x daily + after forecast)  Kalshi open markets + ensemble
      |                            votes -> picks + gates -> edges.csv
      v
-trader.py    (9x daily + after scan)  latest scan's would_bet=YES rows,
+trader.py    (BENCHED from schedule Aug 26 2026 -- runs only inside
+     |                            morning.yml or by manual dispatch)
+     |                            latest scan's would_bet=YES rows,
      |                            $1 each -> Kalshi orders -> trades.csv
      v
 settle.py    (daily 12:20 UTC)    asks Kalshi how each market settled
@@ -276,12 +312,16 @@ calibration.py  learns per-station bias AND error spread from NIGHT
                 bias-shifted, then widened to the station's realized
                 error sigma — never narrowed.
 
-morning.yml  (daily ~13:45 UTC)   the race's morning lane, one job:
+morning.yml  (3x daily: 14:30,    THE ONLY MONEY LANE since Aug 26
+              16:30, 17:30 UTC)   2026 (the Day-of Switch), one job:
                                   forecast.py --today ->
-                                  scanner.py --strategy morning ->
+                                  scanner.py --strategy morning
+                                             --window 9-11 ->
                                   trader.py --strategy morning
                                             --keep-resting
-                                  (same files, strategy=morning rows)
+                                  (same files, strategy=morning rows;
+                                  each city bought only while its own
+                                  clock reads 9:00-10:59 AM)
 
 afternoon.yml (daily 19:30 UTC)   forecast.py --today
                                     --out afternoon_forecasts.csv
