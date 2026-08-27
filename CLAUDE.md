@@ -236,6 +236,17 @@ Trader hard caps, all enforced in `trader.py` — do not loosen:
   landed in a different bracket.
 - Failures print and skip. An "ERROR" row with a blank date is a trap for
   every downstream reader (this exact trap poisoned `forecasts.csv` once).
+- **A finished day's high is never answered from repo CSVs alone.** When
+  asked what a day's high WAS (past tense, day complete), the poller's
+  running max is a **floor, not the final** — it only samples hourly
+  METARs, and the number that settles is TWC's station max (see the
+  settlement-source audit above). The best fetchable public check is
+  the NWS **CLI Daily Climate Report** for that station (published
+  ~5:30 PM local) or weather.gov's station page; fetch it live if
+  network access allows. If it can't be fetched, say plainly: "our
+  last logged reading was X at [time], but the official high may be
+  higher — check weather.gov." Never present the logged running max as
+  the day's final high after the day ends.
 
 ## HISTORY — THE SCARS (do not repeat these)
 
