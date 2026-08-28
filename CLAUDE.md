@@ -84,9 +84,11 @@ translated one-to-one:
    bracket containing the **most ensemble members** is the pick.
    Full stop. Price plays **no part** in choosing it.
 2. **Price is only a gate.** If the pick's YES ask is inside
-   `MIN_PICK_COST..MAX_PICK_COST` (15¢–68¢ in `scanner.py`; floor
-   raised from 8¢ on Aug 24 2026 — see the accuracy rebuild below),
-   buy is flagged.
+   `MIN_PICK_COST..MAX_PICK_COST` (**40¢–60¢ since Aug 28 2026 — the
+   two-week band trial, see its own section below**; the history:
+   8¢ floor → 15¢ on Aug 24 2026 — see the accuracy rebuild — → 20¢
+   on Aug 28 2026 ("no long shots") → the 40–60¢ trial that evening).
+   Then buy is flagged.
    Outside the band → **NO BUY for that city that day. No substitutes.**
    Never fall back to a cheaper neighboring bracket — a week of babysitting
    proved the discounted second-favorite loses, and rolling out of it costs
@@ -102,10 +104,14 @@ translated one-to-one:
 5. Additional seatbelts in `scanner.py` (paid for in losses — keep them):
    - `MIN_PICK_PROB = 35`: if even the top bracket has under 35% of
      members, the day is too uncertain — no bet.
-   - Under `MIN_PICK_COST` (15¢): the market is screaming we're wrong —
-     believe it, don't "value-buy". (Raised from 8¢ on Aug 24 2026 on
-     the owner's call: under-15¢ picks settled **0-for-10** on the
-     scoreboard — the market was right every single time.)
+   - Under `MIN_PICK_COST` (40¢ during the band trial): the market is
+     screaming we're wrong — believe it, don't "value-buy". (Floor
+     raised 8¢ → 15¢ on Aug 24 2026: under-15¢ picks settled
+     **0-for-10**. Raised 15¢ → 20¢ on Aug 28 2026: every settled bet
+     under 20¢ stood **2 wins to 22 losses**. The owner's words: not
+     interested in long shots — skip the bet instead. Raised again to
+     40¢, with the cap trimmed 68¢ → 60¢, that same evening — the
+     two-week band trial, see its own section.)
    - No ensemble members for a (date, city) → **SKIP loudly**.
 
 ## THE DAY-OF SWITCH (Aug 26, 2026) — OWNER DECISION
@@ -122,19 +128,26 @@ scoreboard keeps running and this decision is re-checkable against it.
 How it works now:
 - `trader.yml` (the night-before buyer) is **benched**: no schedule,
   manual dispatch only. Re-arming it is an owner decision.
-- `morning.yml` is the only money lane. It runs **three times daily —
-  14:30, 16:30, 17:30 UTC** — and each run does, in one job:
-  fresh same-day forecast → `scanner.py --strategy morning
-  --window 9-11` → `trader.py --strategy morning --keep-resting`.
+- `morning.yml` is the only money lane. It is scheduled **every 30
+  minutes, 13:07–18:37 UTC** (the Clock Fix, Aug 28 2026 — see its
+  own section below; it was three single-shot runs before, and
+  GitHub's unreliable cron kept missing whole coasts). Each run does,
+  in one job: fresh station poll → window preflight → fresh same-day
+  forecast → `scanner.py --strategy morning --window 9-11` →
+  `trader.py --strategy morning --keep-resting` → commit → a step
+  that turns the run RED if any order errored.
 - The `--window 9-11` gate (scanner) buys a city only when its **local
   civil clock** reads 9:00–10:59 AM (`cities.TIMEZONES` +
   `cities.local_time`, IANA zones, DST-correct, hand-verified; never
   use settlements.csv's solar `utc_offset_hours` for this). By then
   the settlement station has reported 3–4 hourly morning readings
   (stations report ~10 minutes before each hour) and the same-job
-  ensemble refresh has digested them. The three UTC runs give every
-  timezone exactly one in-window shot, summer and winter; the
-  fail-closed exposure check makes any double-covered hour harmless.
+  ensemble refresh has digested them. The dense schedule gives every
+  city ~4 in-window chances, summer and winter (verified against IANA
+  tzdata for both solstices); the fail-closed exposure check makes
+  every repeat pass harmless. **The promise to the owner:** each city
+  is bought — or loudly skipped with a reason on the Station Board —
+  within about half an hour of 9:00 AM its own time.
 - **Night forecasts and night scans still run.** Calibration learns
   from night forecast rows, and night `would_bet` rows keep a paper
   record — so the bench itself stays gradeable, and un-benching (or
@@ -197,10 +210,11 @@ Trader hard caps, all enforced in `trader.py` — do not loosen:
 - `MAX_PER_CITY_DAY = 1` position per city per day (counts existing
   positions and resting orders via the FAIL-CLOSED exposure check — if the
   account can't be read, **no trades are placed that run**).
-- `MIN_COST, MAX_COST = 15, 68` — must always equal the scanner's gate.
+- `MIN_COST, MAX_COST = 40, 60` — must always equal the scanner's gate.
   (They were once 15/10, an impossible range that silently placed zero
-  trades for days. Floor raised 8 → 15 with the scanner's on
-  Aug 24 2026 — the two moved in one commit, as they always must.)
+  trades for days. Floor raised 8 → 15 on Aug 24 2026, 15 → 20 on
+  Aug 28 2026, then the 40–60 band trial that evening, each time with
+  the scanner's — the two moved in one commit, as they always must.)
 - `SANITY_GAP = 60`: skip if model% and price disagree by more than 60
   points — that gap means bad data, not free money.
 - Kalshi maintenance window 06:45–08:15 UTC is skipped (the API 503s).
@@ -329,16 +343,22 @@ calibration.py  learns per-station bias AND error spread from NIGHT
                 bias-shifted, then widened to the station's realized
                 error sigma — never narrowed.
 
-morning.yml  (3x daily: 14:30,    THE ONLY MONEY LANE since Aug 26
-              16:30, 17:30 UTC)   2026 (the Day-of Switch), one job:
+morning.yml  (every 30 min,       THE ONLY MONEY LANE since Aug 26
+              13:07-18:37 UTC)    2026 (the Day-of Switch; schedule
+                                  densified Aug 28 2026, the Clock
+                                  Fix), one job:
+                                  poller.py -> window preflight ->
                                   forecast.py --today ->
                                   scanner.py --strategy morning
                                              --window 9-11 ->
                                   trader.py --strategy morning
-                                            --keep-resting
+                                            --keep-resting ->
+                                  commit -> RED run if an order errored
                                   (same files, strategy=morning rows;
                                   each city bought only while its own
-                                  clock reads 9:00-10:59 AM)
+                                  clock reads 9:00-10:59 AM; passes
+                                  with no city in window skip the
+                                  Kalshi steps and log nothing)
 
 afternoon.yml (daily 19:30 UTC)   forecast.py --today
                                     --out afternoon_forecasts.csv
@@ -349,7 +369,10 @@ afternoon.yml (daily 19:30 UTC)   forecast.py --today
                                   bias table. No Kalshi secrets, no
                                   trading step, ever.
 
-poller.py    (every 15 min)       NWS METAR temps -> temps_log.csv
+poller.py    (every 15 min, and   NWS METAR temps -> temps_log.csv
+              piggybacked inside
+              morning.yml +
+              swoop.yml runs)
                                   (the RAW source of truth for highs);
                                   also regenerates daily_highs.csv from
                                   it -- a derived summary NO code reads
@@ -364,7 +387,11 @@ settlements.py (4x daily)         Kalshi settled result fields (unauth)
                                   feeds the board's "Yesterday" line
                                   AND (Aug 24 2026) the actuals that
                                   calibration and autopsy learn from
-swoop_alert.py (4x afternoon)     advisor board -> swoop.html, swoop_log.csv
+swoop_alert.py (every 15 min      advisor board -> swoop.html, swoop_log.csv
+              16:00-01:59 UTC,    (polls its own fresh temps first;
+              2-hourly rest)      grades each position on its CITY'S
+                                  local day, so West Coast evenings
+                                  stay on the board)
 sports_scanner.py (2x daily)      sharps consensus vs Kalshi props ->
                                   sports.html card, sports_picks.csv;
                                   grades by Kalshi settlement ->
@@ -486,6 +513,101 @@ raising the clamp is an owner decision on that evidence, never a
 silent edit. The monitor for this fix is the same as the rebuild's:
 autopsy §4 claimed-vs-delivered, plus the leftover biases in the
 calibration printout collapsing toward zero.
+
+## THE CLOCK + BOARDS FIX (Aug 28, 2026) — OWNER AUDIT
+
+The owner's complaint, in their words: after the Day-of Switch they
+could never tell whether the bot was going to buy today or whether
+they were "waiting too late"; the swoop and station boards kept
+looking wrong; and long shots kept getting bought. The audit found
+one root cause under most of it: **GitHub's cron scheduler is
+best-effort and was dropping most of this repo's runs.** Evidence,
+Aug 28: the 15-minute poller fired ~11 times in 24 hours instead of
+96 (boards graded on 75–80-minute-old readings); NONE of morning.yml's
+three scheduled runs fired — every buy that day was the owner pressing
+Run by hand from the iPad. On Aug 27 the 14:30 run fired at 15:37,
+after the East Coast window had closed. Fixes, all in one commit:
+
+1. **The money lane got redundancy, not hope.** morning.yml runs every
+   30 minutes 13:07–18:37 UTC (off-peak minutes — GitHub drops the
+   crowded :00/:15/:30/:45 slots far more often). Every city gets ~4
+   chances inside its own 9:00–10:59 AM window; a preflight step skips
+   the Kalshi work when no city is in window; the window gate and the
+   fail-closed exposure check make repeats harmless. Never thin this
+   schedule back to single-shot runs — one dropped cron = a coast
+   unbought.
+2. **Every run that needs fresh temperatures brings its own.**
+   morning.yml and swoop.yml run poller.py as their first step, so the
+   reality floor and the swoop grades never depend on poll.yml's cron
+   having fired. poll.yml itself moved to minutes 4/19/34/49.
+3. **A failed order turns the run red.** On Aug 24 and Aug 26 every
+   order died on "insufficient balance" and the runs stayed GREEN (the
+   dead-feed scar again). morning.yml now greps the trader log after
+   committing and fails loudly; the Station Board card shows the same
+   failure in red with "fund the account" in plain English.
+4. **The day-of reality floor** (scanner.py, morning scans only): a
+   FRESH station reading (≤60 min) is a hard floor on the day's final
+   high — ensemble members below it are physically impossible and get
+   raised to it before the vote, so the pick can never be a bracket
+   the thermometer already killed. A stale reading applies no floor
+   (never correct with old data). The METAR reading understates by
+   design, so flooring at it can only be honest.
+5. **The swoop board grades on each city's own day and clock.** The
+   old UTC-date filter dropped every West Coast position from the
+   board after ~5pm Pacific (UTC had rolled over) — their riskiest
+   hours; and the "too early to swoop" gate was one UTC hour (4pm ET
+   but 1pm PT). Both are per-city local now, and the 15-minute swoop
+   band extends to 01:59 UTC to cover Pacific evenings.
+6. **The Station Board is the owner's answer to "did it buy and
+   why".** Each card now carries a money box: BOUGHT (bracket, price,
+   time on the viewer's clock, plus WHY — the ensemble vote share,
+   member count, forecast median, and how today's forecast compares
+   with what settled yesterday), or the exact rule that said no, or
+   the buy window shown on the viewer's clock while waiting, or a red
+   box for failed orders / dropped runs. All times on the page use
+   the VIEWER'S browser clock (it used to hardcode Chicago and call
+   it "your time"). The board reads trades.csv and tails of
+   edges.csv/forecasts.csv straight from the raw logs — no new
+   derived files. The JS mirrors of the money gates
+   (MIN/MAX_PICK_COST, MIN_PICK_PROB, the window hours), the
+   series→station map, and the timezone map MUST move in the same
+   commit as their Python sources — same law as the highs mirror.
+
+## THE 40–60 BAND TRIAL (Aug 28, 2026) — OWNER DECISION, TWO WEEKS
+
+The owner asked for the full scoreboard sliced by price, then chose
+the band. The evidence (all 132 settled bets at the time):
+
+- Under 20¢: **2W–22L** (−$1.07/$1 under 15¢). 20–24¢: 2W–12L.
+  35–39¢: 2W–9L. 60–68¢: **3W–7L, −55¢/$1** — both tails lose.
+- **40–60¢: 28W–23L (55%), +11¢ per $1 risked — the only profitable
+  region.** The 45–49¢ pocket alone: 12W–4L (75%), +56¢/$1.
+- Floor scenarios: ≥40¢ was the first floor ever profitable (+3¢/$1);
+  ≥45¢ made +14¢/$1; trimming the cap to 60¢ beat keeping 68¢.
+
+The owner's reasoning, recorded: by the time the day-of bot buys
+(9–11 AM city time), a 40–60¢ price means the market genuinely agrees
+with the pick and it still pays — they had been noticing the same
+thing watching the buys.
+
+Terms of the trial, set when it started:
+
+- `MIN_PICK_COST/MIN_COST = 40`, `MAX_PICK_COST/MAX_COST = 60`,
+  scanner + trader + the Station Board JS mirror, one commit.
+- **Runs two weeks: Aug 28 → ~Sep 11, 2026.** Then the owner decides
+  — keep, widen, or revert to 20–68 — off the settled results, not
+  vibes.
+- Both known caveats were on the table when the owner chose: the
+  per-band slices are thin (10–16 bets each), and most of the record
+  is the benched night lane — the morning lane (16 settled: 10W–6L,
+  +68¢/$1) had NOT shown the cheap-bet disease (its 20–39¢ bets were
+  4W–2L). The trial knowingly trades those possible wins away for the
+  proven band; that trade-off is what the review judges.
+- **How to grade it:** edges.csv keeps logging every bracket with
+  prices, picks, and `would_bet` regardless of the band, so the
+  review can compare what 40–60 actually bought against what 20–68
+  would have bought on the same days. Expect FEWER buys per day
+  during the trial — that is the band working, not a bug.
 
 ## ROADMAP — how this grows
 

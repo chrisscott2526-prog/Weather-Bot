@@ -64,6 +64,7 @@ from datetime import datetime, timezone
 from cities import CITIES, STATIONS, local_time
 from calibration import compute_calibration
 from csvio import appender, is_morning_row
+from highs import highs_today
 
 OUT = "edges.csv"
 FIELDS = ["scanned_utc", "city", "market", "subtitle", "floor", "cap",
@@ -120,13 +121,35 @@ def window_from_argv():
 WINDOW = window_from_argv()
 
 # ---- THE TWO RULES' NUMBERS ----
-MAX_PICK_COST = 68.0   # past this, no buy for that city today
-MIN_PICK_COST = 15.0   # under this the market is screaming we're wrong
-# Raised 8 -> 15 on Aug 24 2026, on the owner's call, off the
-# scoreboard: picks priced under 15c settled 0-for-10 (autopsy.md
-# section 3) -- the market priced those picks against us and was
-# right every time. Must always match trader.py's MIN_COST.
+# THE 40-60 BAND TRIAL (owner's decision, Aug 28 2026, reviewed after
+# two weeks -- ~Sep 11 2026). The full scoreboard sliced by price
+# showed the only profitable region was 40-60c (28W-23L, +11c per $1
+# risked; the 45-49c pocket alone went 12W-4L, +56c/$1) while both
+# tails lost: under 20c went 2W-22L and 60-68c went 3W-7L. The owner's
+# read: by the time the day-of bot buys, a 40-60c bracket is the
+# market genuinely agreeing with the pick at a price that still pays.
+# History of the floor: 8 -> 15 (Aug 24, under-15c picks 0-for-10),
+# 15 -> 20 (Aug 28 morning, "no long shots"), 20 -> 40 + cap 68 -> 60
+# (Aug 28 evening, this trial). After the two weeks, keeping,
+# widening, or reverting to 20-68 is the owner's call off the settled
+# results -- edges.csv keeps logging every bracket either way, so the
+# trial can be graded against what the old band would have bought.
+# Must always match trader.py's MIN_COST/MAX_COST, changed in the
+# same commit.
+MAX_PICK_COST = 60.0   # past this, no buy for that city today
+MIN_PICK_COST = 40.0   # under this the market is screaming we're wrong
 MIN_PICK_PROB = 35.0   # top bracket weaker than this = day too uncertain
+
+# Day-of reality check (Aug 28 2026): on a morning scan, the settlement
+# station has already reported real readings. The final high can never
+# be BELOW the high already observed (highs only rise, and the METAR
+# reading is floored, never rounded up -- it understates by design, so
+# using it as a floor can only be honest). Ensemble members below a
+# FRESH observed high are physically impossible leftovers of an older
+# model run; raising them to the observed floor keeps the vote from
+# picking a bracket the thermometer has already killed. A stale reading
+# (poller behind) means NO floor -- never correct with old data.
+MAX_OBS_FLOOR_AGE_MIN = 60
 
 BASE = "https://api.elections.kalshi.com"
 KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
@@ -266,6 +289,12 @@ def main():
     dates = sorted({d for d, _ in members_by})
     print(f"Ensemble dates loaded: {dates[-5:] if len(dates) > 5 else dates}")
 
+    # Day-of reality check: city -> (observed high so far, reading age).
+    # Computed from the raw poll log by highs.py -- the same source and
+    # method as every board. Morning scans only: a night scan prices
+    # TOMORROW, where today's thermometer proves nothing.
+    obs_floors = highs_today() if STRATEGY == "morning" else {}
+
     cal = compute_calibration()[0]   # display only
     cal_by_city = {}
     for sid, (bias, sigma, n) in cal.items():
@@ -318,6 +347,28 @@ def main():
                           f"{STRATEGY}-qualified ensemble members "
                           f"- refusing to invent a spread")
                     continue
+
+                # Day-of reality floor: a FRESH observed reading is a
+                # hard floor on the final high. Members below it are
+                # impossible -- raise them to the floor so the vote
+                # can't pick a bracket the station already blew past.
+                # (Morning scans only look at today's markets, so the
+                # observed high and the market date always match.)
+                if STRATEGY == "morning" and city in obs_floors:
+                    obs, age = obs_floors[city]
+                    if age <= MAX_OBS_FLOOR_AGE_MIN:
+                        low = sum(1 for v in members if v < obs)
+                        if low:
+                            members = [max(v, obs) for v in members]
+                            print(f"  {city} {mdate}: station already "
+                                  f"read {obs:.1f}F ({age}m ago) -- "
+                                  f"raised {low} impossible member(s) "
+                                  f"to that observed floor")
+                    else:
+                        print(f"  {city} {mdate}: observed reading is "
+                              f"{age}m old (> {MAX_OBS_FLOOR_AGE_MIN}m)"
+                              f" -- no reality floor applied, ensemble "
+                              f"stands alone")
 
                 # RULE 1: pick the bracket -- most member votes wins
                 scored = []

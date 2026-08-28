@@ -57,7 +57,11 @@ LOG_LEGACY = [["checked_utc", "ticker", "city", "side", "bracket",
 SWOOP_MAX_ASK = 80       # don't flag chases above this (cents)
 SWOOP_MIN_ASK = 8        # below this the market says it already lost
 LOCK_MAX_ASK = 95        # locked-win flag only if price still below this
-SWOOP_EARLIEST_UTC = 20  # no gold tags before ~4pm ET / 1pm PT
+SWOOP_EARLIEST_LOCAL = 15  # no gold tags before ~3pm CITY time. Was a
+                           # single UTC hour (20 = 4pm ET but 1pm PT),
+                           # which judged every coast on the East
+                           # Coast's clock; each city now waits for its
+                           # OWN mid-afternoon (Aug 28 2026).
 MAX_OBS_AGE_MIN = 60     # readings older than this can never SWOOP
 PRICE_CONTRADICTION = 40 # a "winning" side priced under this kills the tag
 OVERSHOOT_GAP_F = 2.0    # obs within this many deg of a YES cap = risk
@@ -78,6 +82,16 @@ def local_hour(city, now_utc):
     if off is None:
         return None
     return (now_utc + timedelta(hours=off)).hour
+
+
+def local_day(city, now_utc):
+    """The city's own calendar date (ISO) -- same longitude-estimate
+    convention as highs.py, so a position is graded against the same
+    day its high is filed under. None if the city is unknown."""
+    off = CITY_OFFSET.get(city)
+    if off is None:
+        return None
+    return (now_utc + timedelta(hours=off)).date().isoformat()
 
 
 # ---------- kalshi auth ----------
@@ -391,7 +405,7 @@ setInterval(swoopTick, 30000);
 def main():
     now = datetime.now(timezone.utc)
     stamp = now.isoformat(timespec="seconds")
-    today_code = now.strftime("%y%b%d").upper()
+    today_utc = now.date().isoformat()
     note = ""
     highs = observed_highs()
     print(f"observed highs for {len(highs)} cities")
@@ -431,7 +445,24 @@ def main():
     for p in positions:
         tick = p["ticker"]
         print(f"  SEEN {tick}")
-        if "KXHIGH" not in tick or today_code not in tick:
+        if "KXHIGH" not in tick:
+            continue
+        # Grade a position on ITS CITY'S OWN calendar day, not UTC's.
+        # The old UTC-date match dropped every West Coast position from
+        # the board after 5pm Pacific (UTC had rolled to tomorrow) --
+        # exactly the late-afternoon hours when a Vegas or LA bracket
+        # is most at risk (Aug 28 2026).
+        dm = re.search(r"-(\d{2}[A-Z]{3}\d{2})-", tick)
+        if not dm:
+            continue
+        try:
+            mdate = datetime.strptime(
+                dm.group(1), "%y%b%d").date().isoformat()
+        except ValueError:
+            continue
+        tick_city = match_city("", tick)
+        graded_day = local_day(tick_city, now) if tick_city else today_utc
+        if mdate != graded_day:
             continue
         weather_open += 1
         side = "yes"
@@ -493,7 +524,7 @@ def main():
                 gnote += (f" Market prices this side at only "
                           f"{my_price:.0f}c - the money says the day is "
                           f"going the other way. No swoop tag.")
-            elif now.hour >= SWOOP_EARLIEST_UTC:
+            elif (local_hour(city, now) or 0) >= SWOOP_EARLIEST_LOCAL:
                 flag = "SWOOP"
                 gnote += (f" Market still under {SWOOP_MAX_ASK}c and the "
                           f"reading is {age}m fresh - this is the swoop "

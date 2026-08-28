@@ -67,10 +67,15 @@ MAX_ORDERS = 5
 BET_DOLLARS = 1      # $ per bet. Change ONLY after 100+ settled bets
                      # show positive P&L. Applies to BOTH strategies.
 MAX_RUN_DOLLARS = 10  # hard ceiling on total $ placed in one run
-MIN_COST, MAX_COST = 15, 68  # matches scanner.py's MIN/MAX_PICK_COST
-                     # (raised 8 -> 15 Aug 24 2026 with the scanner:
-                     # under-15c picks settled 0-for-10 on the
-                     # scoreboard. The two bands must stay identical.)
+MIN_COST, MAX_COST = 40, 60  # matches scanner.py's MIN/MAX_PICK_COST
+                     # THE 40-60 BAND TRIAL, owner's call Aug 28 2026,
+                     # two weeks, review ~Sep 11 2026: 40-60c was the
+                     # only profitable price region on the full
+                     # scoreboard (28W-23L, +11c/$1); both tails lost
+                     # (under-20c 2W-22L, 60-68c 3W-7L). Band history:
+                     # 8->15 (Aug 24), 15->20 (Aug 28 am), 40-60 trial
+                     # (Aug 28 pm). The two bands must stay identical
+                     # and move in one commit with the scanner's.
 TRADE_FIELDS = ["placed_utc", "ticker", "subtitle", "side", "count",
                 "limit_cents", "model_pct", "edge", "live",
                 "status", "order_id", "strategy"]

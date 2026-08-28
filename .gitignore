@@ -1,3 +1,4 @@
 __pycache__/
 *.pyc
 *.csv.tmp
+trader_run.log
