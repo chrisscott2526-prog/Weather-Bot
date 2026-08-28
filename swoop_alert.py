@@ -302,7 +302,15 @@ border-radius:3px;background:#2a323b}
 
 
 def build_page(cards, note, counts):
-    now = datetime.now(timezone.utc).strftime("%a %b %d, %H:%M UTC")
+    # Ages are rendered as LIVE labels: each carries the reading's epoch
+    # in data-obs and a script recomputes the text every 30s, exactly
+    # like the Station Board. The old static "reading 12m old" string
+    # kept saying 12m on every cached copy while the true age climbed
+    # past 200m (the frozen-label scar, Aug 27 2026) -- a page must
+    # never wear a fresher age than its data.
+    now_dt = datetime.now(timezone.utc)
+    now = now_dt.strftime("%a %b %d, %H:%M UTC")
+    build_ms = int(now_dt.timestamp() * 1000)
     body = ""
     order = {"OVERSHOOT RISK": 0, "SWOOP": 1, "LOCKED": 2, "AT RISK": 3,
              "IN DANGER": 4, "VERIFY": 5, "ON TRACK": 6, "NEEDS HEAT": 7,
@@ -312,7 +320,9 @@ def build_page(cards, note, counts):
         age_txt = ""
         if c["age"] is not None:
             old = " old" if c["age"] > MAX_OBS_AGE_MIN else ""
-            age_txt = (f' &nbsp;|&nbsp; <span class="age{old}">reading '
+            obs_ms = build_ms - int(c["age"]) * 60000
+            age_txt = (f' &nbsp;|&nbsp; <span class="age{old}" '
+                       f'data-obs="{obs_ms}">reading '
                        f'{c["age"]}m old</span>')
         body += f"""
 <div class="card {cls}"><div class="top">
@@ -332,7 +342,8 @@ def build_page(cards, note, counts):
 <style>{CSS}</style></head><body><div class="wrap">
 <h1>Swoop Alert</h1>
 <div class="sub">Thermometer vs. market on the bot's open positions -
-checked {now}. Graded {counts[0]} of {counts[1]} open weather positions.
+checked {now} (<span class="age" data-built="{build_ms}">just
+built</span>). Graded {counts[0]} of {counts[1]} open weather positions.
 {html.escape(note)}</div>
 {body}
 <div class="foot"><b>Read it like this:</b> daily highs only rise, so a
@@ -350,7 +361,30 @@ makes it MORE urgent, not less. This board only warns - it never sells
 for you. Always eyeball the station on
 weather.gov before sizing up; this page is only as fresh as the last
 poll. Chase nothing above {SWOOP_MAX_ASK}c; the meat is gone.</div>
-</div></body></html>"""
+</div>
+<script>
+// Live ages, same law as the Station Board: the label ticks with real
+// time, so a cached or stale copy of this page can never claim its
+// readings are fresher than they are. Text content is written by this
+// script only from numeric epochs baked in above.
+var OLD_MIN = {MAX_OBS_AGE_MIN};
+function swoopTick() {{
+  var now = Date.now();
+  document.querySelectorAll('[data-obs]').forEach(function (el) {{
+    var m = Math.max(0, Math.floor((now - +el.dataset.obs) / 60000));
+    el.textContent = 'reading ' + m + 'm old';
+    el.classList.toggle('old', m > OLD_MIN);
+  }});
+  document.querySelectorAll('[data-built]').forEach(function (el) {{
+    var m = Math.max(0, Math.floor((now - +el.dataset.built) / 60000));
+    el.textContent = m < 1 ? 'built just now' : 'built ' + m + 'm ago';
+    el.classList.toggle('old', m > OLD_MIN);
+  }});
+}}
+swoopTick();
+setInterval(swoopTick, 30000);
+</script>
+</body></html>"""
 
 
 # ---------- main ----------
