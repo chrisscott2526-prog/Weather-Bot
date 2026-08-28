@@ -38,4 +38,12 @@ jobs:
           git config user.email "bot@users.noreply.github.com"
           git add -A
           git diff --cached --quiet || git commit -m "swoop $(date -u +'%F %H:%M')"
-          git push || (git fetch origin main && git rebase --abort 2>/dev/null; git pull --rebase -X ours && git push)
+          # real retry loop -- the old one-liner fallback died under bash -e
+          # whenever no rebase was in progress (see settlements.yml)
+          n=0
+          until git push; do
+            n=$((n+1))
+            if [ "$n" -gt 4 ]; then echo "push failed after $n tries"; exit 1; fi
+            git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
+            sleep $((2*n))
+          done

@@ -264,8 +264,14 @@ Trader hard caps, all enforced in `trader.py` — do not loosen:
 - **Workflow rules** (`.github/workflows/*.yml`), all learned the hard way:
   - `git add -A` — never single-file `git add` (it silently drops sibling
     files the script also wrote).
-  - `git pull --rebase` **with a conflict fallback** before push (see
-    `poll.yml` for the pattern) — 15-minute polling means pushes race.
+  - Push via a **real retry loop** — pull-rebase, back off, try again,
+    up to 4 times (see `poll.yml` or `settlements.yml` for the pattern) —
+    15-minute polling means pushes race. The old one-liner fallback
+    (`git push || (... git rebase --abort ...)`) was a trap: under the
+    step's `bash -e`, `git rebase --abort` fails when no rebase is in
+    progress and kills the recovery before it recovers. It lost a
+    39-row settlements commit (Aug 20 2026) and turned the Aug 28 2026
+    autopsy run red; all workflows now carry the loop.
   - Every job must carry `timeout-minutes`.
 - **Sports whitelist (Aug 2, 2026).** Substring matching on series names
   swept in inning props and player-signing markets and reported fantasy
