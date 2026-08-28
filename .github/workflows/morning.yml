@@ -2,39 +2,47 @@ name: Morning strategy (refresh, scan, trade)
 
 # THE DAY-OF LANE -- since Aug 26 2026 the ONLY lane that spends money
 # (owner's call; trader.yml, the night-before buyer, is benched to
-# manual-only). One job, three ordered steps:
+# manual-only). One job, ordered steps:
+#   0. poller.py                      log the settlement stations' own
+#                                     readings RIGHT NOW, so the
+#                                     scanner's day-of reality floor
+#                                     works from minutes-old data
 #   1. forecast.py --today            fresh same-day GFS+ECMWF ensemble
-#                                     (digests the morning's station
-#                                     observations)
 #   2. scanner.py --strategy morning --window 9-11
 #                                     same pick-first rules, today's
 #                                     markets only, and ONLY cities
 #                                     whose local clock reads 9:00 to
-#                                     10:59 AM right now -- late enough
-#                                     that the settlement station has
-#                                     reported 3-4 morning readings and
-#                                     the fresh ensemble shows how the
-#                                     day is leaning
+#                                     10:59 AM right now
 #   3. trader.py  --strategy morning --keep-resting
-# One job on purpose: the repo-writes concurrency group keeps at most
-# one run PENDING per group; three steps in one job cannot run out of
-# order and take one concurrency slot.
-# Three schedules so every timezone gets exactly one in-window shot,
-# summer AND winter (verified against IANA tzdata in cities.py):
-#   14:30 UTC  Eastern + Central in summer; Eastern in winter
-#   16:30 UTC  Mountain + Arizona + Pacific in summer; Central +
-#              Mountain in winter
-#   17:30 UTC  Pacific in winter (in summer Pacific is already owned
-#              from 16:30 -- the fail-closed MAX_PER_CITY_DAY exposure
-#              check makes a double-covered hour harmless)
+#
+# THE CLOCK FIX (Aug 28 2026). The old schedule was three runs (14:30,
+# 16:30, 17:30 UTC) -- one single shot per timezone. GitHub's cron is
+# best-effort and this repo's schedules routinely fire late or not at
+# all (Aug 28: none of the three fired; every buy that day was the
+# owner pressing Run manually). One missed or hour-late firing = a
+# whole coast unbought, and no way for the owner to know when, or
+# whether, money would move. Now:
+#   - Runs are scheduled every 30 minutes, 13:07-18:37 UTC, so every
+#     city gets ~4 chances inside its own 9:00-10:59 AM window,
+#     summer and winter. If GitHub drops half of them, the coast is
+#     still covered; the window gate + the fail-closed
+#     MAX_PER_CITY_DAY exposure check make every extra pass harmless.
+#   - Off-peak minutes (:07/:37, not :00/:30) -- GitHub fires those
+#     far more reliably than the crowded round minutes.
+#   - A preflight step checks whether ANY city is in its window and
+#     skips the Kalshi steps when none is (the 13:07 run in winter,
+#     the 18:07 run in summer), so no-op passes stay cheap and write
+#     no forecast rows.
+# The promise to the owner this schedule exists to keep: each city is
+# bought (or loudly skipped) within about half an hour of 9:00 AM its
+# own time, and the Station Board shows which happened and why.
+#
 # --keep-resting: each run must not yank the earlier runs' resting
 # orders; unfilled same-day orders die on their own at market close.
 
 on:
   schedule:
-    - cron: "30 14 * * *"
-    - cron: "30 16 * * *"
-    - cron: "30 17 * * *"
+    - cron: "7,37 13-18 * * *"
   workflow_dispatch:
 
 permissions:
@@ -56,29 +64,74 @@ jobs:
       - name: Install crypto library
         run: pip install cryptography
 
+      - name: Which cities are in their 9-11 AM buying window?
+        id: win
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          from datetime import datetime, timezone
+          from cities import TIMEZONES, STATIONS, local_time
+          now = datetime.now(timezone.utc)
+          open_cities = sorted(STATIONS[s] for s in TIMEZONES
+                               if 9 <= local_time(s, now).hour < 11)
+          print("cities=" + ", ".join(open_cities))
+          print("open=" + ("true" if open_cities else "false"))
+          PY
+          echo "In window now: $(grep '^cities=' $GITHUB_OUTPUT | tail -1 || true)"
+
+      # Runs every pass, in or out of window: it keeps the Station and
+      # Swoop boards fed even when poll.yml's own cron is being dropped.
+      - name: Poll the settlement stations (fresh readings for the reality floor)
+        run: python poller.py
+
       - name: Refresh today's forecast (same-day ensemble)
+        if: steps.win.outputs.open == 'true'
         run: python forecast.py --today
 
       - name: Scan today's markets (day-of, 9-11 AM local window)
+        if: steps.win.outputs.open == 'true'
         env:
           KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
           KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
         run: python scanner.py --strategy morning --window 9-11
 
       - name: Place day-of trades ($1 law, one position per city per day)
+        if: steps.win.outputs.open == 'true'
         env:
           KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
           KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
-        run: python trader.py --strategy morning --keep-resting
+        run: |
+          set -o pipefail
+          python trader.py --strategy morning --keep-resting | tee trader_run.log
 
       # -X theirs like trader.yml, NOT -X ours like the read-only jobs:
       # this commit carries trades.csv, and losing the record of an
       # order that was actually placed is the worst possible outcome.
+      # Real retry loop -- the old single pull+push died in push races
+      # and this job is the one that must never lose its commit.
       - name: Commit the logs
         run: |
           git config user.name "weather-bot"
           git config user.email "bot@users.noreply.github.com"
           git add -A
           git diff --cached --quiet || git commit -m "day-of run $(date -u +'%F %H:%M')"
-          git pull --rebase -X theirs
-          git push
+          n=0
+          until git push; do
+            n=$((n+1))
+            if [ "$n" -gt 4 ]; then echo "push failed after $n tries"; exit 1; fi
+            git pull --rebase -X theirs || { git rebase --abort 2>/dev/null || true; }
+            sleep $((2*n))
+          done
+
+      # An order that errors (e.g. insufficient balance) must turn the
+      # run RED. On Aug 24 and Aug 26 every order died on an empty
+      # wallet and the run stayed green -- the dead-feed scar, again.
+      # This runs AFTER the commit so the trades.csv record of the
+      # failure is never lost to the failing step.
+      - name: Fail loudly if any order errored
+        if: steps.win.outputs.open == 'true'
+        run: |
+          if [ -f trader_run.log ] && grep -q "ERROR" trader_run.log; then
+            echo "::error::At least one order FAILED this run -- likely insufficient balance. The bot had a pick and could not pay for it."
+            grep "ERROR" trader_run.log || true
+            exit 1
+          fi

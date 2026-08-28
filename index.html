@@ -16,6 +16,7 @@
     --amber:#e8b34b;
     --red:#d4553a;
     --green:#5da270;
+    --blue:#3f7fbf;
   }
   *{margin:0;padding:0;box-sizing:border-box}
   html{background:var(--bg)}
@@ -99,6 +100,30 @@
   .yday{font-size:12px;color:var(--dim);margin-top:3px}
   .yday b{color:var(--ink);font-weight:500}
 
+  .bet{
+    font-size:12.5px;margin-top:9px;padding:7px 9px;border-radius:4px;
+    border:1px solid var(--line);border-left-width:4px;color:var(--ink);
+  }
+  .bet b{font-weight:600}
+  .bet.BOUGHT{border-left-color:var(--green)}
+  .bet.WAIT{border-left-color:var(--blue)}
+  .bet.SKIP{border-left-color:var(--amber);color:var(--dim)}
+  .bet.SKIP b{color:var(--ink)}
+  .bet.FAIL{border-left-color:var(--red);background:#241416}
+  .bet.MISS{border-left-color:var(--red);color:var(--dim)}
+  .bet .tag{
+    font:700 10px/1 "Barlow Condensed",sans-serif;letter-spacing:.14em;
+    text-transform:uppercase;display:inline-block;margin-right:6px;
+    padding:3px 6px;border-radius:3px;background:var(--line);color:var(--ink);
+  }
+  .bet.BOUGHT .tag{background:var(--green);color:#08130d}
+  .bet.FAIL .tag{background:var(--red);color:#1a0d09}
+  .bet.WAIT .tag{background:var(--blue);color:#0a1218}
+  .why{
+    font-size:12px;color:var(--dim);margin-top:6px;line-height:1.5;
+  }
+  .why b{color:var(--ink);font-weight:500}
+
   .fresh{
     height:3px;background:var(--line);border-radius:2px;margin-top:9px;
     overflow:hidden;
@@ -140,7 +165,8 @@
     <b>How to read this board:</b> the big number is the most recent
     National Weather Service reading at the exact station each Kalshi
     market settles on. The time under it is when the <i>station</i> took
-    that reading &mdash; not when this page loaded. The thin bar drains
+    that reading &mdash; not when this page loaded &mdash; shown on
+    <b>your own clock</b>. The thin bar drains
     over 60 minutes; a red card means the reading is over an hour old
     and you should not trust it with money. "High so far" is today's
     running maximum, computed on the spot from the same raw poll log as
@@ -149,11 +175,21 @@
     disagree. "Yesterday" is different in
     kind: it is the <b>official settled outcome</b> &mdash; the
     temperature range Kalshi's own markets paid out on, straight from
-    the exchange's result field, never our thermometer. A dash there
-    means yesterday's markets haven't finalized yet (or we haven't
-    been able to check since they did). This page updates itself
+    the exchange's result field, never our thermometer.
+    <br><br>
+    <b>The money box on each card</b> is the day-of lane. The bot buys a
+    city only while that city's own clock reads 9:00&ndash;10:59 AM
+    (each card shows that window on your clock), $1 a bet, one bet per
+    city per day. When it bought, the box says which bracket, at what
+    price, and <i>why</i> &mdash; what share of the ~80 forecast members
+    voted for that bracket and how today's forecast compares with what
+    settled yesterday. When it didn't buy, the box says exactly which
+    rule said no (bracket too weak, price too high, price a long shot,
+    no fresh forecast). A red box means the bot tried to buy and the
+    order failed &mdash; usually an empty wallet &mdash; or that no run
+    reached the city in its window. This page updates itself
     every 2 minutes and whenever you press Refresh, and it can never be
-    fresher than the last 15-minute poll. For anything bet-sized, the
+    fresher than the last poll. For anything bet-sized, the
     judge is the Daily Climate Report on weather.gov.
   </footer>
 </div>
@@ -162,7 +198,14 @@
 "use strict";
 
 const OLD_MIN = 60;
-const LOCAL_TZ = "America/Chicago";
+
+// ---- MONEY-RULE MIRROR (display only; the bot enforces these in
+// scanner.py/trader.py). MUST match scanner.py's numbers -- if a gate
+// changes there, change it here in the same commit. ----
+const MIN_PICK_COST = 20;   // under this = long shot, skipped
+const MAX_PICK_COST = 68;   // over this = too expensive, skipped
+const MIN_PICK_PROB = 35;   // top bracket weaker than this = no bet
+const WIN_START = 9, WIN_END = 11;   // 9:00-10:59 AM city time
 
 // station -> UTC offset in hours: round(longitude / 15), generated
 // from cities.py (the source of truth). highs.py uses the exact same
@@ -174,6 +217,36 @@ const STATION_OFFSET = {
   KLAS:-8, KLAX:-8, KMDW:-6, KMIA:-5, KMSP:-6, KMSY:-6, KNYC:-5,
   KOKC:-7, KPHL:-5, KPHX:-7, KSAT:-7, KSEA:-8, KSFO:-8};
 
+// station -> IANA civil timezone, mirrored from cities.TIMEZONES (the
+// hand-verified source of truth for the buying window). Change both
+// in the same commit.
+const STATION_TZ = {
+  KNYC:"America/New_York", KBOS:"America/New_York",
+  KPHL:"America/New_York", KDCA:"America/New_York",
+  KATL:"America/New_York", KMIA:"America/New_York",
+  KMDW:"America/Chicago",  KMSP:"America/Chicago",
+  KDFW:"America/Chicago",  KAUS:"America/Chicago",
+  KSAT:"America/Chicago",  KHOU:"America/Chicago",
+  KMSY:"America/Chicago",  KOKC:"America/Chicago",
+  KDEN:"America/Denver",
+  KPHX:"America/Phoenix",
+  KLAS:"America/Los_Angeles", KLAX:"America/Los_Angeles",
+  KSFO:"America/Los_Angeles", KSEA:"America/Los_Angeles"};
+
+// Kalshi series -> station, mirrored from cities.CITIES (hand-verified
+// whitelist; change both in the same commit).
+const SERIES_STATION = {
+  KXHIGHNY:"KNYC",    KXHIGHMIA:"KMIA",  KXHIGHDEN:"KDEN",
+  KXHIGHLAX:"KLAX",   KXHIGHPHIL:"KPHL", KXHIGHAUS:"KAUS",
+  KXHIGHCHI:"KMDW",   KXHIGHTSFO:"KSFO", KXHIGHTPHX:"KPHX",
+  KXHIGHTDC:"KDCA",   KXHIGHTATL:"KATL", KXHIGHTDAL:"KDFW",
+  KXHIGHTSEA:"KSEA",  KXHIGHTLV:"KLAS",  KXHIGHTOKC:"KOKC",
+  KXHIGHTBOS:"KBOS",  KXHIGHTMIN:"KMSP", KXHIGHTSATX:"KSAT",
+  KXHIGHTNOLA:"KMSY", KXHIGHTHOU:"KHOU"};
+
+const MONTHS = {JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,
+                SEP:8,OCT:9,NOV:10,DEC:11};
+
 // The station's own calendar date (YYYY-MM-DD) for a UTC millisecond
 // timestamp -- same rule as highs.py local_date().
 function stationDay(sid, ms){
@@ -181,16 +254,76 @@ function stationDay(sid, ms){
   return new Date(ms + off*3600000).toISOString().slice(0, 10);
 }
 
+// Times are always shown on the VIEWER'S own clock (the old board
+// hardcoded Chicago time and still said "your time" -- fixed Aug 28
+// 2026).
 function fmtLocal(d){
-  return d.toLocaleTimeString("en-US",
-    {hour:"numeric", minute:"2-digit", timeZone:LOCAL_TZ});
+  return d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+}
+
+// Minute-of-day right now in an IANA timezone (viewer-independent).
+function minuteOfDayIn(tz, d){
+  try{
+    const parts = new Intl.DateTimeFormat("en-US",
+      {timeZone:tz, hour12:false, hour:"2-digit", minute:"2-digit"})
+      .formatToParts(d);
+    let h = 0, m = 0;
+    for(const p of parts){
+      if(p.type === "hour") h = Number(p.value) % 24;
+      if(p.type === "minute") m = Number(p.value);
+    }
+    return h * 60 + m;
+  }catch(e){
+    // ancient browser: fall back to the solar estimate
+    return null;
+  }
+}
+
+// A Date on the viewer's clock corresponding to "H:00 today in tz".
+function cityHourAsViewerDate(tz, sid, hour, now){
+  const cityMin = minuteOfDayIn(tz, now);
+  const viewerMin = now.getHours()*60 + now.getMinutes();
+  let diff;
+  if(cityMin === null){
+    diff = viewerMin - ((now.getUTCHours()*60 + now.getUTCMinutes()
+           + (STATION_OFFSET[sid]||0)*60 + 2880) % 1440);
+  }else{
+    diff = viewerMin - cityMin;
+  }
+  if(diff > 720) diff -= 1440;
+  if(diff < -720) diff += 1440;
+  const d = new Date(now);
+  d.setHours(0, 0, 0, 0);
+  d.setMinutes(hour*60 + diff);
+  return d;
+}
+
+// ---- CSV: quote-aware (trades.csv ERROR rows carry quoted JSON) ----
+function splitCSVLine(line){
+  const out = []; let cur = ""; let q = false;
+  for(let i = 0; i < line.length; i++){
+    const ch = line[i];
+    if(q){
+      if(ch === '"'){
+        if(line[i+1] === '"'){ cur += '"'; i++; }
+        else q = false;
+      }else cur += ch;
+    }else{
+      if(ch === '"') q = true;
+      else if(ch === ","){ out.push(cur); cur = ""; }
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out;
 }
 
 function parseCSV(text){
   const lines = text.trim().split(/\r?\n/);
-  const head = lines[0].split(",");
+  if(!lines.length) return [];
+  const head = splitCSVLine(lines[0]);
   return lines.slice(1).map(l => {
-    const cells = l.split(",");
+    const cells = splitCSVLine(l);
     const row = {};
     head.forEach((h,i) => row[h] = (cells[i] ?? "").trim());
     return row;
@@ -203,6 +336,32 @@ async function fetchCSV(name){
   return parseCSV(await r.text());
 }
 
+// Big append-only logs (edges.csv): fetch the header plus only the
+// last `tailBytes`, so an iPad on cell data is not pulling megabytes
+// of history it will never render. Reads columns BY NAME from the
+// file's own header (the header-drift law). Falls back to a full
+// fetch when the server ignores Range requests.
+async function fetchCSVTail(name, tailBytes){
+  const url = name + "?t=" + Date.now();
+  try{
+    const hr = await fetch(url,
+      {headers:{Range:"bytes=0-2047"}, cache:"no-store"});
+    if(!hr.ok && hr.status !== 206) throw new Error(name+" "+hr.status);
+    const ht = await hr.text();
+    if(hr.status === 200) return parseCSV(ht);   // whole file arrived
+    const header = ht.slice(0, ht.indexOf("\n"));
+    const tr = await fetch(url,
+      {headers:{Range:"bytes=-"+tailBytes}, cache:"no-store"});
+    if(!tr.ok && tr.status !== 206) throw new Error(name+" "+tr.status);
+    let tt = await tr.text();
+    if(tr.status === 200) return parseCSV(tt);
+    tt = tt.slice(tt.indexOf("\n") + 1);         // drop the cut line
+    return parseCSV(header + "\n" + tt);
+  }catch(e){
+    return fetchCSV(name);
+  }
+}
+
 function latestPerStation(rows){
   const seen = {};
   for(let i = rows.length - 1; i >= 0; i--){
@@ -212,14 +371,12 @@ function latestPerStation(rows){
   return seen;
 }
 
-// station -> high so far TODAY (the station's own day), computed
-// directly from the raw poll log -- the same source and method as
-// highs.py, which the swoop board and the graders use. The derived
-// daily_highs.csv lagged this raw log on money-relevant boards twice
-// (Vegas Aug 20, Minneapolis Aug 21 2026) and is not read here
-// anymore. A reading is filed under the day of its OBSERVATION time
-// (falling back to poll time for old rows); ERROR rows are skipped.
-function todaysHighs(temps, now){
+// station -> {dayISO -> high}, computed directly from the raw poll
+// log -- the same source and method as highs.py, which the swoop board
+// and the graders use. A reading is filed under the day of its
+// OBSERVATION time (falling back to poll time for old rows); ERROR
+// rows are skipped.
+function highsByDay(temps){
   const best = {};
   for(const r of temps){
     if(!(r.station in STATION_OFFSET)) continue;
@@ -227,9 +384,9 @@ function todaysHighs(temps, now){
     if(r.temp_f === "" || isNaN(t)) continue;
     const ms = Date.parse(r.obs_time_utc || r.utc_time);
     if(isNaN(ms)) continue;
-    if(stationDay(r.station, ms) !== stationDay(r.station, now.getTime()))
-      continue;
-    if(!(r.station in best) || t > best[r.station]) best[r.station] = t;
+    const day = stationDay(r.station, ms);
+    const by = best[r.station] || (best[r.station] = {});
+    if(!(day in by) || t > by[day]) by[day] = t;
   }
   return best;
 }
@@ -267,6 +424,14 @@ function settledText(row){
   return `settled ${hi}&deg; or below`;
 }
 
+function settledMid(row){
+  if(!row) return null;
+  const lo = row.low_f === "" ? null : Number(row.low_f);
+  const hi = row.high_f === "" ? null : Number(row.high_f);
+  if(lo !== null && hi !== null) return (lo + hi) / 2;
+  return lo !== null ? lo : hi;
+}
+
 function yesterdayLine(sinfo, now){
   if(sinfo){
     const row = sinfo.rows[stationYesterday(sinfo.offset, now)];
@@ -276,17 +441,197 @@ function yesterdayLine(sinfo, now){
   return `Yesterday: <b>&mdash;</b>`;
 }
 
+// ---- today's money lane, per station ----
+function tickerStation(t){ return SERIES_STATION[(t||"").split("-")[0]]; }
+function tickerDay(t){
+  const m = /-(\d{2})([A-Z]{3})(\d{2})-/.exec(t || "");
+  if(!m || !(m[2] in MONTHS)) return null;
+  return new Date(Date.UTC(2000 + Number(m[1]), MONTHS[m[2]],
+                           Number(m[3]))).toISOString().slice(0, 10);
+}
+
+// The latest MORNING scan's rows for (station, its local today), from
+// the edges.csv tail. Returns {pick, scannedUtc} or null.
+function morningPick(edges, sid, today){
+  let bestStamp = "", pick = null;
+  for(const r of edges){
+    if((r.strategy || "") !== "morning") continue;
+    if(tickerStation(r.market) !== sid) continue;
+    if(tickerDay(r.market) !== today) continue;
+    if(r.scanned_utc < bestStamp) continue;
+    if(r.scanned_utc > bestStamp){ bestStamp = r.scanned_utc; pick = null; }
+    if(r.pick === "1") pick = r;
+  }
+  return pick ? {pick, scannedUtc: bestStamp} : null;
+}
+
+// Today's real-money trades for a station (any strategy -- money is
+// money), split into placed and failed.
+function todaysTrades(trades, sid, today){
+  const placed = [], failed = [];
+  for(const r of trades){
+    if(String(r.live).toLowerCase() !== "true") continue;
+    if(tickerStation(r.ticker) !== sid) continue;
+    if(tickerDay(r.ticker) !== today) continue;
+    const s = r.status || "";
+    if(s === "submitted") placed.push(r);
+    else if(s.indexOf("ERROR") === 0) failed.push(r);
+  }
+  return {placed, failed};
+}
+
+// The latest same-day ("morning") forecast row for a station, by the
+// same timestamp rule as csvio.is_morning_row: fetched on/after its
+// own forecast date, 06:00-22:59 UTC. Display mirror only.
+function morningForecast(fcs, sid, today){
+  let best = null;
+  for(const r of fcs){
+    if(r.station !== sid || r.forecast_date !== today) continue;
+    const f = r.fetched_utc || "";
+    if(f.slice(0, 10) < r.forecast_date) continue;
+    const hour = Number(f.slice(11, 13));
+    if(isNaN(hour) || hour < 6 || hour > 22) continue;
+    if(!best || f > (best.fetched_utc || "")) best = r;
+  }
+  return best;
+}
+
+function esc(s){
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;");
+}
+
+// Build the money box + why line for one station's card.
+function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
+  const today = stationDay(sid, now.getTime());
+  const tz = STATION_TZ[sid];
+  const cityMin = minuteOfDayIn(tz, now);
+  const winA = cityHourAsViewerDate(tz, sid, WIN_START, now);
+  const winB = cityHourAsViewerDate(tz, sid, WIN_END, now);
+  const winTxt = `${fmtLocal(winA)}&ndash;${fmtLocal(winB)} your clock`;
+  const before = cityMin !== null && cityMin < WIN_START*60;
+  const inside = cityMin !== null &&
+                 cityMin >= WIN_START*60 && cityMin < WIN_END*60;
+
+  const {placed, failed} = todaysTrades(trades, sid, today);
+  const mp = morningPick(edges, sid, today);
+  const fc = morningForecast(fcs, sid, today);
+
+  // the WHY line: ensemble vote + how today differs from yesterday
+  let why = "";
+  if(mp){
+    const p = mp.pick;
+    const prob = Number(p.model_prob_pct);
+    const nm = p.n_members || "?";
+    why = `<b>${isNaN(prob) ? "?" : prob}%</b> of ${esc(nm)} forecast `
+        + `members put today's high in <b>${esc(p.subtitle)}</b> `
+        + `&mdash; the top bracket.`;
+    const med = fc ? Number(fc.forecast_high_f) : NaN;
+    if(!isNaN(med)){
+      why += ` Forecast median <b>${med.toFixed(1)}&deg;</b>.`;
+      const sinfo = settleBy[sid];
+      const yrow = sinfo ? sinfo.rows[stationYesterday(sinfo.offset, now)]
+                         : null;
+      let anchor = settledMid(yrow), anchorTxt = "yesterday's settled";
+      if(anchor === null){
+        const by = hiByDay[sid] || {};
+        const yday = stationDay(sid, now.getTime() - 86400000);
+        if(yday in by){ anchor = by[yday]; anchorTxt = "yesterday's observed"; }
+      }
+      if(anchor !== null){
+        const d = med - anchor;
+        const dir = d >= 0.5 ? "hotter" : (d <= -0.5 ? "cooler" : "similar");
+        why += dir === "similar"
+          ? ` About the same as ${anchorTxt} high.`
+          : ` Runs <b>${Math.abs(d).toFixed(1)}&deg; ${dir}</b> than `
+            + `${anchorTxt} high.`;
+      }
+    }
+  }
+
+  let cls, txt;
+  if(placed.length){
+    const t = placed[0];
+    const when = new Date(t.placed_utc);
+    cls = "BOUGHT";
+    txt = `<span class="tag">Bought</span> YES <b>${esc(t.subtitle)}</b> `
+        + `@ <b>${esc(t.limit_cents)}&cent;</b>`
+        + (isNaN(when) ? "" : ` &mdash; order placed ${fmtLocal(when)}`);
+  }else if(failed.length){
+    const t = failed[0];
+    const bal = (t.status || "").indexOf("insufficient_balance") >= 0;
+    cls = "FAIL";
+    txt = `<span class="tag">Buy failed</span> tried YES `
+        + `<b>${esc(t.subtitle)}</b> @ ${esc(t.limit_cents)}&cent; &mdash; `
+        + (bal ? `<b>not enough money in the Kalshi account</b>. Fund it `
+               + `before tomorrow's window.`
+               : `the order errored. Check the run log.`);
+  }else if(mp){
+    // scanned but not bought: say which rule said no (display mirror
+    // of scanner.py's gates -- keep in sync in the same commit)
+    const p = mp.pick;
+    const prob = Number(p.model_prob_pct);
+    const ask = p.yes_ask === "" ? null : Number(p.yes_ask);
+    cls = "SKIP";
+    let reason;
+    if(p.would_bet === "YES")
+      reason = inside
+        ? `pick flagged &mdash; order pending the trader's checks`
+        : `pick was flagged but not bought &mdash; a trader guard said `
+          + `no (already owned, city cap, sanity gap, or balance)`;
+    else if(!isNaN(prob) && prob < MIN_PICK_PROB)
+      reason = `top bracket only <b>${prob}%</b> &mdash; day too `
+             + `uncertain (needs ${MIN_PICK_PROB}%)`;
+    else if(ask !== null && ask > MAX_PICK_COST)
+      reason = `pick costs <b>${ask}&cent;</b> &mdash; too expensive `
+             + `(cap ${MAX_PICK_COST}&cent;)`;
+    else if(ask !== null && ask < MIN_PICK_COST)
+      reason = `pick priced <b>${ask}&cent;</b> &mdash; a long shot the `
+             + `market disagrees with; skipped on purpose`;
+    else if(ask === null)
+      reason = `pick has no ask price on Kalshi`;
+    else
+      reason = `blocked by a trader guard (already owned, city cap, or `
+             + `sanity gap)`;
+    txt = `<span class="tag">No bet</span> ${reason}.`
+        + (inside ? ` Rechecks about every half hour until the window `
+                  + `closes.` : ``);
+  }else if(before){
+    cls = "WAIT";
+    txt = `<span class="tag">Waiting</span> buys between <b>${winTxt}</b> `
+        + `(9:00&ndash;10:59 AM city time), usually on the first pass `
+        + `after it opens.`;
+  }else if(inside){
+    cls = "WAIT";
+    txt = `<span class="tag">Window open</span> ${winTxt} &mdash; waiting `
+        + `on the next pass (about every half hour).`;
+  }else{
+    cls = "MISS";
+    txt = `<span class="tag">No bet today</span> no scan reached this `
+        + `city inside its ${winTxt} window &mdash; the scheduler `
+        + `dropped the runs, or every pass hit an error. Nothing was `
+        + `risked here.`;
+  }
+
+  let html = `<div class="bet ${cls}">${txt}</div>`;
+  if(why) html += `<div class="why">${why}</div>`;
+  return html;
+}
+
 async function load(){
   const grid = document.getElementById("grid");
   const line = document.getElementById("boardline");
   try{
-    const [temps, settles] = await Promise.all([
+    const [temps, settles, trades, edges, fcs] = await Promise.all([
       fetchCSV("temps_log.csv"),
       fetchCSV("settlements.csv").catch(() => []),
+      fetchCSV("trades.csv").catch(() => []),
+      fetchCSVTail("edges.csv", 500000).catch(() => []),
+      fetchCSVTail("forecasts.csv", 120000).catch(() => []),
     ]);
     const now = new Date();
     const latest = latestPerStation(temps);
-    const hiBy = todaysHighs(temps, now);
+    const hiByDay = highsByDay(temps);
     const settleBy = settlementsByStation(settles);
 
     let lastPoll = null;
@@ -294,11 +639,21 @@ async function load(){
       const t = new Date(latest[s].utc_time);
       if(!isNaN(t) && (!lastPoll || t > lastPoll)) lastPoll = t;
     }
-    line.innerHTML = lastPoll
+    let bought = 0, failedN = 0;
+    for(const sid in STATION_OFFSET){
+      const {placed, failed} =
+        todaysTrades(trades, sid, stationDay(sid, now.getTime()));
+      if(placed.length) bought++;
+      if(!placed.length && failed.length) failedN++;
+    }
+    line.innerHTML = (lastPoll
       ? `Last poll ran at <b>${fmtLocal(lastPoll)}</b> your time. `
-        + `The poller runs every 15 minutes; each card below shows when `
-        + `its own station last reported.`
-      : `No poll data found.`;
+      : `No poll data found. `)
+      + `Today's money lane so far: <b>${bought}</b> `
+      + `${bought === 1 ? "city" : "cities"} bought`
+      + (failedN ? `, <b style="color:var(--red)">${failedN} failed</b>` : ``)
+      + `. Each card below shows its own station's buying window and `
+      + `what happened in it.`;
 
     const cards = [];
     const names = Object.keys(latest).sort(
@@ -315,11 +670,14 @@ async function load(){
       const pct = ageMin === null ? 0
         : Math.max(0, 100 - (ageMin / OLD_MIN) * 100);
 
-      const hi = hiBy[sid];
+      const today = stationDay(sid, now.getTime());
+      const hi = (hiByDay[sid] || {})[today];
       const hiTxt = hi !== undefined
         ? `High so far today: <b>${hi.toFixed(1)}&deg;</b>`
         : `High so far today: <b>&mdash;</b>`;
       const ydTxt = yesterdayLine(settleBy[sid], now);
+      const bet = betSection(sid, now, edges, trades, fcs,
+                             settleBy, hiByDay);
 
       if(isErr){
         cards.push(`<div class="cell err ${old ? "old" : ""}">
@@ -328,7 +686,8 @@ async function load(){
           <div class="temp">no reading</div>
           <div class="when">last poll could not reach this station</div>
           <div class="hi">${hiTxt}</div>
-          <div class="yday">${ydTxt}</div></div>`);
+          <div class="yday">${ydTxt}</div>
+          ${bet}</div>`);
         continue;
       }
 
@@ -345,7 +704,8 @@ async function load(){
         <div class="when">${whenTxt}</div>
         <div class="fresh"><i style="width:${pct}%"></i></div>
         <div class="hi">${hiTxt}</div>
-        <div class="yday">${ydTxt}</div></div>`);
+        <div class="yday">${ydTxt}</div>
+        ${bet}</div>`);
     }
     grid.innerHTML = cards.join("") ||
       `<div class="loading">No stations found in temps_log.csv.</div>`;
@@ -361,5 +721,3 @@ setInterval(load, 120000);
 </script>
 </body>
 </html>
-
-

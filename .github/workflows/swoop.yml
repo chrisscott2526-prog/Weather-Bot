@@ -1,9 +1,15 @@
 name: Swoop alert
 
+# Off-peak minutes (Aug 28 2026): GitHub drops crowded cron slots --
+# see poll.yml. The heat-of-day band now also covers 00:00-01:59 UTC,
+# because the West Coast's heating hours run to ~6pm Pacific = 01:00
+# UTC; the old 16-23 band went quiet exactly when a Vegas or LA
+# bracket was most at risk.
 on:
   schedule:
-    - cron: "*/15 16-23 * * *"   # heat of the day: every 15 min, 16:00-23:59 UTC
-    - cron: "0 1-15/2 * * *"     # rest of the clock: the old 2-hour rhythm
+    - cron: "9,24,39,54 16-23 * * *"  # heat of the day (East/Central)
+    - cron: "9,24,39,54 0-1 * * *"    # West Coast late afternoon
+    - cron: "9 3-15/2 * * *"          # rest of the clock: 2-hour rhythm
   workflow_dispatch: {}
 
 permissions:
@@ -25,6 +31,13 @@ jobs:
           python-version: "3.12"
 
       - run: pip install cryptography
+
+      # Fresh readings first: the board grades against temps_log.csv,
+      # and poll.yml's own cron gets dropped by GitHub for hours at a
+      # time (Aug 28 2026: cards graded on 75-80 minute old readings).
+      # Every swoop pass now brings its own thermometer.
+      - name: Poll the settlement stations first
+        run: python poller.py
 
       - name: Grade open positions against the thermometer
         env:

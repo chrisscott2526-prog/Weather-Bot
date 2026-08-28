@@ -1,8 +1,14 @@
 name: Poll weather stations
 
+# Off-peak minutes on purpose (Aug 28 2026): GitHub's scheduler is
+# best-effort and drops crowded slots -- on "*/15" (the :00/:15/:30/:45
+# rush minutes) this poll fired ~11 times a day instead of 96, and the
+# boards sat stale for hours. Odd minutes fire far more reliably, and
+# morning.yml + swoop.yml now also run the poller themselves so board
+# data rides along with every run that does fire.
 on:
   schedule:
-    - cron: "*/15 * * * *"
+    - cron: "4,19,34,49 * * * *"
   workflow_dispatch:
 
 permissions:
