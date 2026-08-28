@@ -37,33 +37,10 @@ border-radius:3px;background:#2a323b}
 </style></head><body><div class="wrap">
 <h1>Swoop Alert</h1>
 <div class="sub">Thermometer vs. market on the bot's open positions -
-checked Thu Aug 27, 20:50 UTC. Graded 4 of 4 open weather positions.
+checked Fri Aug 28, 00:11 UTC (<span class="age" data-built="1787875880259">just
+built</span>). Graded 0 of 0 open weather positions.
 </div>
-
-<div class="card OVERSHOOTRISK"><div class="top">
-<span class="city">Chicago &mdash; YES 80° to 81°</span>
-<span class="badge">OVERSHOOT RISK</span></div>
-<div class="det">Observed high so far: <b>80.6&deg;</b> &nbsp;|&nbsp; <span class="age">reading 30m old</span>
- &nbsp;|&nbsp; Market now: <b>100c</b></div>
-<div class="note">Observed high 80.6° is inside the bracket. Wins if the heat stops here - watch for late overshoot. Observed high 80.6° is only 0.4° under the 81° cap, and it is the heat of the day (~14:00 local). Highs only rise - one more push blows past this bracket. Reading is 30m old. Our side currently fetches 79c on the market. Advisory only - this board never sells for you.</div></div>
-<div class="card OVERSHOOTRISK"><div class="top">
-<span class="city">Houston &mdash; YES 95° or below</span>
-<span class="badge">OVERSHOOT RISK</span></div>
-<div class="det">Observed high so far: <b>95.0&deg;</b> &nbsp;|&nbsp; <span class="age">reading 30m old</span>
- &nbsp;|&nbsp; Market now: <b>1c</b></div>
-<div class="note">Observed high 95.0° is under the 95° cap, but highs only rise - this can still climb out and die. Never a swoop; there is no safe side on an &#x27;or below&#x27; bracket. ONE TICK FROM DEAD. Instrument already reads 95.0° - at or past the 95° cap itself, and it is the heat of the day (~14:00 local). Highs only rise - one more push blows past this bracket. Reading is 30m old. Our side currently fetches n/a on the market. Advisory only - this board never sells for you.</div></div>
-<div class="card NEEDSHEAT"><div class="top">
-<span class="city">San Antonio &mdash; YES 101° to 102°</span>
-<span class="badge">NEEDS HEAT</span></div>
-<div class="det">Observed high so far: <b>100.4&deg;</b> &nbsp;|&nbsp; <span class="age">reading 25m old</span>
- &nbsp;|&nbsp; Market now: <b>73c</b></div>
-<div class="note">Needs about 1° more warming to enter.</div></div>
-<div class="card NEEDSHEAT"><div class="top">
-<span class="city">Austin &mdash; YES 103° to 104°</span>
-<span class="badge">NEEDS HEAT</span></div>
-<div class="det">Observed high so far: <b>100.4&deg;</b> &nbsp;|&nbsp; <span class="age">reading 30m old</span>
- &nbsp;|&nbsp; Market now: <b>94c</b></div>
-<div class="note">Needs about 3° more warming to enter.</div></div>
+<div class='empty'>No open same-day weather positions to grade right now. The board refreshes each scheduled pass.</div>
 <div class="foot"><b>Read it like this:</b> daily highs only rise, so a
 bracket the thermometer has passed is settled physics, not opinion.
 <b>SWOOP</b> = the reading already agrees with the bot's side, the
@@ -79,4 +56,27 @@ makes it MORE urgent, not less. This board only warns - it never sells
 for you. Always eyeball the station on
 weather.gov before sizing up; this page is only as fresh as the last
 poll. Chase nothing above 80c; the meat is gone.</div>
-</div></body></html>
+</div>
+<script>
+// Live ages, same law as the Station Board: the label ticks with real
+// time, so a cached or stale copy of this page can never claim its
+// readings are fresher than they are. Text content is written by this
+// script only from numeric epochs baked in above.
+var OLD_MIN = 60;
+function swoopTick() {
+  var now = Date.now();
+  document.querySelectorAll('[data-obs]').forEach(function (el) {
+    var m = Math.max(0, Math.floor((now - +el.dataset.obs) / 60000));
+    el.textContent = 'reading ' + m + 'm old';
+    el.classList.toggle('old', m > OLD_MIN);
+  });
+  document.querySelectorAll('[data-built]').forEach(function (el) {
+    var m = Math.max(0, Math.floor((now - +el.dataset.built) / 60000));
+    el.textContent = m < 1 ? 'built just now' : 'built ' + m + 'm ago';
+    el.classList.toggle('old', m > OLD_MIN);
+  });
+}
+swoopTick();
+setInterval(swoopTick, 30000);
+</script>
+</body></html>
