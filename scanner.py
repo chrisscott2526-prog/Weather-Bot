@@ -121,13 +121,23 @@ def window_from_argv():
 WINDOW = window_from_argv()
 
 # ---- THE TWO RULES' NUMBERS ----
-MAX_PICK_COST = 68.0   # past this, no buy for that city today
-MIN_PICK_COST = 20.0   # under this the market is screaming we're wrong
-# Raised 8 -> 15 on Aug 24 2026 (under-15c picks 0-for-10), then
-# 15 -> 20 on Aug 28 2026, both on the owner's call, off the
-# scoreboard: every bet priced under 20c stood 2 wins to 22 losses.
-# The owner's words: no long shots -- skip the bet instead. Must
-# always match trader.py's MIN_COST, changed in the same commit.
+# THE 40-60 BAND TRIAL (owner's decision, Aug 28 2026, reviewed after
+# two weeks -- ~Sep 11 2026). The full scoreboard sliced by price
+# showed the only profitable region was 40-60c (28W-23L, +11c per $1
+# risked; the 45-49c pocket alone went 12W-4L, +56c/$1) while both
+# tails lost: under 20c went 2W-22L and 60-68c went 3W-7L. The owner's
+# read: by the time the day-of bot buys, a 40-60c bracket is the
+# market genuinely agreeing with the pick at a price that still pays.
+# History of the floor: 8 -> 15 (Aug 24, under-15c picks 0-for-10),
+# 15 -> 20 (Aug 28 morning, "no long shots"), 20 -> 40 + cap 68 -> 60
+# (Aug 28 evening, this trial). After the two weeks, keeping,
+# widening, or reverting to 20-68 is the owner's call off the settled
+# results -- edges.csv keeps logging every bracket either way, so the
+# trial can be graded against what the old band would have bought.
+# Must always match trader.py's MIN_COST/MAX_COST, changed in the
+# same commit.
+MAX_PICK_COST = 60.0   # past this, no buy for that city today
+MIN_PICK_COST = 40.0   # under this the market is screaming we're wrong
 MIN_PICK_PROB = 35.0   # top bracket weaker than this = day too uncertain
 
 # Day-of reality check (Aug 28 2026): on a morning scan, the settlement

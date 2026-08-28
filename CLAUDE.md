@@ -84,9 +84,10 @@ translated one-to-one:
    bracket containing the **most ensemble members** is the pick.
    Full stop. Price plays **no part** in choosing it.
 2. **Price is only a gate.** If the pick's YES ask is inside
-   `MIN_PICK_COST..MAX_PICK_COST` (20¢–68¢ in `scanner.py`; floor
-   raised 8¢ → 15¢ on Aug 24 2026 — see the accuracy rebuild below —
-   then 15¢ → 20¢ on Aug 28 2026, owner's call: "no long shots").
+   `MIN_PICK_COST..MAX_PICK_COST` (**40¢–60¢ since Aug 28 2026 — the
+   two-week band trial, see its own section below**; the history:
+   8¢ floor → 15¢ on Aug 24 2026 — see the accuracy rebuild — → 20¢
+   on Aug 28 2026 ("no long shots") → the 40–60¢ trial that evening).
    Then buy is flagged.
    Outside the band → **NO BUY for that city that day. No substitutes.**
    Never fall back to a cheaper neighboring bracket — a week of babysitting
@@ -103,12 +104,14 @@ translated one-to-one:
 5. Additional seatbelts in `scanner.py` (paid for in losses — keep them):
    - `MIN_PICK_PROB = 35`: if even the top bracket has under 35% of
      members, the day is too uncertain — no bet.
-   - Under `MIN_PICK_COST` (20¢): the market is screaming we're wrong —
-     believe it, don't "value-buy". (Raised 8¢ → 15¢ on Aug 24 2026:
-     under-15¢ picks settled **0-for-10**. Raised 15¢ → 20¢ on Aug 28
-     2026, again the owner's call: at that point every settled bet
-     bought under 20¢ stood **2 wins to 22 losses**. The owner's words:
-     not interested in long shots — skip the bet instead.)
+   - Under `MIN_PICK_COST` (40¢ during the band trial): the market is
+     screaming we're wrong — believe it, don't "value-buy". (Floor
+     raised 8¢ → 15¢ on Aug 24 2026: under-15¢ picks settled
+     **0-for-10**. Raised 15¢ → 20¢ on Aug 28 2026: every settled bet
+     under 20¢ stood **2 wins to 22 losses**. The owner's words: not
+     interested in long shots — skip the bet instead. Raised again to
+     40¢, with the cap trimmed 68¢ → 60¢, that same evening — the
+     two-week band trial, see its own section.)
    - No ensemble members for a (date, city) → **SKIP loudly**.
 
 ## THE DAY-OF SWITCH (Aug 26, 2026) — OWNER DECISION
@@ -207,11 +210,11 @@ Trader hard caps, all enforced in `trader.py` — do not loosen:
 - `MAX_PER_CITY_DAY = 1` position per city per day (counts existing
   positions and resting orders via the FAIL-CLOSED exposure check — if the
   account can't be read, **no trades are placed that run**).
-- `MIN_COST, MAX_COST = 20, 68` — must always equal the scanner's gate.
+- `MIN_COST, MAX_COST = 40, 60` — must always equal the scanner's gate.
   (They were once 15/10, an impossible range that silently placed zero
-  trades for days. Floor raised 8 → 15 on Aug 24 2026, then 15 → 20 on
-  Aug 28 2026, each time with the scanner's — the two moved in one
-  commit, as they always must.)
+  trades for days. Floor raised 8 → 15 on Aug 24 2026, 15 → 20 on
+  Aug 28 2026, then the 40–60 band trial that evening, each time with
+  the scanner's — the two moved in one commit, as they always must.)
 - `SANITY_GAP = 60`: skip if model% and price disagree by more than 60
   points — that gap means bad data, not free money.
 - Kalshi maintenance window 06:45–08:15 UTC is skipped (the API 503s).
@@ -569,6 +572,42 @@ after the East Coast window had closed. Fixes, all in one commit:
    (MIN/MAX_PICK_COST, MIN_PICK_PROB, the window hours), the
    series→station map, and the timezone map MUST move in the same
    commit as their Python sources — same law as the highs mirror.
+
+## THE 40–60 BAND TRIAL (Aug 28, 2026) — OWNER DECISION, TWO WEEKS
+
+The owner asked for the full scoreboard sliced by price, then chose
+the band. The evidence (all 132 settled bets at the time):
+
+- Under 20¢: **2W–22L** (−$1.07/$1 under 15¢). 20–24¢: 2W–12L.
+  35–39¢: 2W–9L. 60–68¢: **3W–7L, −55¢/$1** — both tails lose.
+- **40–60¢: 28W–23L (55%), +11¢ per $1 risked — the only profitable
+  region.** The 45–49¢ pocket alone: 12W–4L (75%), +56¢/$1.
+- Floor scenarios: ≥40¢ was the first floor ever profitable (+3¢/$1);
+  ≥45¢ made +14¢/$1; trimming the cap to 60¢ beat keeping 68¢.
+
+The owner's reasoning, recorded: by the time the day-of bot buys
+(9–11 AM city time), a 40–60¢ price means the market genuinely agrees
+with the pick and it still pays — they had been noticing the same
+thing watching the buys.
+
+Terms of the trial, set when it started:
+
+- `MIN_PICK_COST/MIN_COST = 40`, `MAX_PICK_COST/MAX_COST = 60`,
+  scanner + trader + the Station Board JS mirror, one commit.
+- **Runs two weeks: Aug 28 → ~Sep 11, 2026.** Then the owner decides
+  — keep, widen, or revert to 20–68 — off the settled results, not
+  vibes.
+- Both known caveats were on the table when the owner chose: the
+  per-band slices are thin (10–16 bets each), and most of the record
+  is the benched night lane — the morning lane (16 settled: 10W–6L,
+  +68¢/$1) had NOT shown the cheap-bet disease (its 20–39¢ bets were
+  4W–2L). The trial knowingly trades those possible wins away for the
+  proven band; that trade-off is what the review judges.
+- **How to grade it:** edges.csv keeps logging every bracket with
+  prices, picks, and `would_bet` regardless of the band, so the
+  review can compare what 40–60 actually bought against what 20–68
+  would have bought on the same days. Expect FEWER buys per day
+  during the trial — that is the band working, not a bug.
 
 ## ROADMAP — how this grows
 

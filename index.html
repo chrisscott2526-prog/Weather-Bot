@@ -202,8 +202,9 @@ const OLD_MIN = 60;
 // ---- MONEY-RULE MIRROR (display only; the bot enforces these in
 // scanner.py/trader.py). MUST match scanner.py's numbers -- if a gate
 // changes there, change it here in the same commit. ----
-const MIN_PICK_COST = 20;   // under this = long shot, skipped
-const MAX_PICK_COST = 68;   // over this = too expensive, skipped
+const MIN_PICK_COST = 40;   // under this = long shot, skipped
+const MAX_PICK_COST = 60;   // over this = too expensive, skipped
+// (the 40-60 band trial, owner's call Aug 28 2026, review ~Sep 11)
 const MIN_PICK_PROB = 35;   // top bracket weaker than this = no bet
 const WIN_START = 9, WIN_END = 11;   // 9:00-10:59 AM city time
 
