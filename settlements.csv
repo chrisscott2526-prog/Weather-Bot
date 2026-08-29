@@ -208,6 +208,7 @@ date,station,city,series,low_f,high_f,n_markets,n_settled,source,utc_offset_hour
 2026-08-27,KSFO,San Francisco,KXHIGHTSFO,73,74,6,6,kalshi-api,-8,2026-08-28T22:36:54+00:00
 2026-08-28,KATL,Atlanta,KXHIGHTATL,92,93,6,6,kalshi-api,-6,2026-08-29T16:20:12+00:00
 2026-08-28,KAUS,Austin,KXHIGHAUS,101,102,6,6,kalshi-api,-7,2026-08-29T16:20:12+00:00
+2026-08-28,KBOS,Boston,KXHIGHTBOS,83,84,6,6,kalshi-api,-5,2026-08-29T20:38:14+00:00
 2026-08-28,KDCA,Washington DC,KXHIGHTDC,89,90,6,6,kalshi-api,-5,2026-08-29T16:20:12+00:00
 2026-08-28,KDEN,Denver,KXHIGHDEN,94,95,6,6,kalshi-api,-7,2026-08-29T16:20:12+00:00
 2026-08-28,KDFW,Dallas,KXHIGHTDAL,101,102,6,6,kalshi-api,-6,2026-08-29T16:20:12+00:00
