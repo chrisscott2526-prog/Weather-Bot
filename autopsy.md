@@ -1,6 +1,6 @@
-# Loss autopsy — 2026-08-29 12:36 UTC
+# Loss autopsy — 2026-08-29 16:50 UTC
 
-138 settled bets on the scoreboard. Where did the day's real high land, relative to what we bought?
+141 settled bets on the scoreboard. Where did the day's real high land, relative to what we bought?
 
 ## Every settled bet
 
@@ -139,17 +139,20 @@
 | 2026-08-27 | Chicago | 80° to 81° | 60¢ | WIN | settlement |
 | 2026-08-27 | Houston | 95° or below | 20¢ | MISS-HIGH-BY-1 | settlement |
 | 2026-08-27 | San Antonio | 101° to 102° | 47¢ | WIN | settlement |
-| 2026-08-28 | Austin | 99° to 100° | 52¢ | MISS-HIGH-BY-1 | settlement+instrument |
-| 2026-08-28 | Chicago | 82° to 83° | 63¢ | MISS-HIGH-BY-1 | settlement+instrument |
-| 2026-08-28 | Dallas | 99° to 100° | 15¢ | MISS-HIGH-BY-1 | settlement+instrument |
-| 2026-08-28 | Oklahoma City | 97° to 98° | 49¢ | MISS-HIGH-BY-1 | instrument |
-| 2026-08-28 | Philadelphia | 82° or below | 17¢ | MISS-FAR | instrument |
+| 2026-08-28 | Austin | 99° to 100° | 52¢ | MISS-HIGH-BY-1 | settlement |
+| 2026-08-28 | Chicago | 82° to 83° | 63¢ | MISS-HIGH-BY-1 | settlement |
+| 2026-08-28 | Dallas | 99° to 100° | 15¢ | MISS-HIGH-BY-1 | settlement |
+| 2026-08-28 | Las Vegas | 106° to 107° | 58¢ | WIN | settlement |
+| 2026-08-28 | Los Angeles | 90° or above | 37¢ | MISS-FAR | settlement |
+| 2026-08-28 | Oklahoma City | 97° to 98° | 49¢ | MISS-HIGH-BY-1 | settlement |
+| 2026-08-28 | Philadelphia | 82° or below | 17¢ | MISS-FAR | settlement |
+| 2026-08-28 | Phoenix | 112° to 113° | 65¢ | WIN | settlement |
 
 ## 1. Overall
 
-- Wins: **45 of 138** (33%)
-- Missed by exactly one bracket: **71** (51%) — 38 high, 33 low
-- Missed far (2+ brackets): **22** (16%) — 9 high, 13 low
+- Wins: **47 of 141** (33%)
+- Missed by exactly one bracket: **71** (50%) — 38 high, 33 low
+- Missed far (2+ brackets): **23** (16%) — 9 high, 14 low
 
 ## 2. Per city
 
@@ -162,15 +165,15 @@
 | Dallas | 10 | 1 | 3 | 3 | 3 | 45% | winning less than half what the model claims — bench candidate |
 | Denver | 8 | 1 | 3 | 1 | 3 | 58% | winning less than half what the model claims — bench candidate |
 | Houston | 8 | 3 | 2 | 2 | 1 | 48% | - |
-| Las Vegas | 6 | 1 | 2 | 1 | 2 | 55% | winning less than half what the model claims — bench candidate |
-| Los Angeles | 3 | 1 | 0 | 2 | 0 | 88% | every miss leans one way — station may run cold vs our model (calibration should be eating this); winning less than half what the model claims — bench candidate |
+| Las Vegas | 7 | 2 | 2 | 1 | 2 | 54% | - |
+| Los Angeles | 4 | 1 | 0 | 2 | 1 | 82% | every miss leans one way — station may run cold vs our model (calibration should be eating this); winning less than half what the model claims — bench candidate |
 | Miami | 8 | 3 | 5 | 0 | 0 | 65% | every miss leans one way — station may run hot vs our model (calibration should be eating this) |
 | Minneapolis | 4 | 3 | 0 | 1 | 0 | 55% | - |
 | New Orleans | 6 | 1 | 1 | 4 | 0 | 62% | winning less than half what the model claims — bench candidate |
 | New York City | 7 | 3 | 1 | 3 | 0 | 55% | - |
 | Oklahoma City | 7 | 0 | 2 | 0 | 5 | 41% | winning less than half what the model claims — bench candidate |
 | Philadelphia | 9 | 6 | 1 | 1 | 1 | 50% | - |
-| Phoenix | 7 | 3 | 3 | 1 | 0 | 53% | - |
+| Phoenix | 8 | 4 | 3 | 1 | 0 | 51% | - |
 | San Antonio | 6 | 3 | 0 | 2 | 1 | 44% | - |
 | San Francisco | 4 | 0 | 0 | 1 | 3 | 56% | every miss leans one way — station may run cold vs our model (calibration should be eating this); winning less than half what the model claims — bench candidate |
 | Seattle | 7 | 2 | 2 | 1 | 2 | 51% | - |
@@ -183,7 +186,7 @@
 |---|---|---|---|
 | under 15¢ | 11 | 0 | 0% |
 | 15–35¢ | 55 | 13 | 24% |
-| over 35¢ | 72 | 32 | 44% |
+| over 35¢ | 75 | 34 | 45% |
 
 The question this table exists to answer: when the market prices our pick cheap (under 15¢), is it right and are we wrong? If the cheap band keeps losing while the mid band holds up, that is the case for raising MIN_PICK_COST. (It was: raised 8¢ → 15¢ on Aug 24 2026, on 0-for-10.)
 
@@ -193,13 +196,13 @@ When the scanner said a pick had a given chance, how often did it actually win? 
 
 | Model claimed | Bets | Wins | Won | Claimed (avg) |
 |---|---|---|---|---|
-| 35–45% | 44 | 18 | 41% | 39% |
-| 45–55% | 52 | 14 | 27% | 49% |
-| 55–65% | 20 | 7 | 35% | 61% |
+| 35–45% | 45 | 19 | 42% | 39% |
+| 45–55% | 53 | 15 | 28% | 49% |
+| 55–65% | 21 | 7 | 33% | 61% |
 | 65% and up | 22 | 6 | 27% | 75% |
-| **All** | 138 | 45 | 33% | 52% |
+| **All** | 141 | 47 | 33% | 52% |
 
-The model claimed 52% on average and delivered 33% — overconfident by 19 points. The learned spread correction (Aug 24 2026) exists to close this gap; watch it shrink here, or call the correction out if it doesn't.
+The model claimed 52% on average and delivered 33% — overconfident by 18 points. The learned spread correction (Aug 24 2026) exists to close this gap; watch it shrink here, or call the correction out if it doesn't.
 
 ## 5. The race: night vs morning
 
@@ -207,28 +210,28 @@ Same pick-first rules, same gates, same $1 sizing. The only difference: NIGHT pi
 
 | | Night | Morning |
 |---|---|---|
-| Settled bets | 116 | 22 |
-| Wins | 34 (29%) | 11 (50%) |
+| Settled bets | 116 | 25 |
+| Wins | 34 (29%) | 13 (52%) |
 | Missed by 1 bracket, high | 29 | 9 |
 | Missed by 1 bracket, low | 33 | 0 |
-| Missed far (2+ brackets) | 20 | 2 |
+| Missed far (2+ brackets) | 20 | 3 |
 | Unresolved | 0 | 0 |
 | Priced under 15¢ (wins/bets) | 0/11 | - |
 | Priced 15–35¢ (wins/bets) | 10/48 | 3/7 |
-| Priced over 35¢ (wins/bets) | 24/57 | 8/15 |
-| Dollars risked | $96.88 | $16.95 |
-| P&L after fees | $-29.01 | $+5.25 |
-| **Profit per $1 risked** | **-0.30** | **+0.31** |
+| Priced over 35¢ (wins/bets) | 24/57 | 10/18 |
+| Dollars risked | $96.88 | $18.92 |
+| P&L after fees | $-29.01 | $+5.20 |
+| **Profit per $1 risked** | **-0.30** | **+0.27** |
 
-Both lanes are live: 116 night vs 22 morning settled bets. Per the roadmap, the scoreboard promotes and conviction never does — neither lane changes sizing or rules until the sample is big enough to mean something.
+Both lanes are live: 116 night vs 25 morning settled bets. Per the roadmap, the scoreboard promotes and conviction never does — neither lane changes sizing or rules until the sample is big enough to mean something.
 
 ## 6. What this means (plain English)
 
-- 71 of 93 losses missed by exactly ONE bracket. Plain English: on those days the forecast found the right neighborhood and knocked on the wrong door. That pattern points at small per-station bias — the calibration's job — not at a broken strategy.
-- But 22 of 93 losses landed 2+ brackets away. Far misses are worse news than near misses: on those days the model wasn't even in the right neighborhood.
+- 71 of 94 losses missed by exactly ONE bracket. Plain English: on those days the forecast found the right neighborhood and knocked on the wrong door. That pattern points at small per-station bias — the calibration's job — not at a broken strategy.
+- But 23 of 94 losses landed 2+ brackets away. Far misses are worse news than near misses: on those days the model wasn't even in the right neighborhood.
 - Misses are split between high and low — no overall drift in one direction yet.
 - The cheap band (under 15¢) is 0 for 11. The market priced those picks against us and was right every time — which is why MIN_PICK_COST was raised to 15¢ on Aug 24 2026. New bets can no longer land in this band; these rows are its tombstone.
 
-**The honest caveat:** 138 settled bets is enough for the overall patterns to mean something, but the per-city and per-strategy slices are still single-digit samples — treat those as hints. Per the roadmap: the scoreboard promotes, conviction never does.
+**The honest caveat:** 141 settled bets is enough for the overall patterns to mean something, but the per-city and per-strategy slices are still single-digit samples — treat those as hints. Per the roadmap: the scoreboard promotes, conviction never does.
 
 *Sources: `settlement` = Kalshi's own results located the high (a win pinning our bracket, or the official settled range from settlements.csv placing a loss); `instrument` = the poller's floored METAR running max, used only when no settled range is on file; `settlement+instrument` = the instrument read inside our bracket but Kalshi settled NO, and since the instrument can only understate, the official high must have escaped out the top. The instrument understates by design, so an instrument-sourced loss scored `low` could in truth have overshot instead.*
