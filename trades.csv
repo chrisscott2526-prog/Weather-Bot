@@ -320,3 +320,5 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-28T16:40:01+00:00,KXHIGHLAX-26AUG28-T89,90° or above,yes,2,37,62.2,,True,submitted,01a0493e-16e8-7413-b33e-ac4b15007ee7,morning
 2026-08-28T16:40:01+00:00,KXHIGHTPHX-26AUG28-B112.5,112° to 113°,yes,1,65,37.8,,True,submitted,01a0493e-1ad0-7171-8d6e-cdb84dc7c213,morning
 2026-08-28T16:40:01+00:00,KXHIGHTLV-26AUG28-B106.5,106° to 107°,yes,1,58,50.0,,True,submitted,01a0493e-1ad0-719c-b3f8-c9303b21e121,morning
+2026-08-29T13:50:48+00:00,KXHIGHTATL-26AUG29-B88.5,88° to 89°,yes,1,55,43.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,morning
+2026-08-29T13:50:48+00:00,KXHIGHTBOS-26AUG29-T76,75° or below,yes,1,53,37.8,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,morning
