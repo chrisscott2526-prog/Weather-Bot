@@ -54,6 +54,24 @@
   }
   .boardline b{color:var(--ink);font-weight:500}
 
+  /* THE WATCHDOG banner (Aug 30 2026): health.json, rewritten every
+     ~15 min by watchdog.py inside the poller relay. Red = a pulse the
+     bot depends on has stopped; the text says which and what to press.
+     A missing/stale health.json is ALSO an alarm (fail-closed: a
+     silent watchdog must never look green). */
+  .healthbar{
+    margin:0 0 14px;padding:10px 12px;border-radius:6px;
+    border:1.5px solid var(--red);background:#241416;
+    font-size:13px;line-height:1.55;color:var(--ink);
+  }
+  .healthbar .htag{
+    font:700 11px/1 "Barlow Condensed",sans-serif;letter-spacing:.16em;
+    text-transform:uppercase;display:inline-block;margin-right:8px;
+    padding:4px 7px;border-radius:3px;background:var(--red);color:#1a0d09;
+  }
+  .healthbar div+div{margin-top:6px}
+  .healthbar b{font-weight:600}
+
   .grid{
     display:grid;grid-template-columns:1fr;gap:10px;
   }
@@ -156,6 +174,8 @@
   </header>
 
   <div class="boardline" id="boardline">Loading the latest poll&hellip;</div>
+
+  <div class="healthbar" id="healthbar" hidden></div>
 
   <div class="grid" id="grid">
     <div class="loading">Reading temps_log.csv&hellip;</div>
@@ -619,18 +639,59 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
   return html;
 }
 
+// THE WATCHDOG banner. health.json is written every ~15 min by
+// watchdog.py inside the poller relay. Fail-closed display: a stale
+// health.json is itself an alarm ("nothing is watching"), never green.
+// A missing file only means the watchdog isn't deployed yet -- stay
+// quiet rather than crying wolf on day zero.
+const HEALTH_STALE_MIN = 25;
+function esc(s){
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
+                  .replace(/>/g,"&gt;");
+}
+function renderHealth(health, now){
+  const bar = document.getElementById("healthbar");
+  if(!health || !health.checked_utc){ bar.hidden = true; return ""; }
+  const checked = new Date(health.checked_utc);
+  const ageMin = isNaN(checked) ? null
+    : Math.floor((now - checked) / 60000);
+  if(ageMin === null || ageMin > HEALTH_STALE_MIN){
+    bar.innerHTML = `<div><span class="htag">Self-check silent</span>`
+      + `The watchdog last ran <b>${ageMin === null ? "?" : ageMin} min`
+      + `</b> ago (limit ${HEALTH_STALE_MIN}) &mdash; nothing is `
+      + `watching the pipeline right now, and everything below may be `
+      + `stale. Press <b>Run</b> on <b>poll.yml</b> in GitHub Actions.`
+      + `</div>`;
+    bar.hidden = false; return "";
+  }
+  if(health.alarms && health.alarms.length){
+    bar.innerHTML = health.alarms.map(a => {
+      const s = new Date(a.since);
+      return `<div><span class="htag">Alarm</span>${esc(a.msg)}`
+        + (isNaN(s) ? `` : ` <b>Since ${fmtLocal(s)} your time.</b>`)
+        + `</div>`;
+    }).join("");
+    bar.hidden = false; return "";
+  }
+  bar.hidden = true;
+  return ` Self-check <b>OK</b> as of <b>${fmtLocal(checked)}</b>.`;
+}
+
 async function load(){
   const grid = document.getElementById("grid");
   const line = document.getElementById("boardline");
   try{
-    const [temps, settles, trades, edges, fcs] = await Promise.all([
+    const [temps, settles, trades, edges, fcs, health] = await Promise.all([
       fetchCSV("temps_log.csv"),
       fetchCSV("settlements.csv").catch(() => []),
       fetchCSV("trades.csv").catch(() => []),
       fetchCSVTail("edges.csv", 500000).catch(() => []),
       fetchCSVTail("forecasts.csv", 120000).catch(() => []),
+      fetch("health.json?t=" + Date.now(), {cache:"no-store"})
+        .then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
     const now = new Date();
+    const healthLine = renderHealth(health, now);
     const latest = latestPerStation(temps);
     const hiByDay = highsByDay(temps);
     const settleBy = settlementsByStation(settles);
@@ -654,7 +715,7 @@ async function load(){
       + `${bought === 1 ? "city" : "cities"} bought`
       + (failedN ? `, <b style="color:var(--red)">${failedN} failed</b>` : ``)
       + `. Each card below shows its own station's buying window and `
-      + `what happened in it.`;
+      + `what happened in it.` + healthLine;
 
     const cards = [];
     const names = Object.keys(latest).sort(

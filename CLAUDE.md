@@ -445,6 +445,7 @@ check that line first when a feed dies.
 | `results.csv` | `settle.py` | `graded_utc,ticker,city,action,cost_cents,count,fee_cents,market_result,result,pnl,strategy` (fee_cents added Aug 18, strategy Aug 20 2026; old rows backfilled `night`; readers treat a blank strategy as night) |
 | `sports_picks.csv` | `sports_scanner.py` | `scanned_utc,sport,shelf,game,detail,commence_utc,series,ticker,side,pick,books_pct,kalshi_cents,fee_cents,gap_cents,n_books,shown,why` (wiped + new header Aug 19, 2026 — edge-era rows graded a dead rule) |
 | `sports_results.csv` | `sports_scanner.py` | `graded_utc,sport,shelf,game,detail,ticker,side,pick,books_pct,kalshi_cents,gap_cents,market_result,result,pnl` (wiped same commit) |
+| `health.json` | `watchdog.py` (full rewrite each relay pass) | JSON: `checked_utc, ok, alarms[{code,since,msg}], notes` (added Aug 30 2026 — the watchdog's pulse report for the Station Board banner; display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 
 Calibration is applied **exactly once**, at forecast time
 (`calibrate_members` inside `forecast.py`) — both the bias shift and
@@ -662,6 +663,58 @@ if any pass failed. Queued runs showing "cancelled" in the Actions
 list are normal — GitHub keeps only the newest starter. Never thin
 this back to single-shot runs: the repo's runner minutes are free
 (public repo) and one dropped cron = a stale board on a money day.
+
+## THE WATCHDOG (Aug 30, 2026)
+
+Born from the owner's exact words: "every single solitary time I ask
+for a check, everything checks out great, and then something breaks
+anyway." They were right, and the reason is structural: **a
+once-a-morning check can never catch failures that start after the
+check.** Every infrastructure failure this repo has eaten (dropped
+poller crons, the money lane never firing, the empty ODDS_API_KEY,
+insufficient-balance orders) *began* while everything was green and
+was *found* hours later by the owner squinting at a stale board. The
+owner was the monitoring system. That is backwards.
+
+So the check runs all day instead: `watchdog.py` runs inside every
+poller-relay pass (~15 min) and checks the pulses that have actually
+burned us, each against its rawest source:
+
+- **POLLER** — newest write in `temps_log.csv` under 40 min old.
+- **FORECAST** (14:00–18:45 UTC) — a same-day morning row exists in
+  `forecasts.csv` (via `csvio.is_morning_row`, the one true
+  classifier).
+- **MONEY LANE** (13:15–18:45 UTC) — a morning.yml run is alive on
+  GitHub right now (queued/in-progress, or finished under 40 min ago),
+  checked via the Actions API. An unreachable API is a logged note,
+  never a false alarm.
+- **ORDERS** — no trade placed today has ERROR status.
+- **SWOOP** (16:00–01:59 UTC) — `swoop_log.csv` graded under 45 min
+  ago inside its 15-minute band.
+- **SETTLEMENTS** — `settlements.csv` checked within 9 hours.
+
+An alarm does two things: the relay pass flags it and the finished
+run turns **RED** (GitHub then emails the owner — the dead-feed law),
+and `health.json` carries it to the **Station Board banner**, which
+names the problem and the button to press in plain English, within
+~15 minutes of the failure starting. Alarms keep their first-seen
+time (`since`) across passes.
+
+`health.json` contracts: writer is `watchdog.py`, FULL-REWRITE every
+pass — **never** add it to the union-merge list; **no money code
+reads it** (not scanner, trader, settle, or calibration — it is
+display/alerting only, so it does not violate the derived-file law).
+The board's display is **fail-closed**: a `health.json` older than
+25 minutes shows a red "SELF-CHECK SILENT" banner — a dead watchdog
+must never look green. A *missing* file just hides the banner (day
+zero / forks). Thresholds are generous (≥2 missed beats) on purpose:
+an alarm the owner learns to ignore is worse than none.
+
+What the watchdog can NOT do, said plainly to the owner when it
+shipped: it cannot see a failure before it happens, and it cannot
+make a 55%-win-rate strategy stop having losing days. It shrinks
+discovery time from "when the owner happens to look" to ~15 minutes.
+That is the whole promise.
 
 ## THE 40–60 BAND TRIAL (Aug 28, 2026) — OWNER DECISION, TWO WEEKS
 
