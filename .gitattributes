@@ -1,0 +1,18 @@
+# Append-only logs: when two jobs append rows at the same moment, keep
+# BOTH sides' rows (git's union merge) instead of letting one side's
+# rows vanish in a rebase conflict -- the Aug 20 2026 lost-settlements
+# scar, fixed at the root. Row order at the tail may interleave; every
+# reader reads by column name and timestamp, so that is harmless.
+#
+# NEVER add a full-rewrite file here (settlements.csv, daily_highs.csv,
+# the .html pages, autopsy.md): union would interleave two complete
+# rewrites into garbage. Append-only CSVs only.
+temps_log.csv merge=union
+forecasts.csv merge=union
+afternoon_forecasts.csv merge=union
+edges.csv merge=union
+trades.csv merge=union
+results.csv merge=union
+swoop_log.csv merge=union
+sports_picks.csv merge=union
+sports_results.csv merge=union
