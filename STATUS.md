@@ -80,14 +80,16 @@ The four tests, answered plainly:
 
     WHERE WE ARE:   7 of 9 areas built and running; missing a test/replay
                     harness and a hand-delivered evening report
-    WHAT I DID:     Took stock of the whole codebase against the new
-                    standing orders, wrote this status file, and recorded
-                    why some orders couldn't be followed as written (the
-                    spec they point at isn't in the repo). Touched no
-                    trading logic.
-    WHAT'S NEXT:    Owner adds WEATHER_BOT_SPEC.md to the repo (or says
-                    where it lives) so the real section-by-section build
-                    check and guards.py can be done against it.
+    WHAT I DID:     Took stock of the codebase against the new standing
+                    orders and wrote the status/decision files. Then, on
+                    the owner's direct ask to cut losses: benched Oklahoma
+                    City (0W-7L) and Dallas (1W-9L) from real-money buys
+                    on scoreboard evidence — they lose under every rule
+                    set, and together are half the total net loss. Both
+                    still tracked on paper; Denver/DC/SF/Austin put on a
+                    written watch list, not benched.
+    WHAT'S NEXT:    Sep 11 review of the bench + price band + vote gate,
+                    all on settled results.
     DATA STORED:    930 station-days across all 20 stations (need was 30 —
                     passed long ago)
     ANYTHING WRONG: Yes — the scoreboard is net negative (−$20.95 over 146

@@ -2,6 +2,22 @@
 
 One line of why per decision, newest first, as the standing orders require.
 
+## 2026-08-30 — the city bench (owner mandate: "bring wins up, losses down")
+
+8. **Benched Oklahoma City (0W–7L) and Dallas (1W–9L) from real-money
+   buys; both still scanned and logged on paper.** Why: they lose under
+   the current rules too (0–4 combined in-band/morning), and together
+   they account for half the account's entire net loss.
+
+9. **Did NOT bench Denver, Washington DC, San Francisco, or Austin
+   despite ugly totals; put them on a written watch list instead.**
+   Why: their losses came almost entirely from the already-banned cheap
+   night bets — Denver's only morning-lane bet actually won.
+
+10. **Set the bench's review date to ~Sep 11, alongside the band trial.**
+    Why: one review of all three changes on settled evidence beats three
+    separate arguments.
+
 ## 2026-08-30 — first session under the standing orders
 
 1. **Kept `CLAUDE.md` as the authoritative operating manual; the standing

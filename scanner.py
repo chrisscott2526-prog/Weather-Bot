@@ -147,6 +147,27 @@ MAX_PICK_COST = 60.0   # past this, no buy for that city today
 MIN_PICK_COST = 45.0   # under this the market is screaming we're wrong
 MIN_PICK_PROB = 40.0   # top bracket weaker than this = day too uncertain
 
+# THE CITY BENCH (owner's mandate, Aug 30 2026: "anything that can be
+# done to bring the wins up and the losses down"). The roadmap's rule:
+# cities with proven bad hit rates get benched on scoreboard evidence.
+# These two lose under EVERY rule set, including the current band and
+# the morning lane -- not just under the dead cheap-bet/night rules:
+#   Oklahoma City: 0W-7L  (0-2 inside 45-60c, 0-2 morning lane)
+#   Dallas:        1W-9L  (0-2 inside 45-60c, 0-3 morning lane)
+# Together: 1W-16L, -$10.57 -- half the account's entire net loss.
+# A benched city is still polled, forecast, scanned, and logged to
+# edges.csv every day (pick and prices included), so the paper record
+# keeps accruing and the ~Sep 11 review can grade exactly what the
+# bench saved or cost. Only would_bet is forced off. Un-benching is an
+# owner decision off that settled evidence, never a silent edit.
+# On watch, NOT benched (their losses were mostly the already-banned
+# cheap night bets; current-rules record too thin to convict): Denver,
+# Washington DC, San Francisco (known bias mid-repair, feedback fix
+# Aug 26), Austin. Re-slice all four at the review.
+# Mirrored for display in index.html (BENCHED_STATIONS) -- change both
+# in the same commit, same law as every money-gate mirror.
+BENCHED_CITIES = {"Oklahoma City", "Dallas"}
+
 # Day-of reality check (Aug 28 2026): on a morning scan, the settlement
 # station has already reported real readings. The final high can never
 # be BELOW the high already observed (highs only rise, and the METAR
@@ -420,7 +441,11 @@ def main():
                     is_pick = (tick == pick_tick)
                     if is_pick:
                         pct = round(top_p * 100, 1)
-                        if pct < MIN_PICK_PROB:
+                        if city in BENCHED_CITIES:
+                            print(f"  NO BUY {city} {mdate}: BENCHED by "
+                                  f"the scoreboard (Aug 30 2026) - pick "
+                                  f"still logged on paper")
+                        elif pct < MIN_PICK_PROB:
                             print(f"  NO BUY {city} {mdate}: top bracket "
                                   f"only {pct:.0f}% - day too uncertain")
                         elif not yes_ask:

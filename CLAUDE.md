@@ -751,6 +751,41 @@ with the band trial, off settled results — edges.csv still logs
 every bracket regardless, so the review can compare what these gates
 bought against what the old ones would have.
 
+## THE CITY BENCH (Aug 30, 2026) — OWNER MANDATE
+
+The owner's words, verbatim intent: "anything that can be done to
+bring the wins up and the losses down. I don't care what we gotta
+do." The roadmap already said how: bench cities on scoreboard
+evidence. The full per-city slice of all 146 settled bets found two
+cities that lose under EVERY rule set — not just under the dead
+cheap-bet and night-lane rules, but inside the current 45–60¢ band
+and in the morning lane too:
+
+- **Oklahoma City: 0W–7L** overall (0–2 inside 45–60¢, 0–2 morning).
+- **Dallas: 1W–9L** overall (0–2 inside 45–60¢, 0–3 morning).
+- Together: **1W–16L, −$10.57** — half the account's entire net loss.
+
+`BENCHED_CITIES` in `scanner.py` (mirrored as `BENCHED_STATIONS` in
+`index.html` — same-commit law) forces `would_bet` off for them. A
+benched city is still polled, forecast, scanned, and fully logged to
+`edges.csv` (pick, prices, everything), so its paper record keeps
+accruing and the bench itself stays gradeable. The Station Board card
+says "Benched" with the record, in plain English.
+
+**On watch, NOT benched** — their ugly totals came almost entirely
+from the already-banned cheap night bets, and their current-rules
+records are too thin to convict: **Denver** (1W–7L, but its one
+morning bet won), **Washington DC** (1W–7L, 1–1 in-band), **San
+Francisco** (0W–4L, all cheap night bets; its known forecast bias is
+mid-repair per the Feedback Fix), **Austin** (2W–6L, 0–3 in-band but
+1–1 morning). Benching them would punish the cities for the dead
+rules' crimes.
+
+**Review ~Sep 11, 2026, together with the band trial and the accuracy
+tightening**, off settled results: re-slice every city, un-bench or
+extend the bench on the paper record, and convict or clear the watch
+list. Un-benching is an owner decision; so is adding a third city.
+
 ## THE 40–60 BAND TRIAL (Aug 28, 2026) — OWNER DECISION, TWO WEEKS
 
 The owner asked for the full scoreboard sliced by price, then chose
