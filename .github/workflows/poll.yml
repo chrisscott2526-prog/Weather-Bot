@@ -54,6 +54,11 @@ jobs:
           ref: main
 
       - name: Run the polling relay (one pass every 15 min)
+        env:
+          # for watchdog.py's money-lane check (read-only runs API);
+          # an unauthenticated call would share a rate limit with
+          # every other job on the runner's IP
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -uo pipefail
           git config user.name "weather-bot"
@@ -87,6 +92,13 @@ jobs:
           while :; do
             echo "::group::Pass $(date -u +'%H:%M') UTC"
             python poller.py || { echo "::warning::poller.py failed this pass -- boards keep their last reading until the next pass"; ANY_ERROR=1; }
+            # THE WATCHDOG (Aug 30 2026): every pass also checks the
+            # pulses that have actually burned us (stale poller, dead
+            # money lane, missing same-day forecast, failed orders,
+            # stale swoop/settlements) and writes health.json for the
+            # Station Board's alarm banner. An alarm turns this run
+            # red at the finish, which makes GitHub email the owner.
+            python watchdog.py || { echo "::warning::watchdog raised an alarm this pass -- see the lines above and the Station Board banner"; ANY_ERROR=1; }
             commit_push
             echo "::endgroup::"
 
