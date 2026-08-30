@@ -1,11 +1,36 @@
 name: Poll weather stations
 
-# Off-peak minutes on purpose (Aug 28 2026): GitHub's scheduler is
-# best-effort and drops crowded slots -- on "*/15" (the :00/:15/:30/:45
-# rush minutes) this poll fired ~11 times a day instead of 96, and the
-# boards sat stale for hours. Odd minutes fire far more reliably, and
-# morning.yml + swoop.yml now also run the poller themselves so board
-# data rides along with every run that does fire.
+# THE POLLER RELAY (Aug 30 2026). The Clock Fix (Aug 28) moved this
+# cron to off-peak minutes and hoped GitHub would fire enough of the
+# 96 daily slots. It didn't: on Aug 30 the poller fired 9 times in a
+# day, every board sat on 1-2 hour old readings all afternoon, and
+# the owner watched Phoenix "100.4°" while the market already knew
+# the day had blown past 105. Single-shot runs need every slot to
+# fire; one dropped cron = a stale board. So this job is now a RELAY,
+# the same pattern that fixed morning.yml:
+#   - The FIRST trigger that lands -- any cron slot below (kept as
+#     redundant starters) or the owner pressing Run -- starts ONE
+#     long job that polls every 15 minutes (at :04/:19/:34/:49, the
+#     off-peak minutes) and pushes after every pass, until it nears
+#     GitHub's 6-hour job ceiling, then exits.
+#   - Extra triggers while the relay runs queue in the poll-relay
+#     concurrency group and take over when the running relay exits
+#     or its runner dies -- so with 96 starter slots a day, the
+#     relay re-chains itself around the clock. GitHub keeps only
+#     the newest queued run and cancels older queued ones; those
+#     "cancelled" entries in the Actions list are normal, not
+#     failures.
+#   - This job LEFT the shared repo-writes concurrency group (same
+#     reason morning.yml did): a six-hour holder of that lock would
+#     freeze swoop, settlements and scans all day. Push races are
+#     handled by the retry loop plus .gitattributes merge=union on
+#     the append-only CSVs (temps_log.csv included), so simultaneous
+#     appends keep both sides' rows.
+#   - A pass that fails WARNS loudly and the next pass retries; any
+#     failed pass turns the finished run RED (the dead-feed scar: a
+#     problem must never scroll away green).
+# morning.yml and swoop.yml still run the poller themselves too --
+# belt and suspenders; repeated polls are harmless appends.
 on:
   schedule:
     - cron: "4,19,34,49 * * * *"
@@ -14,32 +39,76 @@ on:
 permissions:
   contents: write
 
+# NOT repo-writes -- see the relay note above.
 concurrency:
-  group: repo-writes
+  group: poll-relay
   cancel-in-progress: false
 
 jobs:
   poll:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 355
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: main
 
-      - name: Run poller
-        run: python poller.py
-
-      - name: Commit the log
+      - name: Run the polling relay (one pass every 15 min)
         run: |
+          set -uo pipefail
           git config user.name "weather-bot"
           git config user.email "bot@users.noreply.github.com"
-          git add -A
-          git diff --cached --quiet || git commit -m "temps $(date -u +'%H:%M')"
-          # real retry loop -- the old one-liner fallback died under bash -e
-          # whenever no rebase was in progress (see settlements.yml)
-          n=0
-          until git push; do
-            n=$((n+1))
-            if [ "$n" -gt 4 ]; then echo "push failed after $n tries"; exit 1; fi
-            git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
-            sleep $((2*n))
+
+          START_EPOCH=$(date +%s)
+          ANY_ERROR=0
+
+          # Real retry loop -- the old one-liner fallback died under
+          # bash -e whenever no rebase was in progress (see
+          # settlements.yml). -X ours keeps this job's freshly
+          # regenerated files when a race conflicts; the append-only
+          # CSVs union-merge via .gitattributes so no rows are lost
+          # either way.
+          commit_push() {
+            git add -A
+            git diff --cached --quiet || git commit -m "temps $(date -u +'%H:%M')"
+            local n=0
+            until git push; do
+              n=$((n+1))
+              if [ "$n" -gt 4 ]; then
+                echo "::error::push failed after $n tries -- keeping the commit locally; the next pass will retry the push"
+                ANY_ERROR=1
+                return 0
+              fi
+              git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
+              sleep $((2*n))
+            done
+          }
+
+          while :; do
+            echo "::group::Pass $(date -u +'%H:%M') UTC"
+            python poller.py || { echo "::warning::poller.py failed this pass -- boards keep their last reading until the next pass"; ANY_ERROR=1; }
+            commit_push
+            echo "::endgroup::"
+
+            NEXT_EPOCH=$(python - <<'PY'
+          from datetime import datetime, timezone, timedelta
+          t = datetime.now(timezone.utc).replace(second=0, microsecond=0)
+          while True:
+              t += timedelta(minutes=1)
+              if t.minute in (4, 19, 34, 49):
+                  break
+          print(int(t.timestamp()))
+          PY
+          )
+            if [ $((NEXT_EPOCH - START_EPOCH)) -ge 19800 ]; then
+              echo "Approaching the 6-hour runner ceiling -- exiting so a queued starter takes over the relay."
+              break
+            fi
+            NAP=$((NEXT_EPOCH - $(date +%s)))
+            [ "$NAP" -gt 0 ] && sleep "$NAP"
           done
+
+          if [ "$ANY_ERROR" -eq 1 ]; then
+            echo "::error::At least one pass failed this relay -- see the red annotations above."
+            exit 1
+          fi
