@@ -329,3 +329,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-08-29T17:48:47+00:00,KXHIGHLAX-26AUG29-T86,87° or above,yes,2,43,62.2,,True,submitted,01a04ea3-6818-7b67-b7f7-0422dec40f02,morning
 2026-08-30T13:09:24+00:00,KXHIGHMIA-26AUG30-B91.5,91° to 92°,yes,2,50,36.6,,True,submitted,01a052c9-fba0-7e6d-b0e8-2d9cb546c68a,morning
 2026-08-30T13:39:24+00:00,KXHIGHTATL-26AUG30-B89.5,89° to 90°,yes,2,44,46.3,,True,submitted,01a052e5-76c8-7278-bcfc-fa929870a328,morning
+2026-08-30T14:39:24+00:00,KXHIGHAUS-26AUG30-B98.5,98° to 99°,yes,2,43,42.7,,True,submitted,01a0531c-6160-739e-9e11-8466024393b5,morning
