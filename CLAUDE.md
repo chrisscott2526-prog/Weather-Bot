@@ -378,9 +378,15 @@ afternoon.yml (daily 19:30 UTC)   forecast.py --today
                                   bias table. No Kalshi secrets, no
                                   trading step, ever.
 
-poller.py    (every 15 min, and   NWS METAR temps -> temps_log.csv
-              piggybacked inside
-              morning.yml +
+poller.py    (ALL-DAY RELAY since  NWS METAR temps -> temps_log.csv
+              Aug 30 2026: one
+              job polls + pushes
+              every 15 min at
+              :04/:19/:34/:49,
+              re-chained by 96
+              daily cron starters;
+              also piggybacked
+              inside morning.yml +
               swoop.yml runs)
                                   (the RAW source of truth for highs);
                                   also regenerates daily_highs.csv from
@@ -633,6 +639,29 @@ clock:
   may not scroll away green. An insufficient-balance order no longer
   kills the rest of the day's passes — it flags red at the finish
   while later passes keep buying the cities that can still be bought.
+
+## THE POLLER RELAY (Aug 30, 2026)
+
+The Clock Fix moved poll.yml to off-peak minutes and still trusted
+GitHub to fire the slots. On Aug 30 the 15-minute poller fired **9
+times instead of 96**; every board sat on 1–2-hour-old readings all
+afternoon, and the owner watched Phoenix's card say "high so far
+100.4°" while Kalshi priced 106–107° at 93% — the market knew, the
+board didn't. (The board's red "136 min ago" age was the only honest
+part of that card.) Same disease, same cure as morning.yml:
+**poll.yml is now a relay.** The first trigger that lands (any of the
+96 cron slots, kept as redundant starters, or the Run button) starts
+one job that polls and pushes every 15 minutes at :04/:19/:34/:49
+until it nears GitHub's 6-hour job ceiling, then exits and a queued
+starter takes over — the relay re-chains itself around the clock.
+Like morning.yml it left the shared repo-writes concurrency lock
+(its own `poll-relay` group; a six-hour lock holder would freeze
+swoop/settlements/scans), pushes through the real retry loop with
+union-merge protecting the appends, and turns the finished run RED
+if any pass failed. Queued runs showing "cancelled" in the Actions
+list are normal — GitHub keeps only the newest starter. Never thin
+this back to single-shot runs: the repo's runner minutes are free
+(public repo) and one dropped cron = a stale board on a money day.
 
 ## THE 40–60 BAND TRIAL (Aug 28, 2026) — OWNER DECISION, TWO WEEKS
 
