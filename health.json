@@ -1,17 +1,6 @@
 {
- "checked_utc": "2026-08-30T22:15:37+00:00",
- "ok": false,
- "alarms": [
-  {
-   "code": "POLLER",
-   "msg": "POLLER STALE -- last poll wrote 42 min ago (limit 40). Every reading below is at least that old. Press Run on poll.yml.",
-   "since": "2026-08-30T22:14:44+00:00"
-  },
-  {
-   "code": "SWOOP",
-   "msg": "SWOOP BOARD STALE -- last graded 179 min ago (limit 45) during its 15-minute band. Open positions are being graded on old readings. Press Run on swoop.yml.",
-   "since": "2026-08-30T21:45:20+00:00"
-  }
- ],
+ "checked_utc": "2026-08-30T22:19:28+00:00",
+ "ok": true,
+ "alarms": [],
  "notes": []
 }
