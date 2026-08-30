@@ -228,6 +228,13 @@ const MAX_PICK_COST = 60;   // over this = too expensive, skipped
 // MIN_PICK_PROB 35->40; review ~Sep 11 with the band trial)
 const MIN_PICK_PROB = 40;   // top bracket weaker than this = no bet
 const WIN_START = 9, WIN_END = 11;   // 9:00-10:59 AM city time
+// THE CITY BENCH (Aug 30 2026): mirror of scanner.py's BENCHED_CITIES
+// (by station id). These cities lost under every rule set (OKC 0W-7L,
+// Dallas 1W-9L) and are scanned/logged on paper only -- no money.
+// Change both files in the same commit. Un-benching is an owner call
+// at the ~Sep 11 review.
+const BENCHED_STATIONS = {KOKC: "0 wins, 7 losses",
+                          KDFW: "1 win, 9 losses"};
 
 // station -> UTC offset in hours: round(longitude / 15), generated
 // from cities.py (the source of truth). highs.py uses the exact same
@@ -588,6 +595,13 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
         + (bal ? `<b>not enough money in the Kalshi account</b>. Fund it `
                + `before tomorrow's window.`
                : `the order errored. Check the run log.`);
+  }else if(sid in BENCHED_STATIONS){
+    cls = "SKIP";
+    txt = `<span class="tag">Benched</span> this city is `
+        + `<b>${esc(BENCHED_STATIONS[sid])}</b> on the scoreboard, so `
+        + `no money is bet here (since Aug 30). The forecast and pick `
+        + `are still tracked on paper &mdash; if the paper record turns `
+        + `good, it can earn its way back.`;
   }else if(mp){
     // scanned but not bought: say which rule said no (display mirror
     // of scanner.py's gates -- keep in sync in the same commit)
