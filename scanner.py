@@ -136,9 +136,16 @@ WINDOW = window_from_argv()
 # trial can be graded against what the old band would have bought.
 # Must always match trader.py's MIN_COST/MAX_COST, changed in the
 # same commit.
+# THE ACCURACY TIGHTENING (owner's call, Aug 30 2026, same review
+# date ~Sep 11): fewer bets, stronger bets. Floor 40 -> 45 (on all
+# 146 settled bets, >=45c lifted the band from 58% wins +15c/$1 to
+# 66% wins +28c/$1; the 45-49c pocket is the best region ever
+# recorded). MIN_PICK_PROB 35 -> 40 (cuts the weakest-agreement
+# picks). Cap stays 60. Small samples, stated plainly to the owner --
+# the Sep 11 review judges this with the band trial.
 MAX_PICK_COST = 60.0   # past this, no buy for that city today
-MIN_PICK_COST = 40.0   # under this the market is screaming we're wrong
-MIN_PICK_PROB = 35.0   # top bracket weaker than this = day too uncertain
+MIN_PICK_COST = 45.0   # under this the market is screaming we're wrong
+MIN_PICK_PROB = 40.0   # top bracket weaker than this = day too uncertain
 
 # Day-of reality check (Aug 28 2026): on a morning scan, the settlement
 # station has already reported real readings. The final high can never

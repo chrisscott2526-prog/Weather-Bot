@@ -53,12 +53,18 @@ jobs:
         with:
           ref: main
 
+      - name: Install crypto library (for the swoop grader)
+        run: pip install cryptography
+
       - name: Run the polling relay (one pass every 15 min)
         env:
           # for watchdog.py's money-lane check (read-only runs API);
           # an unauthenticated call would share a rate limit with
           # every other job on the runner's IP
           GITHUB_TOKEN: ${{ github.token }}
+          # for swoop_alert.py (reads open positions to grade them)
+          KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
+          KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
         run: |
           set -uo pipefail
           git config user.name "weather-bot"
@@ -92,6 +98,15 @@ jobs:
           while :; do
             echo "::group::Pass $(date -u +'%H:%M') UTC"
             python poller.py || { echo "::warning::poller.py failed this pass -- boards keep their last reading until the next pass"; ANY_ERROR=1; }
+            # The swoop board rides the relay too (Aug 30 2026: its
+            # own cron starved it 3 hours during Pacific risk hours).
+            # Same rhythm as swoop.yml's old schedule: every pass in
+            # the 16:00-01:59 UTC heat-of-day band, 2-hourly otherwise.
+            # swoop.yml stays as a manual backup button.
+            H=$((10#$(date -u +%H))); M=$((10#$(date -u +%M)))
+            if [ "$H" -ge 16 ] || [ "$H" -lt 2 ] || { [ $((H % 2)) -eq 1 ] && [ "$M" -lt 15 ]; }; then
+              python swoop_alert.py || { echo "::warning::swoop_alert.py failed this pass -- board keeps its last grade until the next pass"; ANY_ERROR=1; }
+            fi
             # THE WATCHDOG (Aug 30 2026): every pass also checks the
             # pulses that have actually burned us (stale poller, dead
             # money lane, missing same-day forecast, failed orders,
