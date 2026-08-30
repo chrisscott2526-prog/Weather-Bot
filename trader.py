@@ -100,6 +100,19 @@ def strategy_from_argv():
 
 STRATEGY = strategy_from_argv()
 KEEP_RESTING = "--keep-resting" in sys.argv
+# --sweep-resting (Aug 30 2026): end-of-day cleanup mode -- cancel this
+# bot's own still-resting orders and exit without trading. Exists
+# because the money lane runs --keep-resting all day and the night runs
+# that used to cancel-and-mark unfilled orders are benched. Without the
+# sweep an unfilled order (a) can fill hours after its pick's
+# information went stale -- exactly when the market has turned against
+# it -- and (b) keeps its "submitted" status, which settle.py would
+# grade at settlement as a real bet that never existed, poisoning
+# results.csv. Only order_ids recorded in trades.csv are touched (the
+# owner's own manual Kalshi orders are invisible to it), and a row is
+# re-marked "cancelled" only when Kalshi's order object PROVES zero
+# fills -- both guarantees live in cancel_resting_orders().
+SWEEP_RESTING = "--sweep-resting" in sys.argv
 MAX_PER_CITY_DAY = 1         # one position per city per day
 SANITY_GAP = 60             # skip if model% vs implied price gap > this
 SKIP_UNVERIFIED = True
@@ -301,6 +314,12 @@ def main():
     if in_maintenance_window(now):
         print(f"{stamp}: inside Kalshi maintenance window "
               f"({MAINT_START}-{MAINT_END} UTC). Skipping run.")
+        return
+
+    if SWEEP_RESTING:
+        print(f"{stamp}: --sweep-resting -- end-of-day cleanup of this "
+              f"bot's unfilled resting orders (no trading this run)")
+        cancel_resting_orders()
         return
 
     if not os.path.exists("edges.csv"):

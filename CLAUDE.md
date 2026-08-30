@@ -194,7 +194,10 @@ The laws of the race:
 - **Each trader executes only its own strategy's rows** (the
   `--strategy` filter), and the morning trader never cancels resting
   orders (`--keep-resting`) — the cancel-and-reprice sweep belongs to
-  the night runs that placed them.
+  the night runs that placed them. (Since Aug 30 2026 evening the
+  buying day ENDS with `trader.py --sweep-resting` — see the broom
+  note in THE EXECUTION RELAY. --keep-resting still holds during the
+  day.)
 - **The tag flows everywhere:** edges.csv → trades.csv → results.csv,
   read by autopsy.py. The race's finish line is autopsy.md's
   night-vs-morning table: **profit per $1 risked, after fees**. Per
@@ -637,6 +640,20 @@ clock:
   at the root). NEVER union a full-rewrite file (settlements.csv,
   daily_highs.csv, the HTML pages, autopsy.md) — union would
   interleave two complete rewrites into garbage.
+- **The day ends with a broom (added Aug 30 2026, evening audit).**
+  When the relay reaches 18:45 UTC — or a starter lands after it —
+  it runs `trader.py --sweep-resting`: cancel this bot's own
+  still-resting orders and mark provably-unfilled ones "cancelled"
+  in trades.csv. Found by audit before it cost money: with the night
+  cancel runs benched, nothing cleaned up unfilled morning orders, so
+  one could (a) fill hours after its pick's information went stale —
+  exactly when the market turns against it — and (b) keep its
+  "submitted" status, which settle.py grades at settlement as a real
+  bet that never existed, poisoning results.csv. The sweep touches
+  ONLY order_ids recorded in trades.csv (the owner's own manual
+  Kalshi orders are invisible to it) and un-marks a row only when
+  Kalshi's order object proves zero fills — both guarantees live in
+  `cancel_resting_orders()`. A failed sweep turns the run red.
 - **A failed pass warns and the next pass retries; any failed pass
   turns the finished run red.** Same honesty rule as ever: a problem
   may not scroll away green. An insufficient-balance order no longer

@@ -2,6 +2,31 @@
 
 One line of why per decision, newest first, as the standing orders require.
 
+## 2026-08-30 (evening) — full audit on the owner's ask ("say it and let's correct it")
+
+11. **Added the end-of-day resting-order sweep** (`trader.py
+    --sweep-resting`, run by morning.yml when the buying day ends).
+    Why: with the night cancel runs benched, an unfilled morning order
+    sat on the book where it could fill hours-stale AND be graded by
+    settle.py as a bet that never filled — a scoreboard poisoner found
+    by audit before it struck.
+
+12. **Did NOT move the buying window later in the day.** Why: grading
+    every scan hour against settlements shows 9–11 AM in-band picks win
+    62%/53% while 11 AM–2 PM shows no improvement (47–56% on thinner
+    samples) — and after ~2 PM city time there is almost nothing left
+    priced inside 45–60¢ to buy at all.
+
+13. **Did NOT touch the 45–60¢ band or the 40% vote gate.** Why: they
+    are one day old and already have a scheduled evidence review
+    (~Sep 11); changing them again tonight would be vibes, not
+    scoreboard.
+
+14. **Flagged the funding problem to the owner instead of coding around
+    it.** Why: all six checkable insufficient-balance orders (Aug 24,
+    26, 29) would have WON — the only fix for an empty wallet is money
+    in the account, and that is the owner's lever, not code.
+
 ## 2026-08-30 — the city bench (owner mandate: "bring wins up, losses down")
 
 8. **Benched Oklahoma City (0W–7L) and Dallas (1W–9L) from real-money

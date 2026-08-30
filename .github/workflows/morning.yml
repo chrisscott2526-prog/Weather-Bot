@@ -57,7 +57,18 @@ name: Morning strategy (refresh, scan, trade)
 # and the Station Board shows which happened and why.
 #
 # --keep-resting: each pass must not yank the earlier passes' resting
-# orders; unfilled same-day orders die on their own at market close.
+# orders DURING the buying day. But the day ends with a broom
+# (Aug 30 2026): once the relay passes 18:45 UTC -- or a starter lands
+# after it -- trader.py --sweep-resting cancels this bot's own
+# still-resting orders. Two reasons, both found by audit before they
+# cost money: (1) an unfilled order left on the book can fill hours
+# after its pick's information went stale, exactly when the market has
+# turned against it; (2) settle.py grades any "submitted" trades.csv
+# row once the market settles, so an unfilled order would be scored as
+# a bet that never existed, poisoning results.csv (the night runs that
+# used to cancel-and-mark are benched -- nothing else does this).
+# The sweep touches ONLY order_ids recorded in trades.csv; the owner's
+# own manual Kalshi orders are invisible to it.
 
 on:
   schedule:
@@ -97,11 +108,6 @@ jobs:
           START_EPOCH=$(date +%s)
           ANY_ERROR=0
 
-          if [ "$START_EPOCH" -ge "$DAY_END_EPOCH" ]; then
-            echo "Started $(date -u +%H:%M) UTC -- past the 18:45 UTC end of the buying day. Standing down."
-            exit 0
-          fi
-
           # Real retry loop; -X theirs (NOT -X ours like the read-only
           # jobs) because this commit carries trades.csv, and losing
           # the record of an order that was actually placed is the
@@ -123,6 +129,25 @@ jobs:
               sleep $((2*n))
             done
           }
+
+          # The end-of-day broom (see the --keep-resting note above).
+          # Cancels only this bot's own resting orders; marks provably
+          # unfilled ones "cancelled" in trades.csv so settle.py never
+          # grades a bet that never filled. Failure is loud and turns
+          # the run red -- a phantom bet on the scoreboard is the
+          # dead-feed scar wearing a new face.
+          sweep_resting() {
+            python trader.py --sweep-resting \
+              || { echo "::error::end-of-day resting-order sweep FAILED -- an unfilled order may fill stale or be graded as a bet that never existed. Run trader.py --sweep-resting by hand or press Run on this workflow."; ANY_ERROR=1; }
+            commit_push
+          }
+
+          if [ "$START_EPOCH" -ge "$DAY_END_EPOCH" ]; then
+            echo "Started $(date -u +%H:%M) UTC -- past the 18:45 UTC end of the buying day. Sweeping leftover resting orders and standing down."
+            sweep_resting
+            [ "$ANY_ERROR" -eq 1 ] && exit 1
+            exit 0
+          fi
 
           run_pass() {
             echo "::group::Pass $(date -u +'%H:%M') UTC"
@@ -185,9 +210,13 @@ jobs:
           )
             if [ "$NEXT_EPOCH" -ge "$DAY_END_EPOCH" ]; then
               echo "Buying day complete -- the next :07/:37 slot is past 18:45 UTC."
+              sweep_resting
               break
             fi
             if [ $((NEXT_EPOCH - START_EPOCH)) -ge 19800 ]; then
+              # No sweep here on purpose: a queued starter takes over
+              # the rest of the day and sweeps when IT reaches 18:45
+              # (or stands down past it, which also sweeps).
               echo "::warning::approaching the 6-hour runner ceiling -- exiting so a queued starter can take over the rest of the day"
               break
             fi
