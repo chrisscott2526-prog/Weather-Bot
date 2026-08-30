@@ -343,22 +343,31 @@ calibration.py  learns per-station bias AND error spread from NIGHT
                 bias-shifted, then widened to the station's realized
                 error sigma — never narrowed.
 
-morning.yml  (every 30 min,       THE ONLY MONEY LANE since Aug 26
-              13:07-18:37 UTC)    2026 (the Day-of Switch; schedule
-                                  densified Aug 28 2026, the Clock
-                                  Fix), one job:
-                                  poller.py -> window preflight ->
+morning.yml  (ALL-DAY RELAY:      THE ONLY MONEY LANE since Aug 26
+              first trigger to    2026 (the Day-of Switch; schedule
+              land starts one     densified Aug 28 2026 the Clock Fix;
+              job that passes     relay since Aug 30 2026, the
+              every 30 min at     Execution Relay -- see its section)
+              :07/:37 until       each pass:
+              18:45 UTC)          poller.py -> window preflight ->
                                   forecast.py --today ->
                                   scanner.py --strategy morning
                                              --window 9-11 ->
                                   trader.py --strategy morning
                                             --keep-resting ->
-                                  commit -> RED run if an order errored
+                                  commit -> RED finish if any pass
+                                  failed or an order errored
                                   (same files, strategy=morning rows;
                                   each city bought only while its own
                                   clock reads 9:00-10:59 AM; passes
-                                  with no city in window skip the
-                                  Kalshi steps and log nothing)
+                                  with no city in window poll temps
+                                  only, skip the Kalshi steps and log
+                                  nothing; starters: 12 cron slots
+                                  13:07-18:37 UTC + Claude routines
+                                  12:50 and 16:05 UTC + the Run
+                                  button -- extras queue and stand
+                                  down, or take over if the running
+                                  relay died)
 
 afternoon.yml (daily 19:30 UTC)   forecast.py --today
                                     --out afternoon_forecasts.csv
@@ -535,7 +544,9 @@ after the East Coast window had closed. Fixes, all in one commit:
    the Kalshi work when no city is in window; the window gate and the
    fail-closed exposure check make repeats harmless. Never thin this
    schedule back to single-shot runs — one dropped cron = a coast
-   unbought.
+   unbought. (Aug 30 2026: the slots stayed but stopped being
+   single-shot runs — each is now a redundant starter of one all-day
+   relay job. See THE EXECUTION RELAY below.)
 2. **Every run that needs fresh temperatures brings its own.**
    morning.yml and swoop.yml run poller.py as their first step, so the
    reality floor and the swoop grades never depend on poll.yml's cron
@@ -572,6 +583,56 @@ after the East Coast window had closed. Fixes, all in one commit:
    (MIN/MAX_PICK_COST, MIN_PICK_PROB, the window hours), the
    series→station map, and the timezone map MUST move in the same
    commit as their Python sources — same law as the highs mirror.
+
+## THE EXECUTION RELAY (Aug 30, 2026) — OWNER DECISION
+
+The Clock Fix's dense schedule still trusted GitHub to fire enough of
+its 12 slots each day. It didn't: on Aug 29 only two fired on their
+own — the first at 17:03 UTC, after the East Coast window had already
+closed — and every East Coast and Central buy that day happened
+because the owner pressed Run by hand. A schedule of single-shot runs
+loses a coast every time GitHub drops a slot. The owner asked for
+execution that does not need a babysitter. The fix keeps the pipeline
+and every gate exactly as they were and changes only who keeps the
+clock:
+
+- **morning.yml is a relay, not a single shot.** The FIRST trigger
+  that lands — any of the 12 cron slots (kept as redundant starters),
+  a Claude routine, or the owner's Run button — starts ONE job that
+  runs a full buying pass (poll → fresh --today forecast → scan
+  --window 9-11 → trade --keep-resting → commit) every 30 minutes at
+  :07/:37 until 18:45 UTC, then exits. One lucky trigger covers the
+  whole day instead of 1/12th of it.
+- **Extra triggers are harmless and are the fail-over.** They queue
+  in the morning-money-relay concurrency group behind the running
+  relay and stand down in seconds when their turn comes — unless the
+  relay's runner died mid-day, in which case the queued run takes
+  over the rest of the day. GitHub keeps only the newest queued run
+  and cancels older queued ones; those "cancelled" entries in the
+  Actions list are normal, not failures. The window gate and the
+  fail-closed exposure check make repeated passes safe, as always.
+- **Two Claude routines back up GitHub's cron.** They live in the
+  owner's claude.ai account (not in this repo — you will not find
+  them in the workflows): daily at 12:50 UTC one starts the relay
+  whether or not any GitHub cron fires; at 16:05 UTC a watchdog
+  checks a relay is actually running and starts one if the morning's
+  died. Each only presses Run on morning.yml — no code, no trades,
+  no gate decisions ever live in the routines.
+- **morning.yml LEFT the shared repo-writes concurrency group** — a
+  six-hour holder of that lock would freeze the poller, swoop, and
+  settlement jobs all afternoon. Racing pushes are handled by the
+  existing retry loops plus a new .gitattributes rule: the
+  append-only CSVs (temps, forecasts, edges, trades, results, swoop
+  and sports logs) merge by UNION, so when two jobs append at once
+  both sides' rows survive (the Aug 20 lost-settlements scar, fixed
+  at the root). NEVER union a full-rewrite file (settlements.csv,
+  daily_highs.csv, the HTML pages, autopsy.md) — union would
+  interleave two complete rewrites into garbage.
+- **A failed pass warns and the next pass retries; any failed pass
+  turns the finished run red.** Same honesty rule as ever: a problem
+  may not scroll away green. An insufficient-balance order no longer
+  kills the rest of the day's passes — it flags red at the finish
+  while later passes keep buying the cities that can still be bought.
 
 ## THE 40–60 BAND TRIAL (Aug 28, 2026) — OWNER DECISION, TWO WEEKS
 
