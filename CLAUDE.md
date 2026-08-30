@@ -84,7 +84,8 @@ translated one-to-one:
    bracket containing the **most ensemble members** is the pick.
    Full stop. Price plays **no part** in choosing it.
 2. **Price is only a gate.** If the pick's YES ask is inside
-   `MIN_PICK_COST..MAX_PICK_COST` (**40¢–60¢ since Aug 28 2026 — the
+   `MIN_PICK_COST..MAX_PICK_COST` (**45¢–60¢ since Aug 30 2026 — the
+   accuracy tightening, see its section; 40¢–60¢ Aug 28–30 — the
    two-week band trial, see its own section below**; the history:
    8¢ floor → 15¢ on Aug 24 2026 — see the accuracy rebuild — → 20¢
    on Aug 28 2026 ("no long shots") → the 40–60¢ trial that evening).
@@ -102,8 +103,9 @@ translated one-to-one:
 4. **Never bet NO.** The scanner and trader are YES-only. `TRADE_NO` was
    removed from the trader on purpose.
 5. Additional seatbelts in `scanner.py` (paid for in losses — keep them):
-   - `MIN_PICK_PROB = 35`: if even the top bracket has under 35% of
-     members, the day is too uncertain — no bet.
+   - `MIN_PICK_PROB = 40`: if even the top bracket has under 40% of
+     members, the day is too uncertain — no bet. (35 from day one
+     until Aug 30 2026 — the accuracy tightening, see its section.)
    - Under `MIN_PICK_COST` (40¢ during the band trial): the market is
      screaming we're wrong — believe it, don't "value-buy". (Floor
      raised 8¢ → 15¢ on Aug 24 2026: under-15¢ picks settled
@@ -210,7 +212,7 @@ Trader hard caps, all enforced in `trader.py` — do not loosen:
 - `MAX_PER_CITY_DAY = 1` position per city per day (counts existing
   positions and resting orders via the FAIL-CLOSED exposure check — if the
   account can't be read, **no trades are placed that run**).
-- `MIN_COST, MAX_COST = 40, 60` — must always equal the scanner's gate.
+- `MIN_COST, MAX_COST = 45, 60` — must always equal the scanner's gate.
   (They were once 15/10, an impossible range that silently placed zero
   trades for days. Floor raised 8 → 15 on Aug 24 2026, 15 → 20 on
   Aug 28 2026, then the 40–60 band trial that evening, each time with
@@ -664,6 +666,14 @@ list are normal — GitHub keeps only the newest starter. Never thin
 this back to single-shot runs: the repo's runner minutes are free
 (public repo) and one dropped cron = a stale board on a money day.
 
+Since later that same day the relay also carries the **swoop board**:
+swoop_alert.py runs inside the pass on swoop's own rhythm (every pass
+in the 16:00–01:59 UTC heat-of-day band, 2-hourly otherwise — same
+hours its old crons kept), because swoop.yml's cron starved the board
+3 hours during Pacific risk hours on Aug 30. swoop.yml keeps its
+schedule as a redundant backup and its Run button for manual passes;
+racing pushes are the same solved problem as everywhere else.
+
 ## THE WATCHDOG (Aug 30, 2026)
 
 Born from the owner's exact words: "every single solitary time I ask
@@ -689,6 +699,10 @@ burned us, each against its rawest source:
   checked via the Actions API. An unreachable API is a logged note,
   never a false alarm.
 - **ORDERS** — no trade placed today has ERROR status.
+- **BAND** — no trade placed today priced outside the band, judged
+  against trader.py's own MIN_COST/MAX_COST source line (parsed at
+  run time, never a mirrored copy that can drift). Firing means
+  something impossible happened: stop and audit before the next buy.
 - **SWOOP** (16:00–01:59 UTC) — `swoop_log.csv` graded under 45 min
   ago inside its 15-minute band.
 - **SETTLEMENTS** — `settlements.csv` checked within 9 hours.
@@ -715,6 +729,27 @@ shipped: it cannot see a failure before it happens, and it cannot
 make a 55%-win-rate strategy stop having losing days. It shrinks
 discovery time from "when the owner happens to look" to ~15 minutes.
 That is the whole promise.
+
+## THE ACCURACY TIGHTENING (Aug 30, 2026) — OWNER DECISION
+
+The owner's words after losing 3 of 4 on Aug 30 (having added their
+own money on top of the bot's $1 bets): fewer bets, more accuracy.
+The full gate sweep across all 146 settled bets said the same two
+things:
+
+- **Floor 45¢, cap 60¢**: the ≥45¢ half of the band ran 29W–15L
+  (66%), +28¢/$1, vs 58% and +15¢ for the full 40–60. The 45–49¢
+  pocket remains the best price region ever recorded (12W–4L).
+- **MIN_PICK_PROB 35 → 40**: drops the weakest-agreement picks.
+
+Both changed in one commit (scanner + trader + the Station Board JS
+mirror, as the law requires). Caveats stated plainly when the owner
+chose: the slices are thin, and the morning-lane-only slice mildly
+preferred the old 40¢ floor (16 bets — too few to overrule the full
+record). Expect roughly a bet a day less. Reviewed ~Sep 11 together
+with the band trial, off settled results — edges.csv still logs
+every bracket regardless, so the review can compare what these gates
+bought against what the old ones would have.
 
 ## THE 40–60 BAND TRIAL (Aug 28, 2026) — OWNER DECISION, TWO WEEKS
 

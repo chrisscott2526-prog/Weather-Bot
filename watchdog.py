@@ -201,6 +201,34 @@ def main():
               f"had a pick and could not pay for it. Likely an empty "
               f"wallet: fund the Kalshi account.")
 
+    # -- BAND: no order ever leaves the owner's price band. The band --
+    # -- is read from trader.py's own source line (never a mirrored ---
+    # -- copy that can drift), so this alarm is judged by the exact ---
+    # -- numbers the trader enforces. BAND_SINCE_UTC: judge only ------
+    # -- orders placed after the current band took effect -- move it --
+    # -- in the same commit as any band change, or the day's earlier --
+    # -- (then-legal) orders retro-alarm all evening (seen live on ----
+    # -- Aug 30 when 40 -> 45 flagged that morning's 43-44c buys) -----
+    BAND_SINCE_UTC = "2026-08-30T23:00:00"   # the 45-60 tightening
+    try:
+        import re
+        src = open("trader.py").read()
+        m = re.search(r"^MIN_COST\s*,\s*MAX_COST\s*=\s*(\d+)\s*,\s*(\d+)",
+                      src, re.M)
+        lo, hi = int(m.group(1)), int(m.group(2))
+        out = [r for r in read_tail_rows("trades.csv")
+               if r.get("placed_utc", "").startswith(today)
+               and r.get("placed_utc", "") >= BAND_SINCE_UTC
+               and (r.get("limit_cents") or "").isdigit()
+               and not lo <= int(r["limit_cents"]) <= hi]
+        if out:
+            alarm("BAND", f"ORDER OUTSIDE THE {lo}-{hi}c BAND today "
+                  f"({len(out)}) -- this must be impossible. Stop the "
+                  f"bot and audit trader.py before the next buy.")
+    except (OSError, AttributeError):
+        notes.append("band check skipped (could not read trader.py's "
+                     "MIN_COST/MAX_COST line)")
+
     # -- SWOOP: inside its 15-minute band the advisor board must be ---
     # -- fresh (positions are graded there in their riskiest hours) ---
     if now.hour >= 16 or now.hour < 2:

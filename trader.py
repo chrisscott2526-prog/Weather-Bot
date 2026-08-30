@@ -67,7 +67,12 @@ MAX_ORDERS = 5
 BET_DOLLARS = 1      # $ per bet. Change ONLY after 100+ settled bets
                      # show positive P&L. Applies to BOTH strategies.
 MAX_RUN_DOLLARS = 10  # hard ceiling on total $ placed in one run
-MIN_COST, MAX_COST = 40, 60  # matches scanner.py's MIN/MAX_PICK_COST
+MIN_COST, MAX_COST = 45, 60  # matches scanner.py's MIN/MAX_PICK_COST
+                     # THE ACCURACY TIGHTENING, owner's call Aug 30
+                     # 2026: floor 40 -> 45 (>=45c was 66% wins
+                     # +28c/$1 on all 146 settled bets vs 58% +15c at
+                     # 40c), cap stays 60. Review ~Sep 11 with the
+                     # band trial.
                      # THE 40-60 BAND TRIAL, owner's call Aug 28 2026,
                      # two weeks, review ~Sep 11 2026: 40-60c was the
                      # only profitable price region on the full
