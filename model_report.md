@@ -14,27 +14,27 @@ owner decision. Regenerated in full by model_report.py.
 
 | city | pool |
 |---|---|
-| Atlanta | 0.6 (-0.6) n=13 |
-| Austin | 1.4 (-0.3) n=11 |
-| Boston | 2.7 (-2.7) n=7 |
+| Atlanta | 1.0 (-0.6) n=14 |
+| Austin | 1.4 (-0.4) n=12 |
+| Boston | 2.6 (-2.6) n=8 |
 | Chicago | 1.2 (-0.6) n=11 |
-| Dallas | 1.2 (+0.2) n=10 |
+| Dallas | 1.3 (+0.1) n=11 |
 | Denver | 2.0 (-1.8) n=10 |
-| Houston | 0.6 (+0.5) n=11 |
+| Houston | 1.0 (+0.4) n=12 |
 | Las Vegas | 3.0 (-3.0) n=11 |
 | Los Angeles | 3.2 (+3.2) n=9 |
-| Miami | 2.0 (-2.0) n=13 |
+| Miami | 2.0 (-2.0) n=14 |
 | Minneapolis | 2.2 (+0.7) n=8 |
-| New Orleans | 2.0 (-0.7) n=10 |
+| New Orleans | 2.3 (-1.6) n=11 |
 | New York City | 2.4 (-0.2) n=9 |
-| Oklahoma City | 2.1 (-1.9) n=8 |
-| Philadelphia | 1.0 (+0.0) n=12 |
+| Oklahoma City | 2.2 (-2.2) n=9 |
+| Philadelphia | 0.9 (-0.1) n=13 |
 | Phoenix | 1.3 (-1.1) n=10 |
-| San Antonio | 1.0 (-0.5) n=11 |
+| San Antonio | 1.0 (-0.6) n=12 |
 | San Francisco | 4.1 (+3.9) n=9 |
 | Seattle | 3.1 (-1.4) n=10 |
-| Washington DC | 1.5 (-1.3) n=11 |
+| Washington DC | 1.6 (-0.3) n=12 |
 
 ## Overall (all cities pooled)
 
-- **pool**: median miss 1.65F, lean -0.50F, n=204
+- **pool**: median miss 1.70F, lean -0.60F, n=215
