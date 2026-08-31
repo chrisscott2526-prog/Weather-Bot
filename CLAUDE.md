@@ -440,7 +440,7 @@ check that line first when a feed dies.
 
 | File | Writer | Header |
 |---|---|---|
-| `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members,bias_applied` (members pipe-separated, already calibrated, pooled across GFS+ECMWF since Aug 24 2026; bias_applied added Aug 26 2026 = the correction already subtracted from that row's members, so calibration can reconstruct the raw error — blank on old rows, read as 0; a morning `--today` row is fetched on its own forecast_date between 06:00–22:59 UTC — `csvio.is_morning_row` is the one true classifier, there is no extra column. The hour window exists because a delayed nightly cron slips past UTC midnight and stamps the same date; those rows are still night) |
+| `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members,bias_applied,member_models` (members pipe-separated, already calibrated, pooled across GFS+ECMWF since Aug 24 2026; bias_applied added Aug 26 2026 = the correction already subtracted from that row's members, so calibration can reconstruct the raw error — blank on old rows, read as 0; member_models added Aug 31 2026 = one tag per member, pipe-separated, aligned with members (`gfs`/`ecmwf`), so the Model Lab can grade each voter separately — blank on old rows and whenever alignment can't be guaranteed; a morning `--today` row is fetched on its own forecast_date between 06:00–22:59 UTC — `csvio.is_morning_row` is the one true classifier, there is no extra column. The hour window exists because a delayed nightly cron slips past UTC midnight and stamps the same date; those rows are still night) |
 | `afternoon_forecasts.csv` | `forecast.py --today --out afternoon_forecasts.csv` (afternoon.yml, 19:30 UTC) | same header as `forecasts.csv` (RESEARCH LOG ONLY, added Aug 24 2026 — measures the value of forecast freshness; **no trading or calibration code reads it**, and it must stay that way: pointing scanner/calibration at it would poison the race and the bias table) |
 | `temps_log.csv` | `poller.py` | `utc_time,station,city,temp_f,obs_time_utc` |
 | `daily_highs.csv` | `poller.py` (full rewrite each run, regenerated from `temps_log.csv` via `highs.py`) | `date,station,city,high_f,last_update_utc,obs_time_utc` (last_update/obs_time = poll/observation time of the day's peak; derived human-readable summary ONLY — since Aug 21 2026 **no code reads it**; retirement candidate) |
@@ -451,6 +451,8 @@ check that line first when a feed dies.
 | `sports_picks.csv` | `sports_scanner.py` | `scanned_utc,sport,shelf,game,detail,commence_utc,series,ticker,side,pick,books_pct,kalshi_cents,fee_cents,gap_cents,n_books,shown,why` (wiped + new header Aug 19, 2026 — edge-era rows graded a dead rule) |
 | `sports_results.csv` | `sports_scanner.py` | `graded_utc,sport,shelf,game,detail,ticker,side,pick,books_pct,kalshi_cents,gap_cents,market_result,result,pnl` (wiped same commit) |
 | `health.json` | `watchdog.py` (full rewrite each relay pass) | JSON: `checked_utc, ok, alarms[{code,since,msg}], notes` (added Aug 30 2026 — the watchdog's pulse report for the Station Board banner; display/alerting ONLY, no money code reads it, NEVER union-merge it) |
+| `model_research.csv` | `model_lab.py` (forecast.yml, nightly after the money forecast) | `forecast_date,station,city,model,forecast_high_f,n_members,members,fetched_utc` (THE MODEL LAB, Aug 31 2026 — candidate models riding as research passengers: `icon` = the German global ensemble, `nws` = the NWS public point forecast, raw and uncalibrated. RESEARCH LOG ONLY, same law as afternoon_forecasts.csv: **no trading or calibration code may ever read it**; union-merged append-only) |
+| `model_report.md` | `model_report.py` (autopsy.yml, full rewrite each run) | per-city, per-model median miss vs the settled number: `pool`/`gfs`/`ecmwf` from forecasts.csv (calibrated; member_models splits the voters) and the research passengers from model_research.csv. Derived human-readable output ONLY — no code reads it, NEVER union-merge it. Promotion of a model into the vote is an owner decision made on this evidence |
 
 Calibration is applied **exactly once**, at forecast time
 (`calibrate_members` inside `forecast.py`) — both the bias shift and
@@ -838,6 +840,52 @@ Terms of the trial, set when it started:
   review can compare what 40–60 actually bought against what 20–68
   would have bought on the same days. Expect FEWER buys per day
   during the trial — that is the band working, not a bug.
+
+## THE MODEL LAB (Aug 31, 2026) — OWNER DECISION
+
+The owner asked whether other forecast models could sharpen the pick,
+and chose the evidence-first build: no new model votes with money on
+day one — candidates ride along as passengers and build a public
+record, and the scoreboard decides who gets promoted. Three pieces,
+all shipped in one commit:
+
+1. **The voters are now labeled.** `forecasts.csv` grew a
+   `member_models` column: one tag per ensemble member (`gfs`/
+   `ecmwf`), pipe-separated, aligned with `members`. The vote is
+   UNCHANGED — the pick still comes from the pooled members exactly
+   as before — but the scoreboard can finally grade each voter
+   separately, per city (until now the pool was unlabeled, so
+   GFS-vs-ECMWF skill could never be measured from history; old rows
+   stay blank forever). `calibrate_members` preserves member order,
+   which is what keeps the tags honest; `forecast.py` refuses to
+   write tags if the counts ever disagree.
+2. **Two research passengers log nightly** (`model_lab.py` inside
+   forecast.yml, right after the money forecast): `icon` — the German
+   global ensemble (~40 members, generally rated #3 behind ECMWF and
+   GFS) — and `nws` — the National Weather Service's own published
+   point forecast for each station. Raw, uncalibrated, written to
+   `model_research.csv`. **THE LAW: research log only, same as
+   afternoon_forecasts.csv — nothing that trades, scans, or
+   calibrates may ever read it.** A passenger feed that dies
+   completely turns the run RED after the money forecast has safely
+   committed (dead-feed scar); partial failures print and skip.
+3. **`model_report.py` writes the standings** (`model_report.md`,
+   regenerated by autopsy.yml after each settlement pass): per city
+   and per model, the median miss against the officially settled
+   number — the same test that ranked the cities. Stated caveat baked
+   into the report: gfs/ecmwf/pool are graded on calibrated members
+   while the passengers are raw, so a passenger that merely ties the
+   incumbents is doing well.
+
+What this is for, in order: (a) per-city model weighting — bench the
+*model* that's bad in a city, not just the city — argued from the
+report once each model has ~30+ graded nights; (b) promoting icon or
+nws into the voting pool if the record says they earn it; (c) HRRR
+as a same-day morning-lane signal, explicitly deferred until after
+this round proves out. **Every one of those is an owner decision made
+on the report's evidence. The scoreboard promotes; conviction never
+does — no model joins, leaves, or changes weight in the vote without
+it.**
 
 ## ROADMAP — how this grows
 

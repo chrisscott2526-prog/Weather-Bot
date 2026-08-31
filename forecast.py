@@ -59,6 +59,17 @@ reconstructs the raw error (corrected error + bias_applied) and the
 correction converges to the forecast's true bias. Old rows have the
 column blank, which calibration reads as 0 -- the pre-fix behavior --
 so the table heals as the 14-day window refills with new rows.
+
+THE MODEL LAB (Aug 31 2026): each row also records member_models --
+one short tag per member (gfs/ecmwf), pipe-separated, aligned with
+the members column -- so the scoreboard can grade each model's
+accuracy separately, per city, from the same rows the money already
+trusts. The vote itself is unchanged: the pick still comes from the
+pooled members exactly as before. Old rows have the column blank
+(pooled history can't be split after the fact). Companion research
+scripts: model_lab.py logs outside candidate models to
+model_research.csv (NOTHING trades or calibrates from it) and
+model_report.py grades every model against settlements.
 """
 
 import csv, json, os, sys, time, urllib.request
@@ -70,11 +81,14 @@ from csvio import appender
 
 OUT_DEFAULT = "forecasts.csv"
 FIELDS = ["forecast_date", "station", "city", "forecast_high_f",
-          "fetched_utc", "members", "bias_applied"]
-# older layouts: before bias_applied (Aug 26 2026) and before
-# ensemble members were logged (Aug 5 2026)
-LEGACY = [[c for c in FIELDS if c != "bias_applied"],
-          [c for c in FIELDS if c not in ("members", "bias_applied")]]
+          "fetched_utc", "members", "bias_applied", "member_models"]
+# older layouts: before member_models (Aug 31 2026), before
+# bias_applied (Aug 26 2026) and before ensemble members were
+# logged (Aug 5 2026)
+LEGACY = [[c for c in FIELDS if c != "member_models"],
+          [c for c in FIELDS if c not in ("bias_applied", "member_models")],
+          [c for c in FIELDS
+           if c not in ("members", "bias_applied", "member_models")]]
 UA = {"User-Agent": "weather-bot-personal"}
 
 # The pool. gfs_seamless = 31 members (30 perturbed + control),
@@ -82,6 +96,14 @@ UA = {"User-Agent": "weather-bot-personal"}
 # on purpose: it is the stronger surface-temperature model. Add or
 # drop models HERE only; the fetch loop treats them all alike.
 MODELS = ["gfs_seamless", "ecmwf_ifs025"]
+
+# Short tag stored per member in member_models (THE MODEL LAB,
+# Aug 31 2026) so the scoreboard can grade each model's members
+# separately per city. calibrate_members shifts and widens every
+# member IN PLACE-ORDER (no sorting, no dropping), so the tag list
+# stays aligned with the members list through calibration. A model
+# missing from this map gets its raw API name as the tag.
+MODEL_TAGS = {"gfs_seamless": "gfs", "ecmwf_ifs025": "ecmwf"}
 
 
 def get(url, tries=3):
@@ -129,10 +151,12 @@ def model_highs(lat, lon, model, day_index=1):
 
 
 def pooled_highs(city, lat, lon, day_index):
-    """(date, pooled members) across MODELS. A model that fails or
-    disagrees on the target date is reported and dropped; the pool is
-    whatever honestly arrived. No models at all -> (None, [])."""
-    target, pool = None, []
+    """(date, pooled members, model tag per member) across MODELS.
+    A model that fails or disagrees on the target date is reported and
+    dropped; the pool is whatever honestly arrived. The tags list is
+    always the same length as the members list, in the same order.
+    No models at all -> (None, [], [])."""
+    target, pool, tags = None, [], []
     for model in MODELS:
         try:
             d, members = model_highs(lat, lon, model, day_index)
@@ -148,8 +172,9 @@ def pooled_highs(city, lat, lon, day_index):
                   f"{target} -- dropping that model this run")
             continue
         pool.extend(members)
+        tags.extend([MODEL_TAGS.get(model, model)] * len(members))
         print(f"  {city}: {model} contributed {len(members)} members")
-    return target, pool
+    return target, pool, tags
 
 
 def out_path_from_argv():
@@ -172,16 +197,25 @@ def main():
     with appender(out, FIELDS, LEGACY) as w:
         for sid, (city, lat, lon) in SITES.items():
             try:
-                d, members = pooled_highs(city, lat, lon, day_index)
+                d, members, tags = pooled_highs(city, lat, lon, day_index)
                 if not d or not members:
                     raise ValueError("no model delivered any members")
                 members, bias = calibrate_members(sid, members)
+                if len(tags) != len(members):
+                    # calibration must never add or drop a member; if it
+                    # ever does, mislabeled tags would poison the model
+                    # scoreboard -- store no tags rather than wrong ones.
+                    print(f"  {city}: tag/member count mismatch "
+                          f"({len(tags)} vs {len(members)}) -- "
+                          "member_models left blank this row")
+                    tags = []
                 med = round(true_median(members), 1)
                 w.writerow({"forecast_date": d, "station": sid,
                             "city": city, "forecast_high_f": med,
                             "fetched_utc": fetched,
                             "members": "|".join(str(m) for m in members),
-                            "bias_applied": bias})
+                            "bias_applied": bias,
+                            "member_models": "|".join(tags)})
                 print(f"{city}: median {med}F, "
                       f"{len(members)} pooled members for {d}")
             except Exception as e:
