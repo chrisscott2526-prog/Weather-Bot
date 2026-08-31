@@ -22,6 +22,15 @@ jobs:
       - name: Fetch forecasts
         run: python forecast.py
 
+      # THE MODEL LAB (Aug 31 2026): research passengers (ICON + NWS)
+      # ride the same nightly run. continue-on-error so a dead research
+      # feed can never cost the money forecast its commit -- the red
+      # flag AFTER the commit still fails the run loudly (dead-feed law).
+      - name: Log research models (ICON + NWS)
+        id: modellab
+        continue-on-error: true
+        run: python model_lab.py
+
       - name: Commit the log
         run: |
           git config user.name "weather-bot"
@@ -37,3 +46,12 @@ jobs:
             git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
             sleep $((2*n))
           done
+
+      - name: Fail loudly if a research feed died
+        if: steps.modellab.outcome == 'failure'
+        run: |
+          echo "model_lab.py failed -- a research model feed is dead or"
+          echo "every city errored (see its step log above). The money"
+          echo "forecast is unaffected and already committed; this red"
+          echo "exists so the dead feed cannot scroll away green."
+          exit 1

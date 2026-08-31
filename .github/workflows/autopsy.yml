@@ -23,6 +23,15 @@ jobs:
       - name: Autopsy the settled bets
         run: python autopsy.py
 
+      # THE MODEL LAB (Aug 31 2026): regenerate the per-city model
+      # standings right after settlements are graded. continue-on-error
+      # so a report bug can never cost autopsy.md its commit; the red
+      # flag after the commit still fails the run loudly.
+      - name: Model report
+        id: modelreport
+        continue-on-error: true
+        run: python model_report.py
+
       - name: Commit the report
         run: |
           git config user.name "weather-bot"
@@ -38,3 +47,11 @@ jobs:
             git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
             sleep $((2*n))
           done
+
+      - name: Fail loudly if the model report died
+        if: steps.modelreport.outcome == 'failure'
+        run: |
+          echo "model_report.py failed (see its step log above)."
+          echo "autopsy.md is unaffected and already committed; this red"
+          echo "exists so the failure cannot scroll away green."
+          exit 1

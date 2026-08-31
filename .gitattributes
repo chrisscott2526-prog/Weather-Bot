@@ -16,3 +16,4 @@ results.csv merge=union
 swoop_log.csv merge=union
 sports_picks.csv merge=union
 sports_results.csv merge=union
+model_research.csv merge=union
