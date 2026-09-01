@@ -1,5 +1,5 @@
 {
- "checked_utc": "2026-09-01T16:19:02+00:00",
+ "checked_utc": "2026-09-01T16:34:02+00:00",
  "ok": false,
  "alarms": [
   {
@@ -14,12 +14,12 @@
   },
   {
    "code": "SWOOP",
-   "msg": "SWOOP BOARD STALE -- last graded 555 min ago (limit 45) during its 15-minute band. Open positions are being graded on old readings. Press Run on swoop.yml.",
+   "msg": "SWOOP BOARD STALE -- last graded 570 min ago (limit 45) during its 15-minute band. Open positions are being graded on old readings. Press Run on swoop.yml.",
    "since": "2026-09-01T16:04:01+00:00"
   },
   {
    "code": "SETTLE",
-   "msg": "SETTLEMENTS STALE -- last checked 21.1 h ago. Yesterday lines and the calibration's actuals are running behind. Press Run on settlements.yml.",
+   "msg": "SETTLEMENTS STALE -- last checked 21.3 h ago. Yesterday lines and the calibration's actuals are running behind. Press Run on settlements.yml.",
    "since": "2026-09-01T04:19:01+00:00"
   }
  ],
