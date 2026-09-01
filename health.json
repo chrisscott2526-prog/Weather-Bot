@@ -1,5 +1,5 @@
 {
- "checked_utc": "2026-09-01T17:04:02+00:00",
+ "checked_utc": "2026-09-01T17:19:02+00:00",
  "ok": false,
  "alarms": [
   {
@@ -8,19 +8,9 @@
    "since": "2026-09-01T14:04:02+00:00"
   },
   {
-   "code": "MONEYLANE",
-   "msg": "MONEY LANE NOT RUNNING -- no morning.yml run is alive during buying hours. Cities are hitting their 9-11 AM windows with nobody buying. Press Run on morning.yml.",
-   "since": "2026-09-01T13:19:01+00:00"
-  },
-  {
    "code": "SWOOP",
-   "msg": "SWOOP BOARD STALE -- last graded 600 min ago (limit 45) during its 15-minute band. Open positions are being graded on old readings. Press Run on swoop.yml.",
+   "msg": "SWOOP BOARD STALE -- last graded 615 min ago (limit 45) during its 15-minute band. Open positions are being graded on old readings. Press Run on swoop.yml.",
    "since": "2026-09-01T16:04:01+00:00"
-  },
-  {
-   "code": "SETTLE",
-   "msg": "SETTLEMENTS STALE -- last checked 21.8 h ago. Yesterday lines and the calibration's actuals are running behind. Press Run on settlements.yml.",
-   "since": "2026-09-01T04:19:01+00:00"
   }
  ],
  "notes": []
