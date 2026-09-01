@@ -1,7 +1,12 @@
 {
- "checked_utc": "2026-09-01T13:49:02+00:00",
+ "checked_utc": "2026-09-01T14:04:02+00:00",
  "ok": false,
  "alarms": [
+  {
+   "code": "FORECAST",
+   "msg": "NO SAME-DAY FORECAST -- the buying day is underway but no morning forecast row exists for today, so every scan is skipping every city. Press Run on morning.yml.",
+   "since": "2026-09-01T14:04:02+00:00"
+  },
   {
    "code": "MONEYLANE",
    "msg": "MONEY LANE NOT RUNNING -- no morning.yml run is alive during buying hours. Cities are hitting their 9-11 AM windows with nobody buying. Press Run on morning.yml.",
@@ -9,7 +14,7 @@
   },
   {
    "code": "SETTLE",
-   "msg": "SETTLEMENTS STALE -- last checked 18.6 h ago. Yesterday lines and the calibration's actuals are running behind. Press Run on settlements.yml.",
+   "msg": "SETTLEMENTS STALE -- last checked 18.8 h ago. Yesterday lines and the calibration's actuals are running behind. Press Run on settlements.yml.",
    "since": "2026-09-01T04:19:01+00:00"
   }
  ],
