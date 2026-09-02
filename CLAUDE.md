@@ -407,9 +407,10 @@ settlements.py (4x daily)         Kalshi settled result fields (unauth)
                                   feeds the board's "Yesterday" line
                                   AND (Aug 24 2026) the actuals that
                                   calibration and autopsy learn from
-swoop_alert.py (every 15 min      advisor board -> swoop.html, swoop_log.csv
-              16:00-01:59 UTC,    (polls its own fresh temps first;
-              2-hourly rest)      grades each position on its CITY'S
+swoop_alert.py (every 15 min      advisor board -> swoop.html, swoop_log.csv,
+              16:00-01:59 UTC,    swoop_pulse.json (its heartbeat)
+              2-hourly rest)      (polls its own fresh temps first;
+                                  grades each position on its CITY'S
                                   local day, so West Coast evenings
                                   stay on the board)
 sports_scanner.py (2x daily)      sharps consensus vs Kalshi props ->
@@ -451,6 +452,7 @@ check that line first when a feed dies.
 | `sports_picks.csv` | `sports_scanner.py` | `scanned_utc,sport,shelf,game,detail,commence_utc,series,ticker,side,pick,books_pct,kalshi_cents,fee_cents,gap_cents,n_books,shown,why` (wiped + new header Aug 19, 2026 — edge-era rows graded a dead rule) |
 | `sports_results.csv` | `sports_scanner.py` | `graded_utc,sport,shelf,game,detail,ticker,side,pick,books_pct,kalshi_cents,gap_cents,market_result,result,pnl` (wiped same commit) |
 | `health.json` | `watchdog.py` (full rewrite each relay pass) | JSON: `checked_utc, ok, alarms[{code,since,msg}], notes` (added Aug 30 2026 — the watchdog's pulse report for the Station Board banner; display/alerting ONLY, no money code reads it, NEVER union-merge it) |
+| `swoop_pulse.json` | `swoop_alert.py` (full rewrite each run) | JSON: `checked_utc, open_weather_positions, graded, note` (added Sep 1 2026 — the grader's heartbeat, written every run even with zero open positions, so the watchdog can tell "grader dead" from "nothing to grade"; a no-bet day writes zero `swoop_log.csv` rows honestly and used to false-alarm. Display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `model_research.csv` | `model_lab.py` (forecast.yml, nightly after the money forecast) | `forecast_date,station,city,model,forecast_high_f,n_members,members,fetched_utc` (THE MODEL LAB, Aug 31 2026 — candidate models riding as research passengers: `icon` = the German global ensemble, `nws` = the NWS public point forecast, raw and uncalibrated. RESEARCH LOG ONLY, same law as afternoon_forecasts.csv: **no trading or calibration code may ever read it**; union-merged append-only) |
 | `model_report.md` | `model_report.py` (autopsy.yml, full rewrite each run) | per-city, per-model median miss vs the settled number: `pool`/`gfs`/`ecmwf` from forecasts.csv (calibrated; member_models splits the voters) and the research passengers from model_research.csv. Derived human-readable output ONLY — no code reads it, NEVER union-merge it. Promotion of a model into the vote is an owner decision made on this evidence |
 
@@ -722,8 +724,14 @@ burned us, each against its rawest source:
   against trader.py's own MIN_COST/MAX_COST source line (parsed at
   run time, never a mirrored copy that can drift). Firing means
   something impossible happened: stop and audit before the next buy.
-- **SWOOP** (16:00–01:59 UTC) — `swoop_log.csv` graded under 45 min
-  ago inside its 15-minute band.
+- **SWOOP** (16:00–01:59 UTC) — `swoop_pulse.json` written under 45
+  min ago inside its 15-minute band. The pulse, NOT the log (fixed
+  Sep 1 2026): `swoop_log.csv` only gets rows when a position was
+  graded, so a no-bet day writes zero rows for honest reasons and the
+  old log-based check cried SWOOP BOARD STALE all evening at a
+  healthy board — exactly the alarm-the-owner-learns-to-ignore this
+  section warns against. The log check survives only as the fallback
+  when the pulse file has never been written (day zero / forks).
 - **SETTLEMENTS** — `settlements.csv` checked within 9 hours.
 
 An alarm does two things: the relay pass flags it and the finished
