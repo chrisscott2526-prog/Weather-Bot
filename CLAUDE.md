@@ -663,6 +663,21 @@ clock:
   may not scroll away green. An insufficient-balance order no longer
   kills the rest of the day's passes — it flags red at the finish
   while later passes keep buying the cities that can still be bought.
+- **The poller is the relay's tripwire (Sep 2, 2026).** Sep 1 exposed
+  the gap this closes: none of morning.yml's 12 cron slots fired
+  before 17:16 UTC and neither Claude routine wake executed on time
+  (a cold session's wakes can queue instead of running), so the East,
+  Central and Mountain windows went unbought — while the poller relay
+  fired 23 times straight through the money window and its watchdog
+  could only alarm. Now every poll pass during 12:45–18:15 UTC checks
+  whether a morning.yml run is queued or in progress and STARTS one if
+  not (its own GITHUB_TOKEN via workflow_dispatch — the one event
+  GitHub lets a workflow trigger in another; extra starts queue and
+  stand down, so false positives cost nothing). Layer order is now:
+  poller tripwire (primary, GitHub-native, ~15-min reaction) → the 12
+  cron slots → the Claude routines (backup) → the watchdog alarm and
+  the owner's Run button (last resort). The watchdog's MONEYLANE alarm
+  stays: if it ever fires now, the tripwire itself is broken — say so.
 
 ## THE POLLER RELAY (Aug 30, 2026)
 

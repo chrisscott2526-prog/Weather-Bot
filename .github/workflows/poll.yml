@@ -38,6 +38,7 @@ on:
 
 permissions:
   contents: write
+  actions: write   # the relay tripwire below starts morning.yml when it is missing
 
 # NOT repo-writes -- see the relay note above.
 concurrency:
@@ -114,6 +115,34 @@ jobs:
             # Station Board's alarm banner. An alarm turns this run
             # red at the finish, which makes GitHub email the owner.
             python watchdog.py || { echo "::warning::watchdog raised an alarm this pass -- see the lines above and the Station Board banner"; ANY_ERROR=1; }
+            # THE RELAY TRIPWIRE (Sep 2 2026). Sep 1 the money relay
+            # never started until 17:16 UTC -- none of morning.yml's
+            # cron slots fired and neither Claude routine wake ran on
+            # time -- while THIS relay polled right through the money
+            # window, and the watchdog above could only alarm. So every
+            # pass during the buying day (12:45-18:15 UTC) also STARTS
+            # the money relay when it is missing, not just alarms.
+            # workflow_dispatch is the one event GitHub explicitly lets
+            # a job's own GITHUB_TOKEN trigger; an extra start queues in
+            # the morning-money-relay group and stands down, so a false
+            # positive costs nothing. Failures here warn and never block
+            # the poll -- the watchdog alarm stays as the siren.
+            NOWM=$((10#$(date -u +%H) * 60 + 10#$(date -u +%M)))
+            if [ "$NOWM" -ge 765 ] && [ "$NOWM" -le 1095 ]; then
+              ACTIVE=$(gh run list -R "$GITHUB_REPOSITORY" --workflow morning.yml \
+                         --limit 10 --json status \
+                         --jq '[.[] | select(.status=="queued" or .status=="in_progress")] | length' \
+                       2>/dev/null || echo "unknown")
+              if [ "$ACTIVE" = "0" ]; then
+                echo "::warning::money relay not running at $(date -u +%H:%M) UTC -- starting morning.yml now"
+                gh workflow run morning.yml -R "$GITHUB_REPOSITORY" --ref main \
+                  || echo "::warning::could not start the money relay (dispatch failed) -- the cron slots, Claude routines and the owner's Run button remain"
+              elif [ "$ACTIVE" = "unknown" ]; then
+                echo "::warning::could not check whether the money relay is running -- the next pass retries in ~15 min"
+              else
+                echo "Money relay already running/queued ($ACTIVE) -- tripwire has nothing to do."
+              fi
+            fi
             commit_push
             echo "::endgroup::"
 
