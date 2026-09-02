@@ -1,12 +1,6 @@
 {
- "checked_utc": "2026-09-02T12:49:02+00:00",
- "ok": false,
- "alarms": [
-  {
-   "code": "SETTLE",
-   "msg": "SETTLEMENTS STALE -- last checked 19.9 h ago. Yesterday lines and the calibration's actuals are running behind. Press Run on settlements.yml.",
-   "since": "2026-09-02T02:04:01+00:00"
-  }
- ],
+ "checked_utc": "2026-09-02T13:04:02+00:00",
+ "ok": true,
+ "alarms": [],
  "notes": []
 }
