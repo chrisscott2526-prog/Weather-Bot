@@ -17,7 +17,9 @@ The heartbeats, each from the rawest source available:
   FORECAST     a same-day morning forecast row exists   (14:00-18:45 UTC)
   MONEY LANE   a morning.yml run is alive on GitHub     (13:15-18:45 UTC)
   ORDERS       no ERROR order placed today              (always)
-  SWOOP        swoop_log.csv fresh in its 15-min band   (16:00-01:59 UTC)
+  SWOOP        swoop_pulse.json fresh in its 15-min band (16:00-01:59 UTC;
+               the pulse, not the log -- a no-bet day writes zero log
+               rows honestly, which is not a dead grader)
   SETTLEMENTS  settlements.csv checked recently         (always)
 
 health.json is a FULL-REWRITE file (never add it to the union-merge
@@ -229,18 +231,44 @@ def main():
         notes.append("band check skipped (could not read trader.py's "
                      "MIN_COST/MAX_COST line)")
 
-    # -- SWOOP: inside its 15-minute band the advisor board must be ---
-    # -- fresh (positions are graded there in their riskiest hours) ---
+    # -- SWOOP: inside its 15-minute band the grader must be ALIVE. ---
+    # -- The pulse file (swoop_pulse.json, written by swoop_alert.py --
+    # -- every run, positions or not) is the heartbeat; the log alone -
+    # -- cannot tell "grader dead" from "nothing to grade" -- on a ----
+    # -- no-bet day it honestly writes zero rows, and on Sep 1 2026 ---
+    # -- that false-alarmed SWOOP BOARD STALE all evening. The log ----
+    # -- check remains only as the fallback for a repo where the ------
+    # -- pulse has never been written (day zero / forks). -------------
     if now.hour >= 16 or now.hour < 2:
-        t = newest_ts("swoop_log.csv", "checked_utc")
-        if t is not None:
-            age = (now - t).total_seconds() / 60
-            if age > SWOOP_STALE_MIN:
-                alarm("SWOOP", f"SWOOP BOARD STALE -- last graded "
-                      f"{age:.0f} min ago (limit {SWOOP_STALE_MIN}) "
-                      f"during its 15-minute band. Open positions are "
-                      f"being graded on old readings. Press Run on "
-                      f"swoop.yml.")
+        if os.path.exists("swoop_pulse.json"):
+            try:
+                with open("swoop_pulse.json") as f:
+                    t = parse_ts(json.load(f).get("checked_utc", ""))
+            except (OSError, ValueError):
+                t = None
+            if t is None:
+                alarm("SWOOP", "SWOOP PULSE UNREADABLE -- "
+                      "swoop_pulse.json exists but carries no valid "
+                      "timestamp, so the grader cannot prove it is "
+                      "alive. Press Run on swoop.yml.")
+            else:
+                age = (now - t).total_seconds() / 60
+                if age > SWOOP_STALE_MIN:
+                    alarm("SWOOP", f"SWOOP GRADER DEAD -- it last ran "
+                          f"{age:.0f} min ago (limit {SWOOP_STALE_MIN}) "
+                          f"during its 15-minute band. Any open "
+                          f"positions are being graded on old readings. "
+                          f"Press Run on swoop.yml.")
+        else:
+            t = newest_ts("swoop_log.csv", "checked_utc")
+            if t is not None:
+                age = (now - t).total_seconds() / 60
+                if age > SWOOP_STALE_MIN:
+                    alarm("SWOOP", f"SWOOP BOARD STALE -- last graded "
+                          f"{age:.0f} min ago (limit {SWOOP_STALE_MIN}) "
+                          f"during its 15-minute band. Open positions "
+                          f"are being graded on old readings. Press Run "
+                          f"on swoop.yml.")
 
     # -- SETTLEMENTS: the official-results feed (4x daily) ------------
     t = newest_ts("settlements.csv", "checked_utc", tail_bytes=100_000)

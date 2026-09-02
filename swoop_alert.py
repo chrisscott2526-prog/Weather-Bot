@@ -1,7 +1,11 @@
 """Weather-Bot repo: SWOOP ALERT (advisor only -- places NO bets).
 
 Grades every open weather position against the thermometer and writes
-swoop.html + swoop_log.csv.
+swoop.html + swoop_log.csv + swoop_pulse.json (the heartbeat: written
+every run even when zero positions are open, so the watchdog can tell
+"the grader is dead" apart from "there was nothing to grade" -- on
+Sep 1 2026 a no-bet day wrote zero log rows and the watchdog cried
+SWOOP BOARD STALE all evening at a perfectly healthy board).
 
 AUDITED + REBUILT Aug 6 2026 -- the $60 Phoenix rules, all enforced:
 
@@ -49,6 +53,7 @@ BASE = "https://api.elections.kalshi.com"
 KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
 PAGE = "swoop.html"
 LOG = "swoop_log.csv"
+PULSE = "swoop_pulse.json"   # FULL-REWRITE heartbeat -- never union-merge
 LOG_FIELDS = ["checked_utc", "ticker", "city", "side", "bracket",
               "observed_high", "obs_age_min", "market_cents", "status"]
 # layout before obs_age_min was added mid-row (Aug 6 2026)
@@ -553,6 +558,16 @@ def main():
                 w.writerow(r)
     with open(PAGE, "w") as f:
         f.write(build_page(cards, note, (len(cards), weather_open)))
+    # The heartbeat: written every run, positions or not. The log above
+    # only gets rows when something was graded, so on a no-bet day it
+    # goes silent for honest reasons -- this file is how the watchdog
+    # knows the grader itself is still alive. Display/alerting only.
+    with open(PULSE, "w") as f:
+        json.dump({"checked_utc": stamp,
+                   "open_weather_positions": weather_open,
+                   "graded": len(cards),
+                   "note": note}, f, indent=1)
+        f.write("\n")
     print(f"graded {len(cards)} of {weather_open} open weather positions")
     print(f"wrote {PAGE}")
 
