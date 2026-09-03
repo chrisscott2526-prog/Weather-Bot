@@ -337,3 +337,5 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-09-02T13:41:54+00:00,KXHIGHMIA-26SEP02-B90.5,90° to 91°,yes,1,53,43.9,,True,submitted,01a0625a-d8a0-7d68-8f91-a18ded173b4d,morning
 2026-09-02T14:11:57+00:00,KXHIGHCHI-26SEP02-B94.5,94° to 95°,yes,1,53,40.2,,True,submitted,01a06276-5b98-7b8b-bad6-e9d33ae1ffed,morning
 2026-09-02T14:41:58+00:00,KXHIGHAUS-26SEP02-B100.5,100° to 101°,yes,1,56,51.2,,True,submitted,01a06291-d6c0-75c2-906a-116c912720bf,morning
+2026-09-03T14:09:24+00:00,KXHIGHNY-26SEP03-T83,82° or below,yes,2,49,41.5,,True,submitted,01a0679a-5a20-7db4-9af4-91eac5f20fab,morning
+2026-09-03T14:09:24+00:00,KXHIGHAUS-26SEP03-B101.5,101° to 102°,yes,2,46,42.7,,True,submitted,01a0679a-5a20-7935-9c89-430d864ab0a0,morning
