@@ -1,4 +1,4 @@
-# Loss autopsy — 2026-09-03 12:37 UTC
+# Loss autopsy — 2026-09-03 16:32 UTC
 
 156 settled bets on the scoreboard. Where did the day's real high land, relative to what we bought?
 
@@ -160,7 +160,7 @@
 | 2026-08-31 | New York City | 77° or below | 60¢ | MISS-HIGH-BY-1 | settlement |
 | 2026-08-31 | Philadelphia | 85° to 86° | 52¢ | MISS-FAR | instrument |
 | 2026-09-02 | Austin | 100° to 101° | 56¢ | WIN | settlement |
-| 2026-09-02 | Chicago | 94° to 95° | 53¢ | MISS-HIGH-BY-1 | instrument |
+| 2026-09-02 | Chicago | 94° to 95° | 53¢ | MISS-HIGH-BY-1 | settlement |
 | 2026-09-02 | Miami | 90° to 91° | 53¢ | WIN | settlement |
 
 ## 1. Overall
