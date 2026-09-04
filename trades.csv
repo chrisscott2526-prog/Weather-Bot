@@ -343,3 +343,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-09-04T14:09:31+00:00,KXHIGHTSATX-26SEP04-T95,94° or below,yes,1,53,70.7,,True,submitted,01a06cc0-d178-7586-afba-cf181f5d2023,morning
 2026-09-04T14:39:32+00:00,KXHIGHTNOLA-26SEP04-T87,86° or below,yes,2,45,45.1,,True,submitted,01a06cdc-4ca0-726c-9feb-e5e2a5323da2,morning
 2026-09-04T15:09:30+00:00,KXHIGHCHI-26SEP04-B93.5,93° to 94°,yes,2,48,42.7,,True,submitted,01a06cf7-bff8-7b88-ba8e-c2218b2bf4b5,morning
+2026-09-04T16:09:30+00:00,KXHIGHTLV-26SEP04-B97.5,97° to 98°,yes,2,49,58.5,,True,submitted,01a06d2e-ae78-7e40-8ede-3acabe7a1d85,morning
