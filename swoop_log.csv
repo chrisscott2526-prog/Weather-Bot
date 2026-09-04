@@ -2771,3 +2771,4 @@ checked_utc,ticker,city,side,bracket,observed_high,obs_age_min,market_cents,stat
 2026-09-04T03:04:02+00:00,KXHIGHNY-26SEP03-T83,New York City,yes,82° or below,82.94,73,1.0,DEAD
 2026-09-04T04:26:01+00:00,KXHIGHAUS-26SEP03-B101.5,Austin,yes,101° to 102°,100.4,21,1.0,NEEDS HEAT
 2026-09-04T04:26:01+00:00,KXHIGHNY-26SEP03-T83,New York City,yes,82° or below,82.94,95,1.0,DEAD
+2026-09-04T05:04:01+00:00,KXHIGHAUS-26SEP03-B101.5,Austin,yes,101° to 102°,100.4,24,1.0,NEEDS HEAT
