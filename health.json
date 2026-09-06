@@ -1,10 +1,10 @@
 {
- "checked_utc": "2026-09-06T07:49:01+00:00",
+ "checked_utc": "2026-09-06T08:04:01+00:00",
  "ok": false,
  "alarms": [
   {
    "code": "SETTLE",
-   "msg": "SETTLEMENTS STALE -- last checked 16.3 h ago. Yesterday lines and the calibration's actuals are running behind. Press Run on settlements.yml.",
+   "msg": "SETTLEMENTS STALE -- last checked 16.6 h ago. Yesterday lines and the calibration's actuals are running behind. Press Run on settlements.yml.",
    "since": "2026-09-06T00:34:03+00:00"
   }
  ],
