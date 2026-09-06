@@ -163,3 +163,4 @@ graded_utc,ticker,city,action,cost_cents,count,fee_cents,market_result,result,pn
 2026-09-05T12:36:08+00:00,KXHIGHCHI-26SEP04-B93.5,Chicago,YES,48,2,4,YES,WIN,1.0,morning
 2026-09-05T15:20:26+00:00,KXHIGHTLV-26SEP04-B97.5,Las Vegas,YES,49,2,4,YES,WIN,0.98,morning
 2026-09-06T12:36:11+00:00,KXHIGHMIA-26SEP05-B90.5,Miami,YES,45,2,4,NO,LOSS,-0.94,morning
+2026-09-06T15:33:02+00:00,KXHIGHDEN-26SEP05-B93.5,Denver,YES,53,1,2,YES,WIN,0.45,morning
