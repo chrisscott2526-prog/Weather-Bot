@@ -3646,3 +3646,4 @@ checked_utc,ticker,city,side,bracket,observed_high,obs_age_min,market_cents,stat
 2026-09-07T21:34:01+00:00,KXHIGHTSFO-26SEP07-T81,San Francisco,yes,82° or above,78.8,19,86.0,NEEDS HEAT
 2026-09-07T21:49:01+00:00,KXHIGHAUS-26SEP07-B101.5,Austin,yes,101° to 102°,100.4,19,63.0,NEEDS HEAT
 2026-09-07T21:49:01+00:00,KXHIGHTSFO-26SEP07-T81,San Francisco,yes,82° or above,78.8,14,61.0,NEEDS HEAT
+2026-09-07T22:04:01+00:00,KXHIGHTSFO-26SEP07-T81,San Francisco,yes,82° or above,78.8,29,56.0,NEEDS HEAT
