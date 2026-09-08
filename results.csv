@@ -168,3 +168,4 @@ graded_utc,ticker,city,action,cost_cents,count,fee_cents,market_result,result,pn
 2026-09-07T17:45:48+00:00,KXHIGHTSEA-26SEP06-B72.5,Seattle,YES,55,1,2,NO,LOSS,-0.57,morning
 2026-09-07T17:45:48+00:00,KXHIGHTLV-26SEP06-B84.5,Las Vegas,YES,55,1,2,YES,WIN,0.43,morning
 2026-09-08T12:36:29+00:00,KXHIGHAUS-26SEP07-B99.5,Austin,YES,57,1,2,NO,LOSS,-0.59,morning
+2026-09-08T16:43:29+00:00,KXHIGHTSFO-26SEP07-T81,San Francisco,YES,55,1,2,YES,WIN,0.43,morning
