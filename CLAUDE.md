@@ -76,6 +76,24 @@ translated one-to-one:
   question: **is this card worth listening to?** It was wiped on
   Aug 19, 2026 when the strategy changed — old edge-era rows graded a
   dead rule and would poison the new record.
+- **The parlay board (owner request, Sep 8 2026)** is a second section
+  on the same card answering a different question: not "what's
+  mispriced" but "who are today's most likely winners, so the owner
+  can stack them at their own sportsbook". Its laws: legs are the
+  sharps' strongest **full-game moneyline favorites only**
+  (`PARLAY_LEG_MIN_PROB = 60`%+ de-vigged — F5/totals/props stay off;
+  legs must be simple enough to stack honestly); **Kalshi's price
+  plays no part in choosing a leg**, but every leg must match a
+  hand-verified Kalshi market so the board is graded by Kalshi's own
+  `result` (a favorite that can't be graded never makes the board);
+  the combined chance is the plain product of the legs (one leg per
+  game by construction, so independence holds) and the card states it
+  plus the fair no-vig payout; **`parlay_results.csv` records
+  HIT/MISS only, never a dollar P&L** — we cannot know what the
+  owner's book pays a parlay, and inventing a payout would violate
+  the honesty rules. The scoreboard question is calibration: stated
+  combined % vs actual hit rate. The board never bets — the permanent
+  advisory-only rule covers it word for word.
 
 ## THE STRATEGY IS PICK-FIRST (Law of Aug 6, 2026)
 
@@ -451,6 +469,8 @@ check that line first when a feed dies.
 | `results.csv` | `settle.py` | `graded_utc,ticker,city,action,cost_cents,count,fee_cents,market_result,result,pnl,strategy` (fee_cents added Aug 18, strategy Aug 20 2026; old rows backfilled `night`; readers treat a blank strategy as night) |
 | `sports_picks.csv` | `sports_scanner.py` | `scanned_utc,sport,shelf,game,detail,commence_utc,series,ticker,side,pick,books_pct,kalshi_cents,fee_cents,gap_cents,n_books,shown,why` (wiped + new header Aug 19, 2026 — edge-era rows graded a dead rule) |
 | `sports_results.csv` | `sports_scanner.py` | `graded_utc,sport,shelf,game,detail,ticker,side,pick,books_pct,kalshi_cents,gap_cents,market_result,result,pnl` (wiped same commit) |
+| `parlay_picks.csv` | `sports_scanner.py` | `scanned_utc,parlay_id,n_legs,legs,tickers,leg_probs_pct,combined_pct,fair_payout,last_start_utc` (the parlay board, Sep 8 2026; legs/tickers/leg_probs_pct pipe-separated and index-aligned; fair_payout = 1/combined_prob in $ per $1; append-only, union-merged; ADVISORY ONLY — nothing that trades may ever read it) |
+| `parlay_results.csv` | `sports_scanner.py` | `graded_utc,parlay_id,n_legs,legs,tickers,combined_pct,legs_won,legs_lost,legs_void,result` (result HIT/MISS/VOID by Kalshi settlement per leg — any lost leg = MISS, void legs drop out like a book's pushed legs; **no pnl column on purpose**: a book's parlay payout is unknowable, so the scoreboard grades calibration — stated % vs hit rate) |
 | `health.json` | `watchdog.py` (full rewrite each relay pass) | JSON: `checked_utc, ok, alarms[{code,since,msg}], notes` (added Aug 30 2026 — the watchdog's pulse report for the Station Board banner; display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `swoop_pulse.json` | `swoop_alert.py` (full rewrite each run) | JSON: `checked_utc, open_weather_positions, graded, note` (added Sep 1 2026 — the grader's heartbeat, written every run even with zero open positions, so the watchdog can tell "grader dead" from "nothing to grade"; a no-bet day writes zero `swoop_log.csv` rows honestly and used to false-alarm. Display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `model_research.csv` | `model_lab.py` (forecast.yml, nightly after the money forecast) | `forecast_date,station,city,model,forecast_high_f,n_members,members,fetched_utc` (THE MODEL LAB, Aug 31 2026 — candidate models riding as research passengers: `icon` = the German global ensemble, `nws` = the NWS public point forecast, raw and uncalibrated. RESEARCH LOG ONLY, same law as afternoon_forecasts.csv: **no trading or calibration code may ever read it**; union-merged append-only) |

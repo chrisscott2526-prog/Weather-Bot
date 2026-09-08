@@ -37,7 +37,9 @@ two weeks. If the odds feed is dead this file says so on the card, in
 the log, and with a non-zero exit code.)
 
 Outputs: sports.html (the card), sports_picks.csv (every evaluated
-market, shown or not), sports_results.csv (the scoreboard).
+market, shown or not), sports_results.csv (the scoreboard),
+parlay_picks.csv (the parlay board's suggested combos, owner request
+Sep 8 2026) and parlay_results.csv (the parlay scoreboard).
 """
 
 import csv
@@ -105,8 +107,35 @@ PROP_EVENT_CAP = 12         # per-event odds calls per sport per scan
 # reads the live header, so a bigger plan lifts it automatically.
 CREDIT_RESERVE = 150
 
+# THE PARLAY BOARD (owner request, Sep 8 2026). Same constitution,
+# different question. The gap card above asks "where is Kalshi's crowd
+# underpricing the sharps?" The parlay board asks the owner's question:
+# "who are today's MOST LIKELY WINNERS, so I can stack them?" The
+# answer comes from the SAME expert -- the de-vigged sharp consensus --
+# and from nowhere else. Kalshi's price plays NO part in choosing a
+# leg (the owner plays parlays at their own sportsbook; this board
+# never bets, per the permanent advisory-only rule). Kalshi's job here
+# is settlement truth: every leg must match a hand-verified Kalshi
+# market so the board can be graded by Kalshi's own `result` field --
+# a favorite we could not grade never makes the board.
+#
+# PARLAY_LEG_MIN_PROB: a parlay leg must be a real favorite, not a
+# lean. 60% is the floor -- stacking anything weaker builds a lottery
+# ticket, and the whole point is "most likely winners". (The gap
+# card's 55% is a minimum LEAN for a single pick; a parlay multiplies
+# its legs, so the bar is higher.)
+PARLAY_LEG_MIN_PROB = 60.0
+# Full-game moneylines ONLY: clean win/lose markets the books and
+# Kalshi define identically. F5 winners (tie risk), totals and props
+# stay off the board -- legs must be simple enough to stack honestly.
+PARLAY_SHELVES = {"MLB_GAME", "NFL_GAME"}
+PARLAY_MAX_LEGS = 4        # beyond 4 legs even 65% favorites hit <18%
+PARLAY_LEGS_SHOWN = 6      # the ranked leg list on the card
+
 PICKS_CSV = "sports_picks.csv"
 RESULTS_CSV = "sports_results.csv"
+PARLAY_CSV = "parlay_picks.csv"
+PARLAY_RESULTS_CSV = "parlay_results.csv"
 PAGE = "sports.html"
 
 PICKS_FIELDS = ["scanned_utc", "sport", "shelf", "game", "detail",
@@ -116,6 +145,18 @@ PICKS_FIELDS = ["scanned_utc", "sport", "shelf", "game", "detail",
 RESULTS_FIELDS = ["graded_utc", "sport", "shelf", "game", "detail",
                   "ticker", "side", "pick", "books_pct", "kalshi_cents",
                   "gap_cents", "market_result", "result", "pnl"]
+# legs / tickers / leg_probs_pct are pipe-separated, aligned by index
+# (same convention as forecasts.csv members|member_models). fair_payout
+# = 1/combined_prob in dollars per $1: what a no-vig book would pay.
+# No pnl column ON PURPOSE -- we cannot know what the owner's book
+# pays on a parlay, and inventing a payout would violate the honesty
+# rules. The scoreboard question is calibration: stated % vs hit rate.
+PARLAY_FIELDS = ["scanned_utc", "parlay_id", "n_legs", "legs", "tickers",
+                 "leg_probs_pct", "combined_pct", "fair_payout",
+                 "last_start_utc"]
+PARLAY_RESULTS_FIELDS = ["graded_utc", "parlay_id", "n_legs", "legs",
+                         "tickers", "combined_pct", "legs_won",
+                         "legs_lost", "legs_void", "result"]
 
 # THE SHELVES. Each maps ONE hand-verified Kalshi series to ONE Odds API
 # market key. kind decides the matching logic. Verified against live
@@ -597,6 +638,18 @@ def scan_winner(shelf, game, kalshi_events, rows):
     if market is None:
         print(f"  UNMATCHED {shelf['key']}: no {suffix} market in {et}")
         return
+    if (shelf["key"] in PARLAY_SHELVES
+            and fair_pct >= PARLAY_LEG_MIN_PROB):
+        # a parlay-board candidate: the sharps' favorite, with the
+        # matched Kalshi ticker that will grade it at settlement.
+        # No liquidity or price gate -- the board is played at the
+        # owner's own book, not on Kalshi.
+        PARLAY_POOL.append({
+            "pick": f"{pick_team} wins", "game": game["game"],
+            "fair_pct": fair_pct, "n_books": n,
+            "ticker": market.get("ticker", ""),
+            "commence": game["commence"],
+            "label": shelf["label"].split(" ·")[0]})
     what = ("wins the first 5 innings" if shelf["key"] == "MLB_F5"
             else "wins")
     evaluate(shelf, game, fair_pct, n, market, "yes",
@@ -734,6 +787,117 @@ def grade():
     return graded
 
 
+# --------------------------------------------------------- parlay board
+PARLAY_POOL = []            # candidates collected by scan_winner this run
+
+
+def build_parlays(pool):
+    """Rank the day's sharps favorites and stack the top ones.
+    Returns (ranked_legs, parlay_rows). Combined probability is the
+    plain product -- separate games are independent events, and one
+    leg per game is guaranteed by construction (scan_winner emits at
+    most one favorite per game per moneyline shelf)."""
+    seen = set()
+    legs = []
+    for c in sorted(pool, key=lambda c: -c["fair_pct"]):
+        if c["ticker"] in seen or not c["ticker"]:
+            continue
+        seen.add(c["ticker"])
+        legs.append(c)
+    parlays = []
+    day = SCAN_STAMP[:10]
+    for n in range(2, min(len(legs), PARLAY_MAX_LEGS) + 1):
+        top = legs[:n]
+        combined = 1.0
+        for c in top:
+            combined *= c["fair_pct"] / 100.0
+        parlays.append({
+            "scanned_utc": SCAN_STAMP,
+            "parlay_id": f"{day}-{n}LEG",
+            "n_legs": n,
+            "legs": " | ".join(f"{c['pick']} ({c['game']})" for c in top),
+            "tickers": "|".join(c["ticker"] for c in top),
+            "leg_probs_pct": "|".join(f"{c['fair_pct']:.1f}" for c in top),
+            "combined_pct": round(combined * 100, 1),
+            "fair_payout": round(1 / combined, 2) if combined > 0 else "",
+            "last_start_utc": max(c["commence"] for c in top).isoformat()})
+    return legs, parlays
+
+
+def grade_parlays():
+    """Grade parlays by Kalshi settlement, leg by leg. A parlay grades
+    only when EVERY leg's market is settled. Any lost leg = MISS. Void
+    legs (cancelled games) drop out, the way books drop pushed legs:
+    all remaining legs won = HIT; every leg void = VOID. Returns newly
+    graded rows."""
+    if not os.path.exists(PARLAY_CSV):
+        return []
+    already = set()
+    if os.path.exists(PARLAY_RESULTS_CSV):
+        with open(PARLAY_RESULTS_CSV) as f:
+            for r in csv.DictReader(f):
+                already.add(r["tickers"])
+    pending = {}                       # tickers-key -> latest scanned row
+    with open(PARLAY_CSV) as f:
+        for r in csv.DictReader(f):
+            k = r["tickers"]
+            if k in already or not k:
+                continue
+            last = iso(r.get("last_start_utc", ""))
+            if not last or last > datetime.now(timezone.utc) - timedelta(hours=3):
+                continue               # last game too recent to be settled
+            if k not in pending or r["scanned_utc"] > pending[k]["scanned_utc"]:
+                pending[k] = r
+    graded = []
+    market_cache = {}
+    for k, r in list(pending.items())[:10]:
+        won = lost = void = 0
+        settled = True
+        for ticker in k.split("|"):
+            if ticker not in market_cache:
+                data, err = kget(f"/markets/{ticker}", ticker)
+                market_cache[ticker] = (data or {}).get("market", {}) \
+                    if not err else None
+                time.sleep(0.3)
+            m = market_cache[ticker]
+            if m is None:
+                settled = False
+                break
+            status = (m.get("status") or "").lower()
+            result = (m.get("result") or "").lower()
+            if status not in ("settled", "finalized"):
+                settled = False
+                break
+            if result == "yes":
+                won += 1
+            elif result == "no":
+                lost += 1
+            else:
+                void += 1              # cancelled game: leg drops out
+        if not settled:
+            continue                   # next run
+        if lost:
+            verdict = "MISS"
+        elif won:
+            verdict = "HIT"
+        else:
+            verdict = "VOID"
+        graded.append({"graded_utc": datetime.now(timezone.utc)
+                       .isoformat(timespec="seconds"),
+                       "parlay_id": r["parlay_id"], "n_legs": r["n_legs"],
+                       "legs": r["legs"], "tickers": k,
+                       "combined_pct": r["combined_pct"],
+                       "legs_won": won, "legs_lost": lost,
+                       "legs_void": void, "result": verdict})
+        print(f"  graded parlay {r['parlay_id']}: {verdict} "
+              f"({won}W-{lost}L-{void}V, stated {r['combined_pct']}%)")
+    if graded:
+        with appender(PARLAY_RESULTS_CSV, PARLAY_RESULTS_FIELDS) as w:
+            for g in graded:
+                w.writerow(g)
+    return graded
+
+
 # ------------------------------------------------------------- the card
 CSS = """
 *{margin:0;padding:0;box-sizing:border-box}
@@ -805,7 +969,69 @@ def side_words(p):
             f"(that IS the sharps' side of this market)")
 
 
-def build_page(shown, results, feed_dead):
+def build_parlay_html(legs, parlays, presults):
+    """The parlay board section: ranked most-likely winners, then the
+    stacked combos with honest combined numbers."""
+    if not legs and not presults:
+        return ""
+    out = "<h2>The parlay board &mdash; today's most likely winners</h2>"
+    if not legs:
+        out += ("<div class='empty'><b>No parlay board today.</b><br>"
+                "No game on the slate has a favorite the sharps make "
+                f"{PARLAY_LEG_MIN_PROB:.0f}%+ likely (or its Kalshi "
+                "market for grading couldn't be matched). A board built "
+                "from weaker favorites would be a lottery ticket, so "
+                "there isn't one.</div>")
+    else:
+        rows = ""
+        for i, c in enumerate(legs[:PARLAY_LEGS_SHOWN], 1):
+            when = c["commence"].strftime("%a %H:%M UTC")
+            rows += (f"<tr><td>#{i}</td>"
+                     f"<td><b>{html.escape(c['pick'])}</b><br>"
+                     f"<span class='when'>{html.escape(c['label'])} · "
+                     f"{html.escape(c['game'])} · {when}</span></td>"
+                     f"<td><b>{c['fair_pct']:.0f}%</b></td>"
+                     f"<td>{c['n_books']}</td></tr>")
+        out += (f"<table><tr><th></th><th>The sharps' favorite</th>"
+                f"<th>Win chance</th><th>Books</th></tr>{rows}</table>")
+        for p in parlays:
+            combined = float(p["combined_pct"])
+            leg_lines = "".join(
+                f"<div class='pick'>&#10148; <b>{html.escape(t)}</b> "
+                f"<span class='when'>{q}%</span></div>"
+                for t, q in zip(p["legs"].split(" | "),
+                                p["leg_probs_pct"].split("|")))
+            out += f"""
+<div class="slip"><div class="punch"></div>
+<div class="stamp gap">{p['n_legs']} LEGS</div>
+<div class="slipbody">
+<span class="tag">PARLAY</span><span class="when">stack of the top {p['n_legs']}</span>
+{leg_lines}
+<div class="nums"><span>Honest chance all hit: <b>{combined:.0f}%</b></span>
+<span>Fair payout <b>${p['fair_payout']} per $1</b></span></div>
+<div class="why">If your sportsbook pays less than ${p['fair_payout']}
+on a $1 stake for this exact combo, the difference is the parlay tax.
+These are the day's most likely winners &mdash; and this stack still
+misses {100 - combined:.0f} times out of 100. Size accordingly.</div>
+</div></div>"""
+    if presults:
+        hits = sum(1 for r in presults if r["result"] == "HIT")
+        misses = sum(1 for r in presults if r["result"] == "MISS")
+        prows = ""
+        for r in list(reversed(presults))[:12]:
+            cls = {"HIT": "W", "MISS": "L"}.get(r["result"], "V")
+            prows += (f"<tr><td>{html.escape(r['parlay_id'])}</td>"
+                      f"<td>{html.escape(r['legs'])}</td>"
+                      f"<td>{float(r['combined_pct']):.0f}%</td>"
+                      f"<td class='{cls}'>{r['result']}</td></tr>")
+        out += (f"<h2>Parlay record: {hits} hit, {misses} missed "
+                f"(graded by Kalshi settlement)</h2>"
+                f"<table><tr><th>Parlay</th><th>Legs</th>"
+                f"<th>Stated chance</th><th>Result</th></tr>{prows}</table>")
+    return out
+
+
+def build_page(shown, results, feed_dead, parlay_legs, parlays, presults):
     now = datetime.now(timezone.utc).strftime("%a %b %d, %H:%M UTC")
     wins = sum(1 for r in results if r["result"] == "WIN")
     losses = sum(1 for r in results if r["result"] == "LOSS")
@@ -877,6 +1103,7 @@ robot with your wallet -- it never bets. You do (or don't).</div>
 <div class="wrap">
 <h2>Today's picks, biggest gap first</h2>
 {slips}
+{build_parlay_html(parlay_legs, parlays, presults)}
 {hist}
 <div class="foot"><b>How this card works, in one breath:</b> the sharpest
 sportsbooks in the world publish their opinion as prices; we strip out
@@ -890,7 +1117,17 @@ main event -- moneylines tag along. Sharps must lean at least
 {MIN_PICK_PROB:.0f}% -- coin flips don't get picks. Every market we
 evaluate is logged to sports_picks.csv, shown or not, and every shown
 pick is graded by Kalshi's own settlement in sports_results.csv. The
-record above is the only reason to trust (or ignore) this card.</div>
+record above is the only reason to trust (or ignore) this card.
+<br><br><b>The parlay board</b> answers a different question: not
+"what's mispriced" but "who are today's most likely winners". Legs are
+the sharps' strongest full-game favorites ({PARLAY_LEG_MIN_PROB:.0f}%+
+after removing the books' commission), Kalshi's price plays no part in
+choosing them, and each leg must match a hand-verified Kalshi market so
+the board can be graded by Kalshi's own settlement &mdash; hit or miss,
+in parlay_results.csv. The stated combined chance is the honest
+multiplied probability; there's no dollar score on purpose, because
+every sportsbook pays parlays differently. This board, like everything
+here, never bets. You do (or don't).</div>
 </div></body></html>"""
 
 
@@ -972,13 +1209,26 @@ def main():
     print(f"evaluated {len(rows)} sharp-vs-Kalshi pairs, "
           f"{len(shown)} make the card")
 
+    parlay_legs, parlays = build_parlays(PARLAY_POOL)
+    if parlays:
+        with appender(PARLAY_CSV, PARLAY_FIELDS) as w:
+            for p in parlays:
+                w.writerow(p)
+    print(f"parlay board: {len(parlay_legs)} qualifying favorites, "
+          f"{len(parlays)} stacked combos")
+
     graded = grade()
     print(f"graded {len(graded)} settled picks")
+    pgraded = grade_parlays()
+    print(f"graded {len(pgraded)} settled parlays")
     results = list(csv.DictReader(open(RESULTS_CSV))) \
         if os.path.exists(RESULTS_CSV) else []
+    presults = list(csv.DictReader(open(PARLAY_RESULTS_CSV))) \
+        if os.path.exists(PARLAY_RESULTS_CSV) else []
 
     with open(PAGE, "w") as f:
-        f.write(build_page(shown, results, feed_dead))
+        f.write(build_page(shown, results, feed_dead,
+                           parlay_legs, parlays, presults))
     print(f"wrote {PAGE}")
 
     if feed_dead:
