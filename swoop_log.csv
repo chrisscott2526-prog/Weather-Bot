@@ -3657,3 +3657,4 @@ checked_utc,ticker,city,side,bracket,observed_high,obs_age_min,market_cents,stat
 2026-09-07T22:49:14+00:00,KXHIGHTLV-26SEP07-B95.5,Las Vegas,yes,95° to 96°,96.8,24,97.0,DEAD
 2026-09-07T23:04:02+00:00,KXHIGHTLV-26SEP07-B95.5,Las Vegas,yes,95° to 96°,96.8,24,99.0,DEAD
 2026-09-09T13:40:18+00:00,KXHIGHNY-26SEP09-T84,New York City,yes,83° or below,73.94,49,58.0,AT RISK
+2026-09-09T15:04:02+00:00,KXHIGHNY-26SEP09-T84,New York City,yes,83° or below,77.0,73,63.0,AT RISK
