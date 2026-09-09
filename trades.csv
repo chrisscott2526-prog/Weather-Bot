@@ -352,3 +352,5 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-09-07T14:10:38+00:00,KXHIGHAUS-26SEP07-B99.5,99° to 100°,yes,1,57,56.1,,True,submitted,01a07c34-eb30-75ea-945e-591235f9fc4f,morning
 2026-09-07T16:10:37+00:00,KXHIGHTSFO-26SEP07-T81,82° or above,yes,1,55,46.3,,True,submitted,01a07ca2-c448-78f6-af48-05db1a17a802,morning
 2026-09-09T13:09:28+00:00,KXHIGHNY-26SEP09-T84,83° or below,yes,1,51,61.0,,True,submitted,01a08649-a340-7d6c-ad5a-9bad9c7b3bac,morning
+2026-09-09T16:10:30+00:00,KXHIGHTSFO-26SEP09-T91,92° or above,yes,1,54,47.6,,True,submitted,01a086ef-64d8-7291-affe-d15658395952,morning
+2026-09-09T16:10:30+00:00,KXHIGHTLV-26SEP09-B105.5,105° to 106°,yes,1,57,40.2,,True,submitted,01a086ef-64d8-7994-9909-823084baf6e1,morning
