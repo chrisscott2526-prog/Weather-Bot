@@ -1,0 +1,2 @@
+graded_utc,parlay_id,n_legs,legs,tickers,combined_pct,legs_won,legs_lost,legs_void,result
+2026-09-09T18:09:35+00:00,2026-09-08-2LEG,2,New York Yankees wins (Colorado Rockies @ New York Yankees) | Los Angeles Dodgers wins (Cincinnati Reds @ Los Angeles Dodgers),KXMLBGAME-26SEP081905COLNYY-NYY|KXMLBGAME-26SEP082210CINLAD-LAD,54.3,2,0,0,HIT
