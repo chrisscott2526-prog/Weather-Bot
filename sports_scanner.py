@@ -131,10 +131,12 @@ CREDIT_RESERVE = 150
 # card's 55% is a minimum LEAN for a single pick; a parlay multiplies
 # its legs, so the bar is higher.)
 PARLAY_LEG_MIN_PROB = 60.0
-# Full-game moneylines ONLY: clean win/lose markets the books and
-# Kalshi define identically. F5 winners (tie risk), totals and props
-# stay off the board -- legs must be simple enough to stack honestly.
-PARLAY_SHELVES = {"MLB_GAME", "NFL_GAME"}
+# Full-game/match moneylines ONLY (the shelves marked parlay=True):
+# clean win/lose markets the books and Kalshi define identically. F5
+# winners (tie risk), totals and props stay off the board -- legs must
+# be simple enough to stack honestly. (Was a hardcoded 2-shelf set
+# until Sep 10 2026; the owner's expansion made it a per-shelf flag,
+# same rule, more leagues.)
 PARLAY_MAX_LEGS = 4        # beyond 4 legs even 65% favorites hit <18%
 PARLAY_LEGS_SHOWN = 6      # the ranked leg list on the card
 
@@ -252,17 +254,97 @@ SHELVES = [
     # -- the side dish: full-game moneylines -----------------------------
     dict(key="MLB_GAME", sport="baseball_mlb", label="MLB · MONEYLINE",
          kind="winner", series="KXMLBGAME", odds_market="h2h",
-         featured=True, has_tie=False),
+         featured=True, has_tie=False, parlay=True),
     dict(key="NFL_GAME", sport="americanfootball_nfl",
          label="NFL · MONEYLINE", kind="winner", series="KXNFLGAME",
-         odds_market="h2h", featured=True, has_tie=False),
+         odds_market="h2h", featured=True, has_tie=False, parlay=True),
+    # -- THE EXPANSION (owner request, Sep 10 2026): college football,
+    # -- NBA, tennis -- so the card and the combo board cover the
+    # -- leagues the owner plays. Verified against the live catalogue
+    # -- and open markets via the expansion probe, Sep 10 2026:
+    # --   KXNCAAFGAME "College Football Game", 200 open markets;
+    # --   KXNBAGAME "Pro Basketball Game", 6 open (Oct 20 slate);
+    # --   KXATPMATCH / KXWTAMATCH "ATP/WTA Tennis Match", 4 each
+    # --     (US Open semifinals) -- tennis shelves are built at run
+    # --     time from the Odds API's live tournament keys, see
+    # --     tennis_shelves() below.
+    # -- These series' event tickers carry DATE + teams but NO game
+    # -- time (KXNBAGAME-26OCT20OKCSAS), and college/tennis codes are
+    # -- variable-length -- so match="names": teams pair against
+    # -- Kalshi's own market subtitles ('Oklahoma City', 'Alabama',
+    # -- 'Ben Shelton') instead of a hand-kept code map. Exact rules
+    # -- in match_event_by_names(); wrong or missing name = loud
+    # -- UNMATCHED skip, never a wrong match -- same guarantee as the
+    # -- code matcher, without 130 hand-guessed school codes.
+    dict(key="NCAAF_GAME", sport="americanfootball_ncaaf",
+         label="CFB · MONEYLINE", kind="winner", series="KXNCAAFGAME",
+         odds_market="h2h", featured=True, has_tie=False, parlay=True,
+         match="names"),
+    dict(key="NBA_GAME", sport="basketball_nba",
+         label="NBA · MONEYLINE", kind="winner", series="KXNBAGAME",
+         odds_market="h2h", featured=True, has_tie=False, parlay=True,
+         match="names"),
     # NOT included on purpose (verified but not comparable yet):
     #  KXMLBF7 -- books don't quote a first-7-innings line.
     #  KXNFL1H/KXNFL1HTOTAL -- tie handling in Kalshi's 1H rules not yet
     #    hand-read; add only after reading rules_primary via the probe.
     #  KXMLBHIT/KXMLBHR/KXMLBHRR/KXMLBHA -- batter props; add after the
     #    Odds API plan is confirmed to carry batter markets.
+    #  GOLF (owner asked, Sep 10 2026 -- deliberately OFF, and here is
+    #    why in plain terms): the Odds API feed carries only
+    #    tournament-winner outrights for golf (no matchup lines), a
+    #    pre-tournament favorite is ~20-30% -- nowhere near any pick
+    #    or leg bar -- and KXGOLFTOURN had ZERO open markets at
+    #    verification time, so its anatomy could not be hand-read.
+    #    Golf joins only when (a) an odds source carries golf matchups
+    #    the sharps actually price and (b) the Kalshi series is
+    #    verified live. Anything sooner would be invented data.
 ]
+
+
+def tennis_shelves():
+    """Tennis shelves, built at run time (owner request Sep 10 2026).
+
+    The Odds API keys tennis PER TOURNAMENT (tennis_atp_us_open, ...)
+    and retires each key when the tournament ends, so a hardcoded key
+    would die in a week. Instead the free /sports catalogue is read
+    each scan and every active tennis_atp_*/tennis_wta_* key becomes a
+    shelf. The KALSHI side stays fixed and hand-verified -- ATP maps
+    to KXATPMATCH, WTA to KXWTAMATCH (verified live Sep 10 2026, US
+    Open semifinals; ticker anatomy KXATPMATCH-26SEP11ZVEKHA with full
+    player names in the subtitles) -- so this is not series discovery:
+    the whitelist law governs Kalshi series, and both of those are
+    whitelisted above by hand. Challenger-tour series (junk liquidity,
+    no odds coverage) are deliberately NOT mapped."""
+    if not ODDS_KEY:
+        return []
+    data, err = oget(f"/sports?apiKey={ODDS_KEY}", "sports catalogue")
+    if err:
+        print(f"!! tennis: /sports catalogue failed ({err}) -- no "
+              f"tennis shelves this run")
+        return []
+    shelves = []
+    for s in data or []:
+        key = s.get("key", "")
+        if not s.get("active"):
+            continue
+        if key.startswith("tennis_atp_"):
+            series, tour = "KXATPMATCH", "ATP"
+        elif key.startswith("tennis_wta_"):
+            series, tour = "KXWTAMATCH", "WTA"
+        else:
+            continue
+        shelves.append(dict(
+            key=f"TENNIS_{key}", sport=key,
+            label=f"TENNIS · {s.get('title', tour)}", kind="winner",
+            series=series, odds_market="h2h", featured=True,
+            has_tie=False, parlay=True, match="names"))
+        print(f"tennis shelf: {key} -> {series} ({s.get('title', '')})")
+    if not shelves:
+        print("tennis: no active tour keys on the odds feed right now "
+              "(between tournaments) -- tennis returns when the next "
+              "tournament's lines go up")
+    return shelves
 
 # Kalshi's team codes as they appear INSIDE event tickers, keyed by the
 # Odds API's full team name. Matching is EXACT: an event ticker must end
@@ -585,6 +667,86 @@ def fetch_kalshi_series(series):
     return events
 
 
+# Event tickers WITHOUT a game time: KXNCAAFGAME-26SEP19MONMALBY,
+# KXNBAGAME-26OCT20OKCSAS, KXATPMATCH-26SEP11ZVEKHA (verified in the
+# Sep 10 2026 expansion probe). Date + one letter block; the block's
+# team/player codes are variable length, so it is never split -- the
+# names in the market subtitles do the matching instead.
+EVENT_DATE_RE = re.compile(r"^(\d{2})([A-Z]{3})(\d{2})[A-Z0-9]+$")
+
+
+def parse_event_date(event_ticker, series):
+    """KXNBAGAME-26OCT20OKCSAS -> date(2026, 10, 20) ET-calendar, or
+    None. Used by the name matcher; these series carry no start time."""
+    if not event_ticker.startswith(series + "-"):
+        return None
+    m = EVENT_DATE_RE.match(event_ticker[len(series) + 1:])
+    if not m:
+        return None
+    yy, mon, dd = m.groups()
+    if mon not in MONTHS:
+        return None
+    try:
+        return datetime(2000 + int(yy), MONTHS[mon], int(dd)).date()
+    except ValueError:
+        return None
+
+
+def name_matches(odds_name, kalshi_sub):
+    """Does the books' name belong to Kalshi's subtitle? True only when
+    the normalized subtitle IS the odds name, or is its full-word
+    prefix -- 'Alabama' fits 'Alabama Crimson Tide', 'Oklahoma City'
+    fits 'Oklahoma City Thunder', 'Ohio St.' fits 'Ohio State
+    Buckeyes' (the one abbreviation Kalshi uses, 'St.', is expanded to
+    'state' on both sides first -- verified across all 150 school
+    subtitles in the Sep 10 2026 probe dump, where it is the only
+    shorthand). Anything looser would be the substring-matching scar
+    wearing a new hat; a name this rule can't pair is a loud
+    UNMATCHED skip, and the log line is the tell for fixing it."""
+    a = re.sub(r"\bst\b", "state", norm(odds_name))
+    b = re.sub(r"\bst\b", "state", norm(kalshi_sub))
+    if not a or not b:
+        return False
+    return a == b or a.startswith(b + " ")
+
+
+def match_event_by_names(kalshi_events, series, game):
+    """The matcher for series whose tickers carry no time and no fixed-
+    width codes (college football, NBA, tennis). An event matches ONLY
+    if its ticker date equals the game's ET calendar date AND each of
+    the game's two sides pairs, by name_matches against the market
+    subtitles, to a DIFFERENT market of that one event -- the longest
+    subtitle wins when both of an event's subtitles fit (so 'Ohio St.'
+    beats 'Ohio' for Ohio State). Two events matching the same game =
+    ambiguous = loud skip; one team never plays twice on one date in
+    these sports, so a clean match is unique. Returns (event_ticker,
+    markets, {side_name: market}) or (None, None, None)."""
+    want = game["commence"].astimezone(ET).date()
+    found = []
+    for et, mkts in kalshi_events.items():
+        if parse_event_date(et, series) != want:
+            continue
+        assign = {}
+        ok = True
+        for side in (game["away"], game["home"]):
+            cands = [(len(norm(m.get("yes_sub_title") or "")), m)
+                     for m in mkts
+                     if name_matches(side, m.get("yes_sub_title") or "")]
+            if not cands:
+                ok = False
+                break
+            cands.sort(key=lambda x: -x[0])
+            assign[side] = cands[0][1]
+        if ok and assign[game["away"]] is not assign[game["home"]]:
+            found.append((et, mkts, assign))
+    if len(found) == 1:
+        return found[0]
+    if len(found) > 1:
+        print(f"  AMBIGUOUS {series}: {game['game']} matched "
+              f"{len(found)} events on {want} -- refusing to guess")
+    return None, None, None
+
+
 def match_event(kalshi_events, series, sport, game):
     """The matcher. An event matches ONLY if its ticker parses cleanly,
     its team block equals AWAYCODE+HOMECODE exactly, and its start time
@@ -678,8 +840,13 @@ def scan_winner(shelf, game, kalshi_events, rows):
     fair, n = consensus_h2h(game["raw"], shelf["odds_market"])
     if not fair:
         return
-    et, mkts = match_event(kalshi_events, shelf["series"],
-                           shelf["sport"], game)
+    assign = None
+    if shelf.get("match") == "names":
+        et, mkts, assign = match_event_by_names(
+            kalshi_events, shelf["series"], game)
+    else:
+        et, mkts = match_event(kalshi_events, shelf["series"],
+                               shelf["sport"], game)
     if not mkts:
         print(f"  UNMATCHED {shelf['key']}: {game['game']}")
         return
@@ -693,19 +860,29 @@ def scan_winner(shelf, game, kalshi_events, rows):
               f"market but the books quote 2-way (tie=push) -- "
               f"incomparable")
         return
-    codes = TEAM_CODES[shelf["sport"]]
     teams = {t: p for t, p in fair.items() if t != draw_key}
     pick_team = max(teams, key=teams.get)
     fair_pct = fair[pick_team] * 100
     if fair_pct < MIN_PICK_PROB:
         return                      # coin flip -- the sharps have no pick
-    suffix = "-" + codes.get(pick_team, "???")
-    market = next((m for m in mkts
-                   if m.get("ticker", "").endswith(suffix)), None)
+    if assign is not None:
+        # names matcher already paired each side to its own market;
+        # the pick can only be one of the game's two sides
+        market = assign.get(pick_team)
+    else:
+        codes = TEAM_CODES[shelf["sport"]]
+        suffix = "-" + codes.get(pick_team, "???")
+        market = next((m for m in mkts
+                       if m.get("ticker", "").endswith(suffix)), None)
+        if market is None:
+            print(f"  UNMATCHED {shelf['key']}: no {suffix} market "
+                  f"in {et}")
+            return
     if market is None:
-        print(f"  UNMATCHED {shelf['key']}: no {suffix} market in {et}")
+        print(f"  UNMATCHED {shelf['key']}: no market for pick "
+              f"{pick_team!r} in {et}")
         return
-    if (shelf["key"] in PARLAY_SHELVES
+    if (shelf.get("parlay")
             and fair_pct >= PARLAY_LEG_MIN_PROB):
         # a parlay-board candidate: the sharps' favorite, with the
         # matched Kalshi ticker that will grade it at settlement.
@@ -1474,14 +1651,19 @@ at least {GAP_MIN:.0f}¢ under the sharps' own number (after Kalshi's
 fee), it makes the card. We never pick against the sharps, never chase
 a "cheap" longshot, and anything over +{GAP_MAX:.0f}¢ is treated as bad
 data and suppressed. Props (first-5-innings, totals, strikeouts) are the
-main event -- moneylines tag along. Sharps must lean at least
+main event -- moneylines tag along. The card covers MLB, NFL, college
+football, the NBA (once its games are inside the scan window) and
+tour-level tennis; golf is deliberately absent because the odds feed
+carries only tournament-winner longshots for it -- no matchup lines
+means no honest pick, so none is invented. Sharps must lean at least
 {MIN_PICK_PROB:.0f}% -- coin flips don't get picks. Every market we
 evaluate is logged to sports_picks.csv, shown or not, and every shown
 pick is graded by Kalshi's own settlement in sports_results.csv. The
 record above is the only reason to trust (or ignore) this card.
 <br><br><b>The parlay board</b> answers a different question: not
 "what's mispriced" but "who are today's most likely winners". Legs are
-the sharps' strongest full-game favorites ({PARLAY_LEG_MIN_PROB:.0f}%+
+the sharps' strongest full-game or full-match favorites, from any
+league on the card ({PARLAY_LEG_MIN_PROB:.0f}%+
 after removing the books' commission), Kalshi's price plays no part in
 choosing them, and each leg must match a hand-verified Kalshi market so
 the board can be graded by Kalshi's own settlement &mdash; hit or miss,
@@ -1522,10 +1704,17 @@ def main():
         feed_dead = True
 
     shelves_by_sport = defaultdict(list)
-    for s in SHELVES:
+    all_shelves = list(SHELVES)
+    if not feed_dead:
+        all_shelves += tennis_shelves()   # tournament keys are live-
+                                          # discovered; Kalshi side fixed
+    for s in all_shelves:
         shelves_by_sport[s["sport"]].append(s)
 
     sports_ok = 0
+    series_cache = {}     # series -> fetched events; KXATPMATCH backs
+                          # every concurrent ATP tournament shelf, so
+                          # fetch each series once per run
     if not feed_dead:
         for sport, shelves in shelves_by_sport.items():
             featured = sorted({s["odds_market"] for s in shelves
@@ -1541,11 +1730,14 @@ def main():
             print(f"{sport}: {len(games)} upcoming games from the books")
             kalshi = {}
             for s in shelves:
-                ev = fetch_kalshi_series(s["series"])
+                if s["series"] not in series_cache:
+                    series_cache[s["series"]] = \
+                        fetch_kalshi_series(s["series"])
+                    time.sleep(0.4)
+                ev = series_cache[s["series"]]
                 if ev is not None:
                     kalshi[s["key"]] = ev
                     print(f"  kalshi {s['series']}: {len(ev)} open events")
-                time.sleep(0.4)
             dead_keys = set()
             games.sort(key=lambda g: g["commence"])
             for gi, game in enumerate(games):
