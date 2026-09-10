@@ -333,9 +333,18 @@ def probe_kalshi():
 EXPANSION_WORDS = ("ncaa", "college football", "cfb", "nba", "tennis",
                    "atp", "wta", "us open", "golf", "pga", "masters",
                    "ryder")
+# Looked up and dumped FIRST, before the alphabetical keyword flood --
+# the first run of this probe burned its whole lookup cap on KXATP*
+# and never reached the game-winner series the expansion actually
+# needs. These are the exact-ticker candidates read from that run's
+# catalogue listing (titles: College Football Game, Pro Basketball
+# Game, ATP/WTA Tennis Match, Golf Tournament Winner).
+EXPANSION_PRIORITY = ["KXNCAAFGAME", "KXNBAGAME", "KXATPMATCH",
+                      "KXWTAMATCH", "KXGOLFTOURN", "KXNCAAFTOTAL",
+                      "KXNCAAFSPREAD", "KXNBATOTAL", "KXNBASPREAD"]
 EXPANSION_LOOKUP_CAP = 40      # series market-count lookups per run
 EXPANSION_DUMP_CAP = 10        # series that get ticker/subtitle dumps
-EXPANSION_LINES_PER_DUMP = 80  # ticker+subtitle lines per dumped series
+EXPANSION_LINES_PER_DUMP = 150  # ticker+subtitle lines per dumped series
 
 
 def probe_expansion(catalogue):
@@ -354,6 +363,10 @@ def probe_expansion(catalogue):
     if not hits:
         print("  no catalogue series matched the expansion keywords")
         return
+    # priority candidates jump the queue so the lookup cap can never
+    # starve them again
+    hits = ([t for t in EXPANSION_PRIORITY if t in catalogue]
+            + [t for t in hits if t not in EXPANSION_PRIORITY])
     print(f"\n{len(hits)} candidate series. Open-market counts "
           f"(first {EXPANSION_LOOKUP_CAP}):")
     live = []
@@ -384,7 +397,15 @@ def probe_expansion(catalogue):
 
 def main():
     print("SPORTS PROBE -- read-only. No bets, no CSV writes, no card.")
-    probe_odds_api()
+    # PROBE_SKIP_ODDS=1 (the workflow's kalshi_only input): skip Part 1
+    # entirely. Kalshi market data is unauthenticated and free, but the
+    # Odds API calls in Part 1 cost ~20 credits a run -- on the free
+    # 500/month plan a Kalshi-anatomy question should not spend them.
+    if os.environ.get("PROBE_SKIP_ODDS", "").strip():
+        print("(PROBE_SKIP_ODDS set: skipping Part 1 -- no Odds API "
+              "credits spent this run)")
+    else:
+        probe_odds_api()
     probe_kalshi()
     print("\nprobe complete.")
 
