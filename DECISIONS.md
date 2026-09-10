@@ -2,6 +2,44 @@
 
 One line of why per decision, newest first, as the standing orders require.
 
+## 2026-09-10 — the combo board (owner ask: "high paying combos, any sector")
+
+1. **Read "highest payout" as "stack MORE real favorites", never as
+   "buy longer shots."** Why: payout and probability are the same
+   number upside down, and every long-shot record in this repo lost
+   (under-20¢ weather bets 2W–22L; the edge-first sports card 9–21).
+   The board's payout ladder tops out at 8 legs of 60%+ favorites.
+
+2. **Weather legs need BOTH experts at 60%+ (ensemble member share
+   AND live Kalshi bid), stating the lower number.** Why: the
+   ensemble's claimed probability alone is proven overconfident
+   (autopsy §4: 55%+ claims delivered ~35%), while the dual bar
+   backtests 14W–2L (88%) stating only ~66% — understating, the only
+   allowed direction. Sixteen legs is thin; combo_results.csv grades
+   the rule for real from day one.
+
+3. **Sports legs are exactly the parlay pool; combos exist only when
+   at least one weather leg qualifies.** Why: a sports-only stack IS
+   the parlay board, and logging the same stack under two names would
+   double-count the record.
+
+4. **Benched cities never supply a leg, and the bench list is parsed
+   from scanner.py's source at run time, fail-closed.** Why: a board
+   of "most likely winners" cannot seat a city the scoreboard benched
+   for losing, and a mirrored copy could drift (watchdog precedent).
+
+5. **No sector without a calibrated expert and hand-verified series
+   was added.** Why: politics/econ/etc. have no sharps and no
+   ensemble here; Kalshi's own price is not an expert we can grade an
+   edge against, and series discovery is banned. Adding a third
+   sector is an owner decision that needs both prerequisites first.
+
+6. **No dollar P&L on combos; fair_payout = 1/combined prob is
+   stated instead, with the card saying Kalshi has no combo ticket.**
+   Why: no venue's combo payout is knowable (honesty rules), and the
+   owner must not read the multiplied number as something buying the
+   legs individually on Kalshi would pay.
+
 ## 2026-08-30 (evening) — full audit on the owner's ask ("say it and let's correct it")
 
 11. **Added the end-of-day resting-order sweep** (`trader.py

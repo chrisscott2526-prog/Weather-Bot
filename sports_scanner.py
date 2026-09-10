@@ -39,9 +39,13 @@ the log, and with a non-zero exit code.)
 Outputs: sports.html (the card), sports_picks.csv (every evaluated
 market, shown or not), sports_results.csv (the scoreboard),
 parlay_picks.csv (the parlay board's suggested combos, owner request
-Sep 8 2026) and parlay_results.csv (the parlay scoreboard).
+Sep 8 2026) and parlay_results.csv (the parlay scoreboard), plus
+combo_picks.csv / combo_results.csv (THE COMBO BOARD, owner request
+Sep 10 2026: cross-sector stacks -- sports favorites + weather picks
+-- for the highest honest payout; see its section below).
 """
 
+import ast
 import csv
 import html
 import json
@@ -53,10 +57,12 @@ import unicodedata
 import urllib.error
 import urllib.request
 from collections import defaultdict
+from datetime import date as date_cls
 from datetime import datetime, timedelta, timezone
 from statistics import median
 from zoneinfo import ZoneInfo
 
+from cities import CITY_TO_STATION, TIMEZONES
 from csvio import appender
 
 # ---------------------------------------------------------------- config
@@ -132,6 +138,55 @@ PARLAY_SHELVES = {"MLB_GAME", "NFL_GAME"}
 PARLAY_MAX_LEGS = 4        # beyond 4 legs even 65% favorites hit <18%
 PARLAY_LEGS_SHOWN = 6      # the ranked leg list on the card
 
+# THE COMBO BOARD (owner request, Sep 10 2026): "build high paying
+# combos from the Kalshi market, combining any sector." Same
+# constitution as the parlay board, one shelf wider: the stack may mix
+# SPORTS legs (the sharps' 60%+ full-game moneyline favorites -- the
+# exact parlay-board pool, unchanged) with WEATHER legs (the money
+# lane's own morning bracket picks). More qualifying favorites means
+# taller stacks, and a taller stack of real favorites is the ONLY
+# honest road to a high payout -- a payout is bought with combined
+# risk, never found for free. Long-shot legs stay banned: the cheap-
+# leg disease went 2W-22L under 20c and 9-21 in the old sports card,
+# and no combo resurrects it.
+#
+# THE WEATHER LEG DUAL-EXPERT RULE (evidence, Sep 10 2026): the
+# ensemble's claimed probability alone is NOT calibrated enough to
+# stack -- autopsy §4: claims of 55%+ delivered ~35% across 51 settled
+# bets, and even post-rebuild morning 60%+ claims ran ~50%. So a
+# weather leg must be called a 60%+ favorite by BOTH experts at once:
+# the ensemble (>= PARLAY_LEG_MIN_PROB % of members on the picked
+# bracket) AND the market itself (a live Kalshi YES bid of >= the same
+# number, in cents). The leg's stated probability is the LOWER of the
+# two -- the board understates, never overstates (the Phoenix law's
+# direction). Backtest on every morning-lane pick in edges.csv,
+# graded against settlements.csv (Aug 21 - Sep 8 2026): legs passing
+# both bars went 14W-2L (88%) while stating ~66% on average. Sixteen
+# legs is a thin sample -- combo_results.csv exists to keep grading
+# that rule for real, stated % vs hit rate, same as the parlay board.
+#
+# The laws carried over word for word: ADVISORY ONLY FOREVER (nothing
+# here places, sizes, or sells a bet, and nothing that trades may ever
+# read these files); the expert picks the leg (the bracket is always
+# the ensemble's pick -- never a bracket picked because its price
+# looks good); every leg is a hand-verified Kalshi market graded by
+# Kalshi's own `result`; no dollar P&L in the results file, because no
+# venue's combo payout is knowable -- the fair_payout column is what a
+# no-vig book would pay, stated so the owner can see what their own
+# book's price is worth. Kalshi itself sells each leg as a separate
+# market -- there is no combo ticket there; buying every leg on Kalshi
+# pays each leg on its own, NOT the multiplied number.
+#
+# Benched cities (scanner.py BENCHED_CITIES -- parsed from the source
+# at run time, watchdog-style, never a mirrored copy that can drift)
+# never supply a leg: a board titled "most likely winners" does not
+# seat a city the scoreboard benched for losing.
+COMBO_MAX_LEGS = 8         # 8 legs of 62% favorites ~ 2% / ~$46 fair --
+                           # past that even a stack of favorites is
+                           # pure lottery and the % rounds to zero
+WEATHER_EDGES_CSV = "edges.csv"      # the weather expert's own log
+WEATHER_SCANNER_SRC = "scanner.py"   # read for BENCHED_CITIES only
+
 PICKS_CSV = "sports_picks.csv"
 RESULTS_CSV = "sports_results.csv"
 PARLAY_CSV = "parlay_picks.csv"
@@ -157,6 +212,18 @@ PARLAY_FIELDS = ["scanned_utc", "parlay_id", "n_legs", "legs", "tickers",
 PARLAY_RESULTS_FIELDS = ["graded_utc", "parlay_id", "n_legs", "legs",
                          "tickers", "combined_pct", "legs_won",
                          "legs_lost", "legs_void", "result"]
+# Combo board files: same shape as the parlay pair plus `sectors`
+# (pipe-separated sector tag per leg -- MLB/NFL/WEATHER -- aligned
+# with legs/tickers/leg_probs_pct). Same no-pnl law, same union-merge
+# append-only law (.gitattributes).
+COMBO_CSV = "combo_picks.csv"
+COMBO_RESULTS_CSV = "combo_results.csv"
+COMBO_FIELDS = ["scanned_utc", "combo_id", "n_legs", "sectors", "legs",
+                "tickers", "leg_probs_pct", "combined_pct",
+                "fair_payout", "last_start_utc"]
+COMBO_RESULTS_FIELDS = ["graded_utc", "combo_id", "n_legs", "sectors",
+                        "legs", "tickers", "combined_pct", "legs_won",
+                        "legs_lost", "legs_void", "result"]
 
 # THE SHELVES. Each maps ONE hand-verified Kalshi series to ONE Odds API
 # market key. kind decides the matching logic. Verified against live
@@ -787,6 +854,191 @@ def grade():
     return graded
 
 
+# -------------------------------------------- combo board: weather legs
+WX_TICKER_DATE = re.compile(r"-(\d{2})([A-Z]{3})(\d{2})-")
+
+
+def weather_benched_cities():
+    """BENCHED_CITIES parsed from scanner.py's own source line at run
+    time (the watchdog's trick for trader.py's band -- never a mirrored
+    copy that can drift). FAIL-CLOSED: if the line can't be read, the
+    caller must refuse ALL weather legs rather than risk seating a
+    benched city on a board of 'most likely winners'."""
+    try:
+        src = open(WEATHER_SCANNER_SRC).read()
+        m = re.search(r"^BENCHED_CITIES\s*=\s*(\{[^}]*\})", src, re.M)
+        if not m:
+            return None
+        bench = ast.literal_eval(m.group(1))
+        return set(bench) if isinstance(bench, (set, frozenset)) else None
+    except (OSError, ValueError, SyntaxError):
+        return None
+
+
+def weather_market_date(ticker):
+    """KXHIGHTLV-26SEP09-B105.5 -> date(2026, 9, 9), or None."""
+    m = WX_TICKER_DATE.search(ticker or "")
+    if not m:
+        return None
+    yy, mon, dd = m.groups()
+    if mon not in MONTHS:
+        return None
+    try:
+        return date_cls(2000 + int(yy), MONTHS[mon], int(dd))
+    except ValueError:
+        return None
+
+
+def weather_live_bid(ticker):
+    """The market expert's live number for a weather leg: Kalshi's YES
+    bid in cents, unauthenticated (market data needs no key -- same as
+    the rest of this file). Returns (bid_cents, err). A market that is
+    no longer open, or has no readable bid, is a loud skip -- never a
+    guess and never a stale morning quote presented as current."""
+    data, err = kget(f"/markets/{ticker}", ticker)
+    if err:
+        return None, err
+    m = (data or {}).get("market", {})
+    status = (m.get("status") or "").lower()
+    if status not in ("active", "open"):
+        return None, f"market status {status or 'unknown'} -- day over"
+    bid = dollars_to_cents(m, "yes_bid_dollars")
+    if bid is None:
+        no_ask = dollars_to_cents(m, "no_ask_dollars")
+        if no_ask is not None:
+            bid = 100 - no_ask       # the same number, quoted from the
+                                     # other side of the book
+    if bid is None or bid <= 0:
+        return None, "no readable YES bid"
+    return bid, None
+
+
+def weather_legs():
+    """TODAY's qualifying weather legs under the dual-expert rule (see
+    the config block: ensemble >= PARLAY_LEG_MIN_PROB % of members on
+    the picked bracket AND a live Kalshi bid >= the same bar; the leg
+    states the LOWER of the two). The bracket itself is always the
+    ensemble's pick straight from the money lane's own log -- morning-
+    strategy edges.csv rows, latest scan per city -- never a bracket
+    chosen here, and never chosen by price. No fresh morning pick for
+    a city today = no leg for that city, said out loud."""
+    if not os.path.exists(WEATHER_EDGES_CSV):
+        print("!! combo board: edges.csv missing -- no weather legs")
+        return []
+    bench = weather_benched_cities()
+    if bench is None:
+        print("!! combo board: could not read BENCHED_CITIES from "
+              f"{WEATHER_SCANNER_SRC} -- refusing ALL weather legs "
+              "(fail-closed) rather than risk seating a benched city")
+        return []
+    today = datetime.now(timezone.utc).date()
+    latest = {}                      # city -> freshest pick row today
+    with open(WEATHER_EDGES_CSV) as f:
+        for r in csv.DictReader(f):
+            if r.get("strategy") != "morning" or r.get("pick") != "1":
+                continue
+            if (r.get("scanned_utc") or "")[:10] != today.isoformat():
+                continue
+            if weather_market_date(r.get("market")) != today:
+                continue
+            city = (r.get("city") or "").strip()
+            if not city:
+                continue
+            if (city not in latest
+                    or r["scanned_utc"] > latest[city]["scanned_utc"]):
+                latest[city] = r
+    legs = []
+    for city, r in sorted(latest.items()):
+        try:
+            model = float(r.get("model_prob_pct") or "")
+        except ValueError:
+            continue
+        if model < PARLAY_LEG_MIN_PROB:
+            continue                 # the ensemble itself has no 60%+
+                                     # opinion -- silence, not a near-miss
+        if city in bench:
+            print(f"  combo: {city} pick qualifies on numbers but the "
+                  f"city is BENCHED by the scoreboard -- no leg")
+            continue
+        station = CITY_TO_STATION.get(city)
+        tz = TIMEZONES.get(station) if station else None
+        if not tz:
+            print(f"  combo: {city} has no verified timezone -- SKIP "
+                  f"(never guess a clock)")
+            continue
+        ticker = r.get("market") or ""
+        bid, err = weather_live_bid(ticker)
+        time.sleep(0.3)
+        if bid is None:
+            print(f"  combo: {city} {ticker}: no market quote ({err}) "
+                  f"-- no leg")
+            continue
+        if bid < PARLAY_LEG_MIN_PROB:
+            print(f"  combo: {city} pick -- ensemble {model:.0f}% but "
+                  f"the live market bids only {bid:.0f}c "
+                  f"(< {PARLAY_LEG_MIN_PROB:.0f}) -- the two experts "
+                  f"disagree, no leg")
+            continue
+        stated = min(model, bid)     # understate, never overstate
+        # a weather leg is "done" at the end of the city's own local
+        # day; settlement lands overnight and the grader waits for it
+        end_local = (datetime(today.year, today.month, today.day,
+                              tzinfo=ZoneInfo(tz)) + timedelta(days=1))
+        subtitle = (r.get("subtitle") or "").strip() or "picked bracket"
+        legs.append({
+            "pick": f"{city} high {subtitle}",
+            "game": f"{city} daily high, {today.isoformat()}",
+            "fair_pct": stated,
+            "src": (f"ensemble {model:.0f}% of {r.get('n_members') or '?'} "
+                    f"members · market bids {bid:.0f}¢"),
+            "ticker": ticker,
+            "commence": end_local.astimezone(timezone.utc),
+            "label": "WEATHER"})
+        print(f"  combo leg: {city} high {subtitle} -- stated "
+              f"{stated:.0f}% (ensemble {model:.0f}%, bid {bid:.0f}c)")
+    return legs
+
+
+def build_combos(pool):
+    """Stack the whole cross-sector pool, biggest favorites first.
+    Combined probability is the plain product; one leg per game and per
+    city holds by construction (scan_winner emits one favorite per
+    game, weather_legs one bracket per city). Built ONLY when at least
+    one weather leg made the pool -- a sports-only stack is the parlay
+    board's job, and logging the same stack under two names would
+    double-count the record. Weather legs in the same air mass are not
+    fully independent, so the stated combined % is an approximation
+    there -- said on the card, and judged by combo_results.csv."""
+    seen = set()
+    legs = []
+    for c in sorted(pool, key=lambda c: -c["fair_pct"]):
+        if not c["ticker"] or c["ticker"] in seen:
+            continue
+        seen.add(c["ticker"])
+        legs.append(c)
+    if len(legs) < 2 or not any(c["label"] == "WEATHER" for c in legs):
+        return legs, []
+    combos = []
+    day = SCAN_STAMP[:10]
+    for n in range(2, min(len(legs), COMBO_MAX_LEGS) + 1):
+        top = legs[:n]
+        combined = 1.0
+        for c in top:
+            combined *= c["fair_pct"] / 100.0
+        combos.append({
+            "scanned_utc": SCAN_STAMP,
+            "combo_id": f"{day}-COMBO-{n}LEG",
+            "n_legs": n,
+            "sectors": "|".join(c["label"] for c in top),
+            "legs": " | ".join(f"{c['pick']} ({c['game']})" for c in top),
+            "tickers": "|".join(c["ticker"] for c in top),
+            "leg_probs_pct": "|".join(f"{c['fair_pct']:.1f}" for c in top),
+            "combined_pct": round(combined * 100, 1),
+            "fair_payout": round(1 / combined, 2) if combined > 0 else "",
+            "last_start_utc": max(c["commence"] for c in top).isoformat()})
+    return legs, combos
+
+
 # --------------------------------------------------------- parlay board
 PARLAY_POOL = []            # candidates collected by scan_winner this run
 
@@ -824,42 +1076,48 @@ def build_parlays(pool):
     return legs, parlays
 
 
-def grade_parlays():
-    """Grade parlays by Kalshi settlement, leg by leg. A parlay grades
-    only when EVERY leg's market is settled. Any lost leg = MISS. Void
-    legs (cancelled games) drop out, the way books drop pushed legs:
-    all remaining legs won = HIT; every leg void = VOID. Returns newly
+_SETTLE_CACHE = {}          # ticker -> market object, shared by both
+                            # graders (combos reuse parlay tickers, so
+                            # the cache halves the Kalshi calls)
+
+
+def grade_stacks(picks_csv, results_csv, results_fields, id_col,
+                 carry=(), what="parlay"):
+    """Grade stacked boards (parlays AND combos) by Kalshi settlement,
+    leg by leg. A stack grades only when EVERY leg's market is settled.
+    Any lost leg = MISS. Void legs (cancelled games; a weather market
+    Kalshi voids) drop out, the way books drop pushed legs: all
+    remaining legs won = HIT; every leg void = VOID. Returns newly
     graded rows."""
-    if not os.path.exists(PARLAY_CSV):
+    if not os.path.exists(picks_csv):
         return []
     already = set()
-    if os.path.exists(PARLAY_RESULTS_CSV):
-        with open(PARLAY_RESULTS_CSV) as f:
+    if os.path.exists(results_csv):
+        with open(results_csv) as f:
             for r in csv.DictReader(f):
                 already.add(r["tickers"])
     pending = {}                       # tickers-key -> latest scanned row
-    with open(PARLAY_CSV) as f:
+    with open(picks_csv) as f:
         for r in csv.DictReader(f):
             k = r["tickers"]
             if k in already or not k:
                 continue
             last = iso(r.get("last_start_utc", ""))
             if not last or last > datetime.now(timezone.utc) - timedelta(hours=3):
-                continue               # last game too recent to be settled
+                continue               # last leg too recent to be settled
             if k not in pending or r["scanned_utc"] > pending[k]["scanned_utc"]:
                 pending[k] = r
     graded = []
-    market_cache = {}
     for k, r in list(pending.items())[:10]:
         won = lost = void = 0
         settled = True
         for ticker in k.split("|"):
-            if ticker not in market_cache:
+            if ticker not in _SETTLE_CACHE:
                 data, err = kget(f"/markets/{ticker}", ticker)
-                market_cache[ticker] = (data or {}).get("market", {}) \
+                _SETTLE_CACHE[ticker] = (data or {}).get("market", {}) \
                     if not err else None
                 time.sleep(0.3)
-            m = market_cache[ticker]
+            m = _SETTLE_CACHE[ticker]
             if m is None:
                 settled = False
                 break
@@ -873,7 +1131,7 @@ def grade_parlays():
             elif result == "no":
                 lost += 1
             else:
-                void += 1              # cancelled game: leg drops out
+                void += 1              # cancelled/voided: leg drops out
         if not settled:
             continue                   # next run
         if lost:
@@ -882,20 +1140,35 @@ def grade_parlays():
             verdict = "HIT"
         else:
             verdict = "VOID"
-        graded.append({"graded_utc": datetime.now(timezone.utc)
-                       .isoformat(timespec="seconds"),
-                       "parlay_id": r["parlay_id"], "n_legs": r["n_legs"],
-                       "legs": r["legs"], "tickers": k,
-                       "combined_pct": r["combined_pct"],
-                       "legs_won": won, "legs_lost": lost,
-                       "legs_void": void, "result": verdict})
-        print(f"  graded parlay {r['parlay_id']}: {verdict} "
+        row = {"graded_utc": datetime.now(timezone.utc)
+               .isoformat(timespec="seconds"),
+               id_col: r[id_col], "n_legs": r["n_legs"],
+               "legs": r["legs"], "tickers": k,
+               "combined_pct": r["combined_pct"],
+               "legs_won": won, "legs_lost": lost,
+               "legs_void": void, "result": verdict}
+        for c in carry:
+            row[c] = r.get(c, "")
+        graded.append(row)
+        print(f"  graded {what} {r[id_col]}: {verdict} "
               f"({won}W-{lost}L-{void}V, stated {r['combined_pct']}%)")
     if graded:
-        with appender(PARLAY_RESULTS_CSV, PARLAY_RESULTS_FIELDS) as w:
+        with appender(results_csv, results_fields) as w:
             for g in graded:
                 w.writerow(g)
     return graded
+
+
+def grade_parlays():
+    return grade_stacks(PARLAY_CSV, PARLAY_RESULTS_CSV,
+                        PARLAY_RESULTS_FIELDS, "parlay_id",
+                        what="parlay")
+
+
+def grade_combos():
+    return grade_stacks(COMBO_CSV, COMBO_RESULTS_CSV,
+                        COMBO_RESULTS_FIELDS, "combo_id",
+                        carry=("sectors",), what="combo")
 
 
 # ------------------------------------------------------------- the card
@@ -1031,7 +1304,94 @@ misses {100 - combined:.0f} times out of 100. Size accordingly.</div>
     return out
 
 
-def build_page(shown, results, feed_dead, parlay_legs, parlays, presults):
+def build_combo_html(combo_legs, combos, cresults):
+    """THE COMBO BOARD section: the cross-sector stack ladder. Shown
+    biggest payout first because that is the owner's question -- with
+    the honest chance printed just as large, because the two are the
+    same number upside down."""
+    if not combo_legs and not cresults:
+        return ""
+    out = ("<h2>The combo board &mdash; cross-sector stacks, "
+           "highest payout first</h2>")
+    n_wx = sum(1 for c in combo_legs if c["label"] == "WEATHER")
+    if not combos:
+        if len(combo_legs) < 2:
+            why = ("Fewer than two qualifying favorites across all "
+                   "sectors right now.")
+        elif n_wx == 0:
+            why = ("No weather leg qualifies right now &mdash; today's "
+                   "strongest bracket pick did not clear the dual-expert "
+                   f"bar (ensemble AND live market both "
+                   f"{PARLAY_LEG_MIN_PROB:.0f}%+), so the only honest "
+                   "stacks today are the sports parlays above.")
+        else:
+            why = "Not enough qualifying favorites to stack."
+        out += (f"<div class='empty'><b>No combos this scan.</b><br>"
+                f"{why} A combo built from weaker legs would be a "
+                f"lottery ticket wearing a suit, so there isn't "
+                f"one.</div>")
+    else:
+        rows = ""
+        for i, c in enumerate(combo_legs, 1):
+            when = c["commence"].strftime("%a %H:%M UTC")
+            done = ("settles overnight" if c["label"] == "WEATHER"
+                    else when)
+            rows += (f"<tr><td>#{i}</td>"
+                     f"<td><span class='tag'>{html.escape(c['label'])}"
+                     f"</span></td>"
+                     f"<td><b>{html.escape(c['pick'])}</b><br>"
+                     f"<span class='when'>{html.escape(c['game'])} · "
+                     f"{done}</span></td>"
+                     f"<td><b>{c['fair_pct']:.0f}%</b><br>"
+                     f"<span class='when'>{html.escape(c['src'])}"
+                     f"</span></td></tr>")
+        out += (f"<table><tr><th></th><th>Sector</th>"
+                f"<th>The favorite</th><th>Win chance (why)</th></tr>"
+                f"{rows}</table>")
+        for j, p in enumerate(reversed(combos)):
+            combined = float(p["combined_pct"])
+            stamp = ("top" if j == 0 else "gap")
+            label = ("MAX PAYOUT" if j == 0 else f"{p['n_legs']} LEGS")
+            leg_lines = "".join(
+                f"<div class='pick'>&#10148; <b>{html.escape(t)}</b> "
+                f"<span class='when'>{q}% · {html.escape(s)}</span></div>"
+                for t, q, s in zip(p["legs"].split(" | "),
+                                   p["leg_probs_pct"].split("|"),
+                                   p["sectors"].split("|")))
+            out += f"""
+<div class="slip"><div class="punch"></div>
+<div class="stamp {stamp}">{label}</div>
+<div class="slipbody">
+<span class="tag">COMBO</span><span class="when">the top {p['n_legs']} favorites, all sectors</span>
+{leg_lines}
+<div class="nums"><span>Fair payout <b>${p['fair_payout']} per $1</b></span>
+<span>Honest chance all hit: <b>{combined:.1f}%</b></span></div>
+<div class="why">${p['fair_payout']} per $1 is what a no-vig book would
+pay this exact stack &mdash; and it misses about
+{100 - combined:.0f} times out of 100. The payout isn't found, it's
+bought with combined risk. Kalshi has no combo ticket: buying each leg
+there pays each leg on its own, never this multiplied number.</div>
+</div></div>"""
+    if cresults:
+        hits = sum(1 for r in cresults if r["result"] == "HIT")
+        misses = sum(1 for r in cresults if r["result"] == "MISS")
+        crows = ""
+        for r in list(reversed(cresults))[:12]:
+            cls = {"HIT": "W", "MISS": "L"}.get(r["result"], "V")
+            crows += (f"<tr><td>{html.escape(r['combo_id'])}</td>"
+                      f"<td>{html.escape(r['legs'])}</td>"
+                      f"<td>{float(r['combined_pct']):.1f}%</td>"
+                      f"<td class='{cls}'>{r['result']}</td></tr>")
+        out += (f"<h2>Combo record: {hits} hit, {misses} missed "
+                f"(graded by Kalshi settlement)</h2>"
+                f"<table><tr><th>Combo</th><th>Legs</th>"
+                f"<th>Stated chance</th><th>Result</th></tr>{crows}"
+                f"</table>")
+    return out
+
+
+def build_page(shown, results, feed_dead, parlay_legs, parlays, presults,
+               combo_legs, combos, cresults):
     now = datetime.now(timezone.utc).strftime("%a %b %d, %H:%M UTC")
     wins = sum(1 for r in results if r["result"] == "WIN")
     losses = sum(1 for r in results if r["result"] == "LOSS")
@@ -1104,6 +1464,7 @@ robot with your wallet -- it never bets. You do (or don't).</div>
 <h2>Today's picks, biggest gap first</h2>
 {slips}
 {build_parlay_html(parlay_legs, parlays, presults)}
+{build_combo_html(combo_legs, combos, cresults)}
 {hist}
 <div class="foot"><b>How this card works, in one breath:</b> the sharpest
 sportsbooks in the world publish their opinion as prices; we strip out
@@ -1127,7 +1488,24 @@ the board can be graded by Kalshi's own settlement &mdash; hit or miss,
 in parlay_results.csv. The stated combined chance is the honest
 multiplied probability; there's no dollar score on purpose, because
 every sportsbook pays parlays differently. This board, like everything
-here, never bets. You do (or don't).</div>
+here, never bets. You do (or don't).
+<br><br><b>The combo board</b> is the parlay board with every sector
+of this operation invited: the sharps' strongest game favorites plus
+the weather bot's own strongest bracket picks, stacked tallest-payout
+first. A weather leg has to pass TWO experts at once &mdash; the
+ensemble must put {PARLAY_LEG_MIN_PROB:.0f}%+ of its members on the
+bracket AND Kalshi's live market must bid {PARLAY_LEG_MIN_PROB:.0f}¢+
+for it &mdash; because the record shows the ensemble alone runs
+overconfident; the leg then states the LOWER of the two numbers, so
+the board understates on purpose. Cities benched by the scoreboard
+never supply a leg. One honest wrinkle: weather picks in the same air
+mass can win or lose together, so a stack heavy on nearby cities is
+riskier than the multiplied number implies &mdash; the combo record
+above is the judge of that, stated chance vs hit rate. And the plain
+truth about "high paying": the payout and the chance are the same
+number upside down &mdash; the only honest way to a bigger payout is
+stacking MORE real favorites, never reaching for longer shots. This
+board never bets, same permanent rule as everything on this page.</div>
 </div></body></html>"""
 
 
@@ -1217,18 +1595,38 @@ def main():
     print(f"parlay board: {len(parlay_legs)} qualifying favorites, "
           f"{len(parlays)} stacked combos")
 
+    # THE COMBO BOARD: the parlay pool plus the weather sector's
+    # dual-expert legs. Weather legs need no odds key, so a dead odds
+    # feed leaves the weather side of the board standing (and the red
+    # dead-feed banner still flies).
+    wx_legs = weather_legs()
+    combo_pool = ([dict(c, src=f"{c['n_books']} sharp books")
+                   for c in PARLAY_POOL] + wx_legs)
+    combo_legs, combos = build_combos(combo_pool)
+    if combos:
+        with appender(COMBO_CSV, COMBO_FIELDS) as w:
+            for p in combos:
+                w.writerow(p)
+    print(f"combo board: {len(combo_legs)} favorites across sectors "
+          f"({len(wx_legs)} weather), {len(combos)} stacked combos")
+
     graded = grade()
     print(f"graded {len(graded)} settled picks")
     pgraded = grade_parlays()
     print(f"graded {len(pgraded)} settled parlays")
+    cgraded = grade_combos()
+    print(f"graded {len(cgraded)} settled combos")
     results = list(csv.DictReader(open(RESULTS_CSV))) \
         if os.path.exists(RESULTS_CSV) else []
     presults = list(csv.DictReader(open(PARLAY_RESULTS_CSV))) \
         if os.path.exists(PARLAY_RESULTS_CSV) else []
+    cresults = list(csv.DictReader(open(COMBO_RESULTS_CSV))) \
+        if os.path.exists(COMBO_RESULTS_CSV) else []
 
     with open(PAGE, "w") as f:
         f.write(build_page(shown, results, feed_dead,
-                           parlay_legs, parlays, presults))
+                           parlay_legs, parlays, presults,
+                           combo_legs, combos, cresults))
     print(f"wrote {PAGE}")
 
     if feed_dead:

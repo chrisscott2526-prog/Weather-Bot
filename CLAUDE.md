@@ -94,6 +94,39 @@ translated one-to-one:
   the honesty rules. The scoreboard question is calibration: stated
   combined % vs actual hit rate. The board never bets — the permanent
   advisory-only rule covers it word for word.
+- **The combo board (owner request, Sep 10 2026)** is the parlay
+  board with every sector invited: one cross-sector stack ladder on
+  the same card, mixing the sharps' 60%+ full-game favorites (the
+  parlay pool, unchanged) with **weather legs** — the money lane's
+  own morning bracket picks. Its laws: a weather leg must pass the
+  **dual-expert rule** — the ensemble puts ≥60% of members on the
+  picked bracket AND Kalshi's **live** market bids ≥60¢ for it — and
+  states the **lower** of the two numbers (the ensemble's claim alone
+  is proven overconfident: autopsy §4 had 55%+ claims delivering
+  ~35%; the dual-bar backtest over Aug 21–Sep 8 went **14W–2L (88%)
+  while stating ~66%** — understate, never overstate). The bracket is
+  always the ensemble's pick (pick-first law — never a bracket chosen
+  for its price); benched cities never supply a leg (`BENCHED_CITIES`
+  parsed from `scanner.py`'s source at run time, watchdog-style,
+  fail-closed: unreadable = no weather legs at all); combos are built
+  only when ≥1 weather leg qualifies (a sports-only stack is the
+  parlay board's job — never log the same stack under two names); max
+  8 legs; the only road to a higher payout is MORE real favorites,
+  never longer shots. `combo_picks.csv`/`combo_results.csv` mirror
+  the parlay pair plus a `sectors` column — same **no-pnl law** (no
+  venue's combo payout is knowable; `fair_payout` = 1/combined prob
+  is what a no-vig book would pay), same HIT/MISS-by-Kalshi-
+  settlement grading (void legs drop out), same union-merge. Stated
+  caveats, printed on the card: Kalshi itself has **no combo ticket**
+  (buying each leg there pays each leg on its own, never the
+  multiplied number), and weather legs in one air mass are not fully
+  independent, so the plain product is an approximation the combo
+  record must keep honest. Adding any OTHER sector (politics, econ,
+  anything without a calibrated expert and a hand-verified series)
+  is an owner decision that needs both of those first — Kalshi's own
+  price is not an expert that can earn a stated edge, and no series
+  ever joins by discovery. ADVISORY ONLY — the permanent rule covers
+  it word for word; nothing that trades may ever read these files.
 
 ## THE STRATEGY IS PICK-FIRST (Law of Aug 6, 2026)
 
@@ -471,6 +504,8 @@ check that line first when a feed dies.
 | `sports_results.csv` | `sports_scanner.py` | `graded_utc,sport,shelf,game,detail,ticker,side,pick,books_pct,kalshi_cents,gap_cents,market_result,result,pnl` (wiped same commit) |
 | `parlay_picks.csv` | `sports_scanner.py` | `scanned_utc,parlay_id,n_legs,legs,tickers,leg_probs_pct,combined_pct,fair_payout,last_start_utc` (the parlay board, Sep 8 2026; legs/tickers/leg_probs_pct pipe-separated and index-aligned; fair_payout = 1/combined_prob in $ per $1; append-only, union-merged; ADVISORY ONLY — nothing that trades may ever read it) |
 | `parlay_results.csv` | `sports_scanner.py` | `graded_utc,parlay_id,n_legs,legs,tickers,combined_pct,legs_won,legs_lost,legs_void,result` (result HIT/MISS/VOID by Kalshi settlement per leg — any lost leg = MISS, void legs drop out like a book's pushed legs; **no pnl column on purpose**: a book's parlay payout is unknowable, so the scoreboard grades calibration — stated % vs hit rate) |
+| `combo_picks.csv` | `sports_scanner.py` | `scanned_utc,combo_id,n_legs,sectors,legs,tickers,leg_probs_pct,combined_pct,fair_payout,last_start_utc` (THE COMBO BOARD, Sep 10 2026 — cross-sector stacks: parlay-board sports legs + dual-expert weather legs; sectors/legs/tickers/leg_probs_pct pipe-separated and index-aligned, sectors ∈ MLB/NFL/WEATHER; a weather leg's stated prob = min(ensemble member share, live Kalshi YES bid); append-only, union-merged; ADVISORY ONLY — nothing that trades may ever read it) |
+| `combo_results.csv` | `sports_scanner.py` | `graded_utc,combo_id,n_legs,sectors,legs,tickers,combined_pct,legs_won,legs_lost,legs_void,result` (HIT/MISS/VOID by Kalshi settlement per leg, void legs drop out, **no pnl column on purpose** — same laws as `parlay_results.csv`; the scoreboard question is calibration of the cross-sector product, which the card admits is approximate when weather legs share an air mass) |
 | `health.json` | `watchdog.py` (full rewrite each relay pass) | JSON: `checked_utc, ok, alarms[{code,since,msg}], notes` (added Aug 30 2026 — the watchdog's pulse report for the Station Board banner; display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `swoop_pulse.json` | `swoop_alert.py` (full rewrite each run) | JSON: `checked_utc, open_weather_positions, graded, note` (added Sep 1 2026 — the grader's heartbeat, written every run even with zero open positions, so the watchdog can tell "grader dead" from "nothing to grade"; a no-bet day writes zero `swoop_log.csv` rows honestly and used to false-alarm. Display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `model_research.csv` | `model_lab.py` (forecast.yml, nightly after the money forecast) | `forecast_date,station,city,model,forecast_high_f,n_members,members,fetched_utc` (THE MODEL LAB, Aug 31 2026 — candidate models riding as research passengers: `icon` = the German global ensemble, `nws` = the NWS public point forecast, raw and uncalibrated. RESEARCH LOG ONLY, same law as afternoon_forecasts.csv: **no trading or calibration code may ever read it**; union-merged append-only) |
