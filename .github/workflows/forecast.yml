@@ -8,8 +8,18 @@ on:
 permissions:
   contents: write
 
+# OWN concurrency group (Sep 10 2026). This job sat in the shared
+# repo-writes line, where GitHub allows only ONE waiting run: a newer
+# repo-writes job displaces the waiting one and marks it "cancelled".
+# The nightly forecast fires late (~00:30 UTC), queued behind whatever
+# held the lock, and was displaced by the next scan/sports/settle run --
+# 5 cancelled nights out of 7 (Sep 2-8), each one a lost calibration
+# night. Racing pushes are already handled by this job's retry loop
+# plus union-merge on forecasts.csv and model_research.csv, the same
+# solved problem as poll.yml and morning.yml, which left the shared
+# line for the same reason.
 concurrency:
-  group: repo-writes
+  group: nightly-forecast
   cancel-in-progress: false
 
 jobs:
