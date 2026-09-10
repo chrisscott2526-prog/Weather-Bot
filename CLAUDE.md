@@ -402,6 +402,12 @@ forecast.py  (nightly 23:00 UTC)  GFS (31) + ECMWF (51) ensembles via
      |                            Open-Meteo, one call per model,
      |                            pooled (~82 members), calibrated
      |                            per-station -> forecasts.csv
+     |                            (forecast.yml has its OWN concurrency
+     |                            group since Sep 10 2026: in the shared
+     |                            repo-writes line its queued run was
+     |                            displaced-and-cancelled by newer jobs
+     |                            5 nights of 7 -- same fix, same
+     |                            reason as poll.yml and morning.yml)
      v
 scanner.py   (9x daily + after forecast)  Kalshi open markets + ensemble
      |                            votes -> picks + gates -> edges.csv
@@ -478,7 +484,12 @@ highs.py     (library, no cron)   THE one way a daily high is computed:
                                   highs + freshness. Used by swoop_alert,
                                   calibration, autopsy, poller; mirrored
                                   in JS by index.html
-settlements.py (4x daily)         Kalshi settled result fields (unauth)
+settlements.py (12x daily, every  Kalshi settled result fields (unauth)
+              2h at :23 -- off-
+              peak minute, Sep 10
+              2026: the old 4 slots
+              sat on :00 and were
+              skipped nightly)
                                   -> settlements.csv: the OFFICIAL high
                                   range each city's markets paid on;
                                   feeds the board's "Yesterday" line

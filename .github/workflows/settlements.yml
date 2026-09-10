@@ -9,17 +9,31 @@ name: Record settled highs
 
 on:
   schedule:
-    - cron: "40 12 * * *"   # after settle.py's 12:20 UTC run
-    - cron: "0 15 * * *"
-    - cron: "0 18 * * *"
-    - cron: "0 22 * * *"    # catches late west-coast finalizations
+    # Densified Sep 10 2026: the old 12:40/15:00/18:00/22:00 schedule
+    # put three of four slots on minute :00 -- the minute GitHub's
+    # best-effort scheduler drops most -- and the evening slots were
+    # skipped every night for a week, tripping the watchdog's
+    # SETTLEMENTS-STALE alarm each morning until a hand re-fire.
+    # Clock-Fix lesson applied: off-peak minute, many redundant slots.
+    # settlements.py is cheap, unauthenticated, idempotent (full
+    # rewrite of immutable facts), so extra runs are free reliability:
+    # every 2 hours at :23 keeps the board's Yesterday line and the
+    # calibration's actuals under the 9-hour staleness alarm even when
+    # most slots are dropped.
+    - cron: "23 0,2,4,6,8,10,12,14,16,18,20,22 * * *"
   workflow_dispatch: {}
 
 permissions:
   contents: write
 
+# OWN concurrency group (Sep 10 2026, same fix as forecast.yml that
+# day and poll.yml/morning.yml before it): in the shared repo-writes
+# line a queued run gets displaced-and-cancelled by any newer
+# repo-writes job. The group still serializes settlements against
+# itself, and the retry loop + full-rewrite idempotence handle races
+# with everything else.
 concurrency:
-  group: repo-writes
+  group: settlements
   cancel-in-progress: false
 
 jobs:
