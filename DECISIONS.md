@@ -2,6 +2,81 @@
 
 One line of why per decision, newest first, as the standing orders require.
 
+## 2026-09-10 (later) — the league expansion (owner ask: CFB, NFL, MLB, NBA, tennis, golf on the card)
+
+1. **Verified every new Kalshi series against live markets before
+   whitelisting it** (two probe runs, Sep 10): KXNCAAFGAME (200
+   open), KXNBAGAME (Oct slate open now), KXATPMATCH/KXWTAMATCH (US
+   Open semis). Why: the whitelist law; a series title read by hand
+   is the only admission ticket.
+
+2. **New sports match by name against Kalshi's own subtitles, not a
+   hand-typed code table.** Why: NCAAF/NBA/tennis event tickers
+   carry no game time and variable-length codes; 130+ hand-guessed
+   school codes would be invented data, while Kalshi's subtitles are
+   verified on every scan. The rule is exact-or-full-word-prefix,
+   both sides must pair inside one event on the right date, and any
+   ambiguity refuses loudly.
+
+3. **Golf stays off, with the reason recorded.** Why: the odds feed
+   quotes only tournament-winner outrights (favorites ~20-30%, under
+   every pick and leg bar — the honest golf card would be permanently
+   empty), and KXGOLFTOURN had zero open markets to verify. Two
+   preconditions to revisit: a matchup-odds source, and live series
+   verification.
+
+4. **Flagged the Odds API credit wall to the owner instead of coding
+   around it.** Why: 106 of 500 free monthly credits remained at
+   ship time and the wider card needs ~480/month — the fix is the
+   owner's plan upgrade, not a silent thinning of the card. A dry
+   key fails RED by the dead-feed law.
+
+5. **NBA shelves ship now but stay naturally silent until the season
+   is inside the 30-hour scan window** (first games Oct 20). Why:
+   MAX_HOURS_OUT already gates it; no special-casing needed.
+
+6. **The weather money lane is untouched.** The expansion lives
+   entirely in sports_scanner.py and its CSVs; the combo board only
+   READS edges.csv. Nothing that trades weather changed.
+
+## 2026-09-10 — the combo board (owner ask: "high paying combos, any sector")
+
+1. **Read "highest payout" as "stack MORE real favorites", never as
+   "buy longer shots."** Why: payout and probability are the same
+   number upside down, and every long-shot record in this repo lost
+   (under-20¢ weather bets 2W–22L; the edge-first sports card 9–21).
+   The board's payout ladder tops out at 8 legs of 60%+ favorites.
+
+2. **Weather legs need BOTH experts at 60%+ (ensemble member share
+   AND live Kalshi bid), stating the lower number.** Why: the
+   ensemble's claimed probability alone is proven overconfident
+   (autopsy §4: 55%+ claims delivered ~35%), while the dual bar
+   backtests 14W–2L (88%) stating only ~66% — understating, the only
+   allowed direction. Sixteen legs is thin; combo_results.csv grades
+   the rule for real from day one.
+
+3. **Sports legs are exactly the parlay pool; combos exist only when
+   at least one weather leg qualifies.** Why: a sports-only stack IS
+   the parlay board, and logging the same stack under two names would
+   double-count the record.
+
+4. **Benched cities never supply a leg, and the bench list is parsed
+   from scanner.py's source at run time, fail-closed.** Why: a board
+   of "most likely winners" cannot seat a city the scoreboard benched
+   for losing, and a mirrored copy could drift (watchdog precedent).
+
+5. **No sector without a calibrated expert and hand-verified series
+   was added.** Why: politics/econ/etc. have no sharps and no
+   ensemble here; Kalshi's own price is not an expert we can grade an
+   edge against, and series discovery is banned. Adding a third
+   sector is an owner decision that needs both prerequisites first.
+
+6. **No dollar P&L on combos; fair_payout = 1/combined prob is
+   stated instead, with the card saying Kalshi has no combo ticket.**
+   Why: no venue's combo payout is knowable (honesty rules), and the
+   owner must not read the multiplied number as something buying the
+   legs individually on Kalshi would pay.
+
 ## 2026-08-30 (evening) — full audit on the owner's ask ("say it and let's correct it")
 
 11. **Added the end-of-day resting-order sweep** (`trader.py

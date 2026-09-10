@@ -160,10 +160,43 @@ def probe_odds_api():
         return
     active = [s for s in sports if s.get("active")]
     print(f"\nActive sports on the feed right now: {len(active)}")
+    # Expansion probe (owner request Sep 10 2026): also show Tennis and
+    # Golf, and say which groups exist at all, so the card's coverage
+    # can be widened from evidence instead of guessed sport keys.
+    groups = sorted({s.get("group", "?") for s in active})
+    print(f"Active groups: {groups}")
     for s in active:
         if s.get("group") in ("Baseball", "American Football", "Basketball",
-                              "Ice Hockey"):
-            print(f"  {s['key']:<28} {s.get('title', '')}")
+                              "Ice Hockey", "Tennis", "Golf"):
+            print(f"  {s['key']:<40} {s.get('group','')[:12]:<12} "
+                  f"{s.get('title', '')}")
+
+    print("\n-- Featured h2h on americanfootball_ncaaf (college football) --")
+    data, err = http_json(
+        odds_url("/sports/americanfootball_ncaaf/odds",
+                 regions="us", markets="h2h", oddsFormat="decimal"),
+        "featured ncaaf")
+    if err:
+        print(f"  featured NCAAF call failed: {err}")
+    else:
+        print(f"  {len(data)} NCAAF games returned. Team names as the "
+              f"books spell them (for the Kalshi code map):")
+        for ev in data[:40]:
+            print(f"    {ev.get('away_team','?')} @ {ev.get('home_team','?')}"
+                  f"  ({ev.get('commence_time','')})")
+
+    print("\n-- Featured h2h on basketball_nba --")
+    data, err = http_json(
+        odds_url("/sports/basketball_nba/odds",
+                 regions="us", markets="h2h", oddsFormat="decimal"),
+        "featured nba")
+    if err:
+        print(f"  featured NBA call failed: {err}")
+    else:
+        print(f"  {len(data)} NBA games returned")
+        for ev in data[:15]:
+            print(f"    {ev.get('away_team','?')} @ {ev.get('home_team','?')}"
+                  f"  ({ev.get('commence_time','')})")
 
     print("\n-- Featured markets (h2h,spreads,totals) on baseball_mlb --")
     data, err = http_json(
@@ -285,10 +318,94 @@ def probe_kalshi():
             print(f"     also: {m.get('ticker', '')}  "
                   f"yes_sub={m.get('yes_sub_title', '')!r}")
 
+    probe_expansion(catalogue)
+
+
+# THE EXPANSION PROBE (owner request Sep 10 2026): the owner wants the
+# card and the combo board to cover college football, NBA, tennis and
+# golf alongside MLB/NFL. This section is the READING AID for that
+# hand-verification: it finds every Sports-catalogue series whose
+# ticker or title mentions those sports, shows which have open markets,
+# and prints enough real tickers + subtitles that the event-ticker
+# anatomy and team/player codes can be read off the page. NOTHING is
+# whitelisted automatically -- a human (or a session, by hand) reads
+# this log and adds series to sports_scanner.py BY EXACT TICKER.
+EXPANSION_WORDS = ("ncaa", "college football", "cfb", "nba", "tennis",
+                   "atp", "wta", "us open", "golf", "pga", "masters",
+                   "ryder")
+# Looked up and dumped FIRST, before the alphabetical keyword flood --
+# the first run of this probe burned its whole lookup cap on KXATP*
+# and never reached the game-winner series the expansion actually
+# needs. These are the exact-ticker candidates read from that run's
+# catalogue listing (titles: College Football Game, Pro Basketball
+# Game, ATP/WTA Tennis Match, Golf Tournament Winner).
+EXPANSION_PRIORITY = ["KXNCAAFGAME", "KXNBAGAME", "KXATPMATCH",
+                      "KXWTAMATCH", "KXGOLFTOURN", "KXNCAAFTOTAL",
+                      "KXNCAAFSPREAD", "KXNBATOTAL", "KXNBASPREAD"]
+EXPANSION_LOOKUP_CAP = 40      # series market-count lookups per run
+EXPANSION_DUMP_CAP = 10        # series that get ticker/subtitle dumps
+EXPANSION_LINES_PER_DUMP = 150  # ticker+subtitle lines per dumped series
+
+
+def probe_expansion(catalogue):
+    print()
+    print("=" * 72)
+    print("PART 3: EXPANSION CANDIDATES (college football / NBA / "
+          "tennis / golf)")
+    print("=" * 72)
+    hits = []
+    for t in sorted(catalogue):
+        title = catalogue[t]
+        hay = (t + " " + title).lower()
+        if any(w in hay for w in EXPANSION_WORDS):
+            hits.append(t)
+            print(f"  {t:<30} {title[:70]}")
+    if not hits:
+        print("  no catalogue series matched the expansion keywords")
+        return
+    # priority candidates jump the queue so the lookup cap can never
+    # starve them again
+    hits = ([t for t in EXPANSION_PRIORITY if t in catalogue]
+            + [t for t in hits if t not in EXPANSION_PRIORITY])
+    print(f"\n{len(hits)} candidate series. Open-market counts "
+          f"(first {EXPANSION_LOOKUP_CAP}):")
+    live = []
+    for t in hits[:EXPANSION_LOOKUP_CAP]:
+        data, err = kalshi_get(
+            f"/trade-api/v2/markets?series_ticker={t}&status=open&limit=200",
+            t)
+        if err:
+            print(f"  {t}: {err}")
+            continue
+        mkts = data.get("markets", [])
+        vol24 = sum(m.get("volume_24h") or 0 for m in mkts)
+        print(f"  {t:<30}{len(mkts):>6} open{vol24:>12,} vol24h")
+        if mkts:
+            live.append((t, mkts))
+        time.sleep(0.7)
+    print(f"\nTICKER ANATOMY DUMPS (event ticker + market ticker + "
+          f"subtitle, so team/player codes can be hand-mapped):")
+    for t, mkts in live[:EXPANSION_DUMP_CAP]:
+        print(f"  -- {t} ({len(mkts)} open):")
+        print("     FULL JSON of first market: "
+              + json.dumps(mkts[0], default=str)[:2000])
+        for m in mkts[:EXPANSION_LINES_PER_DUMP]:
+            print(f"     {m.get('ticker', ''):<44} "
+                  f"ev={m.get('event_ticker', ''):<34} "
+                  f"yes_sub={m.get('yes_sub_title', '')!r}")
+
 
 def main():
     print("SPORTS PROBE -- read-only. No bets, no CSV writes, no card.")
-    probe_odds_api()
+    # PROBE_SKIP_ODDS=1 (the workflow's kalshi_only input): skip Part 1
+    # entirely. Kalshi market data is unauthenticated and free, but the
+    # Odds API calls in Part 1 cost ~20 credits a run -- on the free
+    # 500/month plan a Kalshi-anatomy question should not spend them.
+    if os.environ.get("PROBE_SKIP_ODDS", "").strip():
+        print("(PROBE_SKIP_ODDS set: skipping Part 1 -- no Odds API "
+              "credits spent this run)")
+    else:
+        probe_odds_api()
     probe_kalshi()
     print("\nprobe complete.")
 

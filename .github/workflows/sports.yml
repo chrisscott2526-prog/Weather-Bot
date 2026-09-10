@@ -10,6 +10,10 @@ on:
         description: "Run sports_probe.py instead (read-only inventory report in the log; writes nothing)"
         type: boolean
         default: false
+      kalshi_only:
+        description: "Probe only: skip the Odds API part so the run spends zero credits (Kalshi market data is free)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -38,6 +42,7 @@ jobs:
       - name: Scan and grade (or probe, read-only)
         env:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          PROBE_SKIP_ODDS: ${{ inputs.kalshi_only == true && '1' || '' }}
         run: |
           if [ "${{ inputs.probe }}" = "true" ]; then
             python sports_probe.py

@@ -19,3 +19,5 @@ sports_results.csv merge=union
 parlay_picks.csv merge=union
 parlay_results.csv merge=union
 model_research.csv merge=union
+combo_picks.csv merge=union
+combo_results.csv merge=union
