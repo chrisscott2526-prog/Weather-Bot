@@ -473,6 +473,14 @@ poller.py    (ALL-DAY RELAY since  NWS METAR temps -> temps_log.csv
                                   (the RAW source of truth for highs);
                                   also regenerates daily_highs.csv from
                                   it -- a derived summary NO code reads
+watchdog.py  (inside every        all-day pulse check -> health.json
+              poller-relay pass)   (current state) + health_log.csv
+                                   (append-only day history the "today"
+                                   block is recomputed from). With
+                                   --start-money-lane it also DISPATCHES
+                                   morning.yml when the money lane is
+                                   dead in buying hours -> relay_starts.csv
+                                   (the third starter, Sep 10 2026)
 highs.py     (library, no cron)   THE one way a daily high is computed:
                                   temps_log.csv -> per-station local-day
                                   highs + freshness. Used by swoop_alert,
@@ -534,6 +542,8 @@ check that line first when a feed dies.
 | `combo_picks.csv` | `sports_scanner.py` | `scanned_utc,combo_id,n_legs,sectors,legs,tickers,leg_probs_pct,combined_pct,fair_payout,last_start_utc` (THE COMBO BOARD, Sep 10 2026 — cross-sector stacks: parlay-board sports legs + dual-expert weather legs; sectors/legs/tickers/leg_probs_pct pipe-separated and index-aligned, sectors ∈ MLB/NFL/CFB/NBA/TENNIS/WEATHER; a weather leg's stated prob = min(ensemble member share, live Kalshi YES bid); append-only, union-merged; ADVISORY ONLY — nothing that trades may ever read it) |
 | `combo_results.csv` | `sports_scanner.py` | `graded_utc,combo_id,n_legs,sectors,legs,tickers,combined_pct,legs_won,legs_lost,legs_void,result` (HIT/MISS/VOID by Kalshi settlement per leg, void legs drop out, **no pnl column on purpose** — same laws as `parlay_results.csv`; the scoreboard question is calibration of the cross-sector product, which the card admits is approximate when weather legs share an air mass) |
 | `health.json` | `watchdog.py` (full rewrite each relay pass) | JSON: `checked_utc, ok, alarms[{code,since,msg}], notes` (added Aug 30 2026 — the watchdog's pulse report for the Station Board banner; display/alerting ONLY, no money code reads it, NEVER union-merge it) |
+| `health_log.csv` | `watchdog.py` (one row appended per relay pass) | `checked_utc,ok,alarms,notes` (THE DAY'S MEMORY, Sep 10 2026 — `alarms`/`notes` pipe-separated, blank when clear; append-only, union-merged. `health.json`'s `today` block is RECOMPUTED from this log every pass, never carried forward from the previous health.json — the highs.py law applied to the pulse, so a dropped commit or a push race cannot strand a half-remembered day. Display/alerting ONLY, no money code reads it) |
+| `relay_starts.csv` | `watchdog.py --start-money-lane` | `dispatched_utc,workflow,result,detail` (THE THIRD STARTER, Sep 10 2026 — one row per dispatch attempt, `result` ∈ dispatched/failed; append-only, union-merged. It is also the ENFORCEMENT STATE for the cooldown and daily cap, so it must never be wiped mid-day: an unreadable file fail-closes to no dispatch. Display/alerting ONLY, no money code reads it) |
 | `swoop_pulse.json` | `swoop_alert.py` (full rewrite each run) | JSON: `checked_utc, open_weather_positions, graded, note` (added Sep 1 2026 — the grader's heartbeat, written every run even with zero open positions, so the watchdog can tell "grader dead" from "nothing to grade"; a no-bet day writes zero `swoop_log.csv` rows honestly and used to false-alarm. Display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `model_research.csv` | `model_lab.py` (forecast.yml, nightly after the money forecast) | `forecast_date,station,city,model,forecast_high_f,n_members,members,fetched_utc` (THE MODEL LAB, Aug 31 2026 — candidate models riding as research passengers: `icon` = the German global ensemble, `nws` = the NWS public point forecast, raw and uncalibrated. RESEARCH LOG ONLY, same law as afternoon_forecasts.csv: **no trading or calibration code may ever read it**; union-merged append-only) |
 | `model_report.md` | `model_report.py` (autopsy.yml, full rewrite each run) | per-city, per-model median miss vs the settled number: `pool`/`gfs`/`ecmwf` from forecasts.csv (calibrated; member_models splits the voters) and the research passengers from model_research.csv. Derived human-readable output ONLY — no code reads it, NEVER union-merge it. Promotion of a model into the vote is an owner decision made on this evidence |
@@ -838,6 +848,76 @@ shipped: it cannot see a failure before it happens, and it cannot
 make a 55%-win-rate strategy stop having losing days. It shrinks
 discovery time from "when the owner happens to look" to ~15 minutes.
 That is the whole promise.
+
+## THE DAY'S MEMORY + THE THIRD STARTER (Sep 10, 2026) — OWNER DECISION
+
+Sep 10 broke the money lane in a way the watchdog saw perfectly and
+could do nothing about. GitHub's cron dropped **seven** morning.yml
+starts in a row (13:07 through 16:07); the owner's two Claude backup
+routines fired exactly on time but woke sessions blocked by an
+account usage limit, so neither pressed Run; the relay did not start
+until 16:56 UTC. The East Coast (13–15 UTC), Central (14–16) and
+Mountain (15–17) windows all closed unscanned — only the five
+Pacific/Arizona cities were reached, and all five were correctly
+gated out by the 45–60¢ band. **Nothing was lost but the chances.**
+Two things came out of it, both shipped in one commit:
+
+**1. The board remembers the day, not the second.** `health.json` is
+a full-rewrite file holding only the current pass, so when the relay
+came up at 17:04 the alarms cleared and the banner went back to
+"Self-check OK" — the owner looked at 18:24 and saw green above cards
+saying nothing had been bought, with no trace of the 3h45m outage
+(MONEYLANE from 13:19, FORECAST from 14:04). A self-check that
+forgets is one the owner cannot trust. Now every pass appends a row
+to **`health_log.csv`** and `health.json` carries a **`today`** block
+— every alarm code seen today with first time, last time and pass
+count — **recomputed from that log each pass, never carried forward**
+(the highs.py law: the displayed summary comes from the raw log every
+time). Each alarm's `since` is recomputed the same way and now means
+*the start of its current unbroken run today*, so a re-alarm after a
+clean spell dates from the re-alarm. `index.html` renders a **amber
+"Earlier today"** banner when the pulse is clear now but was not all
+day, in plain English with the viewer's own clock. Red (live alarm)
+and the fail-closed red (health.json older than 25 min) are unchanged
+and still outrank it.
+
+**2. The watchdog presses the button.** The relay had exactly two
+starters — GitHub's cron and the Claude routines — and on Sep 10 both
+failed the same morning. The watchdog already *knew* at 13:19; it
+just wrote it down. `watchdog.py --start-money-lane` (poll.yml passes
+it) now dispatches morning.yml through the Actions API when the money
+lane is dead. This is a third starter riding the one piece of
+infrastructure that survived that outage: the poller relay polled 38
+times that day, right on cadence. It needs `actions: write` on
+poll.yml. Guardrails, none of them optional:
+- fires ONLY on a **definite** dead lane (`check_money_lane()` returns
+  False); an unverifiable check (None) never dispatches — the same
+  fail-closed rule that stops false alarms;
+- only inside buying hours, because only then is the check made;
+- **20-minute cooldown counting every attempt** (failures included, so
+  a token without `actions: write` cannot hammer the API all day) and
+  a **6-a-day cap counting only accepted dispatches** (hitting it
+  means the relay keeps dying for a reason a restart won't fix — press
+  Run by hand and read the run log). Both are counted from
+  `relay_starts.csv`; an unreadable log means no dispatch;
+- every attempt is logged, and a failed one carries the fix in its
+  `detail`;
+- **the alarm and the red run STAND even when the rescue works.** A
+  saved day is still a day both scheduled starters failed, and the
+  owner has to hear that. Pressing the button is never a reason to
+  stop telling them.
+Extra starts are harmless by the relay's own design — they queue in
+the `morning-money-relay` group and stand down, or take over if the
+running relay died — and the 9–11 window gate plus the fail-closed
+exposure check make repeated passes safe, as always.
+
+**What this still cannot fix, said plainly:** the Claude routines are
+in the owner's claude.ai account, not this repo. If their sessions are
+blocked (a usage limit, a model that is out of credit) they will keep
+reporting "succeeded" — that status means *the wake was delivered*,
+not that anything happened. Nothing in this repo can see that. The
+third starter exists precisely because no repo-side fix can reach
+them.
 
 ## THE ACCURACY TIGHTENING (Aug 30, 2026) — OWNER DECISION
 

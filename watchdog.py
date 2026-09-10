@@ -28,19 +28,67 @@ trader, or grader reads it. It carries its own checked_utc so the
 board can refuse to trust a stale one -- a silent watchdog shows as
 an alarm on the board, never as green (the derived-file law's
 fail-closed rule).
+
+THE DAY'S MEMORY (Sep 10 2026). health.json holds only the CURRENT
+second, so a morning outage vanished from the board the moment it
+ended. On Sep 10 the money lane was dead from 13:19 to 17:04 UTC --
+the watchdog alarmed for 3h45m -- and by the time the owner looked at
+18:24 the banner read "Self-check OK" with no trace of it, while the
+cards below said nothing had been bought. A self-check that forgets
+is a self-check the owner cannot trust. So every pass now also
+appends one row to health_log.csv (append-only, union-merged), and
+health.json's "today" block is RECOMPUTED from that log each pass --
+never carried forward from the previous health.json. That is the
+highs.py law applied to the pulse: the displayed summary comes from
+the raw log every time, so a dropped commit or a push race can never
+strand a half-remembered day. Each alarm's "since" is recomputed the
+same way (the start of its current unbroken run today).
+
+THE THIRD STARTER (Sep 10 2026, owner decision). The relay had two
+ways to be started -- GitHub's cron and the owner's Claude routines --
+and on Sep 10 BOTH failed on the same morning: cron dropped seven
+starts in a row (13:07 through 16:07) and the routines fired into
+sessions blocked by an account usage limit, so the relay did not
+start until 16:56 and three time zones went unbought. The watchdog
+already KNEW at 13:19; it just wrote the fact down. Now it can press
+the button: run with --start-money-lane and a MONEY LANE alarm also
+dispatches morning.yml through the Actions API. This is a third
+starter on infrastructure that survived that outage (the poller relay
+polled 38 times that day, right on cadence) and it depends on neither
+of the two that failed. Guardrails, all deliberate:
+  - it fires ONLY on a definite dead lane (check_money_lane() False);
+    an unverifiable check (None) never dispatches -- fail-closed, the
+    same rule that keeps it from false-alarming;
+  - only inside buying hours, because only then is the check made;
+  - a cooldown and a daily cap (below), counted from relay_starts.csv,
+    so a persistent outage cannot become a dispatch loop;
+  - every attempt, win or lose, is logged to relay_starts.csv;
+  - a failed dispatch is a note and the alarm STANDS -- the run still
+    goes red. Pressing the button is a rescue, never a reason to stop
+    telling the owner the lane was down.
+Extra starts are harmless by the relay's own design: they queue in the
+morning-money-relay concurrency group and stand down in seconds, or
+take over if the running relay died. The 9-11 window gate and the
+fail-closed exposure check make repeated passes safe, as always.
 """
 
+import argparse
 import csv
 import io
 import json
 import os
 import sys
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
 from csvio import is_morning_row
 
 HEALTH_PATH = "health.json"
+HEALTH_LOG_PATH = "health_log.csv"
+HEALTH_LOG_HEADER = ["checked_utc", "ok", "alarms", "notes"]
+RELAY_STARTS_PATH = "relay_starts.csv"
+RELAY_STARTS_HEADER = ["dispatched_utc", "workflow", "result", "detail"]
 
 # Staleness thresholds, in minutes. Generous on purpose: every one of
 # these feeds runs on a 15-minute cadence when healthy, so a 45-minute
@@ -49,6 +97,14 @@ POLL_STALE_MIN = 40          # relay writes every ~15 min
 SWOOP_STALE_MIN = 45         # swoop band runs every 15 min
 SETTLE_STALE_MIN = 9 * 60    # settlements.py runs 4x daily
 LANE_RUN_GRACE_MIN = 40      # a relay handoff gap larger than this is real
+
+# --start-money-lane limits. The relay itself makes extra starts
+# harmless, so these exist to stop a RUNAWAY (a broken API, a token
+# that cannot dispatch) from hammering the Actions queue all day --
+# not to ration rescues. One start every 20 min covers the whole
+# 13:15-18:45 buying window inside the daily cap with room to spare.
+RELAY_START_COOLDOWN_MIN = 20
+MAX_RELAY_STARTS_PER_DAY = 6
 
 
 def now_utc():
@@ -137,7 +193,197 @@ def check_money_lane(notes):
     return False
 
 
-def main():
+def append_log_row(path, header, row):
+    """Append one row to an append-only CSV, writing the header first
+    if the file is missing or empty. Columns are written BY NAME in
+    header order (the header-drift law). Returns True on success; a
+    logging failure must never take the watchdog down, so callers
+    treat False as a note."""
+    try:
+        need_header = (not os.path.exists(path)
+                       or os.path.getsize(path) == 0)
+        with open(path, "a", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=header)
+            if need_header:
+                w.writeheader()
+            w.writerow({k: row.get(k, "") for k in header})
+        return True
+    except OSError:
+        return False
+
+
+def todays_pulse_history(now, tail_bytes=200_000):
+    """Recompute today's alarm history from health_log.csv -- the raw
+    log, every pass, never carried forward from the last health.json
+    (the highs.py law). Returns (since_by_code, today_block):
+
+      since_by_code  code -> start of its CURRENT unbroken run today,
+                     so a re-alarm after a clean spell dates from the
+                     re-alarm, not from this morning.
+      today_block    what the board shows once the alarm has cleared:
+                     every code seen today with first/last time and
+                     how many passes it fired.
+
+    Union merge can interleave rows at the tail, so rows are sorted by
+    timestamp before they are read as a sequence."""
+    today = now.strftime("%Y-%m-%d")
+    try:
+        rows = read_tail_rows(HEALTH_LOG_PATH, tail_bytes)
+    except OSError:
+        return {}, {"date": today, "passes": 0, "alarms": []}
+
+    seq = []
+    for r in rows:
+        t = parse_ts(r.get("checked_utc", ""))
+        if t is None or t.strftime("%Y-%m-%d") != today:
+            continue
+        codes = [c for c in (r.get("alarms") or "").split("|") if c]
+        seq.append((t, codes))
+    seq.sort(key=lambda x: x[0])
+
+    seen = {}
+    for t, codes in seq:
+        for c in codes:
+            e = seen.setdefault(c, {"code": c, "first_utc": None,
+                                    "last_utc": None, "passes": 0})
+            if e["first_utc"] is None:
+                e["first_utc"] = t.isoformat(timespec="seconds")
+            e["last_utc"] = t.isoformat(timespec="seconds")
+            e["passes"] += 1
+
+    # start of each code's current unbroken run: walk backwards from
+    # the newest pass while the code is still present
+    since = {}
+    if seq:
+        for c in seq[-1][1]:
+            start = seq[-1][0]
+            for t, codes in reversed(seq[:-1]):
+                if c not in codes:
+                    break
+                start = t
+            since[c] = start.isoformat(timespec="seconds")
+
+    today_block = {
+        "date": today,
+        "passes": len(seq),
+        "alarms": sorted(seen.values(), key=lambda e: e["first_utc"]),
+    }
+    return since, today_block
+
+
+def relay_starts_today(now):
+    """Dispatches this script already made today, newest first. A log
+    that cannot be read counts as 'unknown' and blocks the dispatch --
+    fail-closed: never press a button we cannot count."""
+    today = now.strftime("%Y-%m-%d")
+    if not os.path.exists(RELAY_STARTS_PATH):
+        return []
+    try:
+        rows = read_tail_rows(RELAY_STARTS_PATH, 100_000)
+    except OSError:
+        return None
+    out = []
+    for r in rows:
+        t = parse_ts(r.get("dispatched_utc", ""))
+        if t and t.strftime("%Y-%m-%d") == today:
+            out.append((t, r))
+    out.sort(key=lambda x: x[0], reverse=True)
+    return out
+
+
+def start_money_lane(now, notes):
+    """Press Run on morning.yml -- the third starter (see the module
+    docstring). Called ONLY when the money-lane check came back a
+    definite False during buying hours. Returns True if GitHub
+    accepted the dispatch. Every outcome is appended to
+    relay_starts.csv, including the ones we decline to make, so the
+    owner can see the rescue attempts as plainly as the alarms."""
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    token = os.environ.get("GITHUB_TOKEN")
+    if not repo or not token:
+        notes.append("money-lane auto-start skipped (no GITHUB_REPOSITORY"
+                     "/GITHUB_TOKEN -- not inside GitHub Actions)")
+        return False
+
+    prior = relay_starts_today(now)
+    if prior is None:
+        notes.append(f"money-lane auto-start skipped ({RELAY_STARTS_PATH} "
+                     f"unreadable, so today's starts cannot be counted)")
+        return False
+    # The CAP counts only starts GitHub accepted: it answers "how many
+    # times have we already rescued this lane today", and hitting it
+    # means the relay keeps dying for a reason a restart cannot fix.
+    ok_prior = [(t, r) for t, r in prior if r.get("result") == "dispatched"]
+    if len(ok_prior) >= MAX_RELAY_STARTS_PER_DAY:
+        notes.append(f"money-lane auto-start skipped -- already started "
+                     f"the relay {len(ok_prior)} times today (cap "
+                     f"{MAX_RELAY_STARTS_PER_DAY}). Something is killing "
+                     f"the relay: press Run by hand and look at the run "
+                     f"log.")
+        return False
+    # The COOLDOWN counts EVERY attempt, failures included. A dispatch
+    # that keeps failing (a token without actions: write, say) is not
+    # a reason to retry it every 15 minutes for five hours -- that
+    # floods the API and the log with the same message. It retries on
+    # the same 20-minute rhythm as a successful rescue, and each row
+    # carries the fix, so the owner sees the cause once and often
+    # enough rather than 22 times.
+    if prior:
+        age = (now - prior[0][0]).total_seconds() / 60
+        if age < RELAY_START_COOLDOWN_MIN:
+            notes.append(f"money-lane auto-start held -- last attempt "
+                         f"was {age:.0f} min ago (cooldown "
+                         f"{RELAY_START_COOLDOWN_MIN} min)")
+            return False
+
+    url = (f"https://api.github.com/repos/{repo}/actions/workflows/"
+           f"morning.yml/dispatches")
+    body = json.dumps({"ref": "main"}).encode()
+    req = urllib.request.Request(url, data=body, method="POST", headers={
+        "Accept": "application/vnd.github+json",
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "User-Agent": "weather-bot-watchdog",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            code = resp.status
+        result, detail = "dispatched", f"HTTP {code}"
+        notes.append("money-lane auto-start: pressed Run on morning.yml "
+                     "(the relay was not running during buying hours)")
+        ok = True
+    except urllib.error.HTTPError as e:
+        hint = ""
+        if e.code in (403, 404):
+            hint = (" -- poll.yml needs 'actions: write' permission for "
+                    "this, or press Run on morning.yml by hand")
+        result, detail = "failed", f"HTTP {e.code}{hint}"
+        notes.append(f"money-lane auto-start FAILED ({detail})")
+        ok = False
+    except Exception as e:
+        result, detail = "failed", str(e)[:200]
+        notes.append(f"money-lane auto-start FAILED ({detail})")
+        ok = False
+
+    if not append_log_row(RELAY_STARTS_PATH, RELAY_STARTS_HEADER, {
+        "dispatched_utc": now.isoformat(timespec="seconds"),
+        "workflow": "morning.yml",
+        "result": result,
+        "detail": detail,
+    }):
+        notes.append(f"could not append to {RELAY_STARTS_PATH}")
+    return ok
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument(
+        "--start-money-lane", action="store_true",
+        help="if the money lane is definitely dead during buying hours, "
+             "dispatch morning.yml (the third starter). Off by default: "
+             "the watchdog stays read-only unless a caller opts in.")
+    args = ap.parse_args(argv)
+
     now = now_utc()
     today = now.strftime("%Y-%m-%d")
     alarms = []
@@ -187,6 +433,12 @@ def main():
                   "run is alive during buying hours. Cities are hitting "
                   "their 9-11 AM windows with nobody buying. Press Run "
                   "on morning.yml.")
+            # THE THIRD STARTER: don't just write it down -- press the
+            # button. The alarm stands either way (see the docstring):
+            # a rescued day is still a day the two scheduled starters
+            # failed, and the owner must be told that.
+            if args.start_money_lane:
+                start_money_lane(now, notes)
 
     # -- ORDERS: an order that errored today (usually an empty --------
     # -- wallet). morning.yml reds its own run; this keeps the alarm --
@@ -280,22 +532,30 @@ def main():
                   f"calibration's actuals are running behind. Press "
                   f"Run on settlements.yml.")
 
-    # -- keep each alarm's first-seen time across passes --------------
-    prev = {}
-    try:
-        with open(HEALTH_PATH) as f:
-            for a in json.load(f).get("alarms", []):
-                prev[a.get("code")] = a.get("since")
-    except (OSError, ValueError):
-        pass
+    # -- THE DAY'S MEMORY: record this pass in the append-only log, --
+    # -- then recompute both the "since" times and today's history ---
+    # -- FROM that log. Nothing is carried forward from the previous -
+    # -- health.json, so a dropped commit or a push race can never ---
+    # -- strand a half-remembered day (the highs.py law). -------------
+    if not append_log_row(HEALTH_LOG_PATH, HEALTH_LOG_HEADER, {
+        "checked_utc": now.isoformat(timespec="seconds"),
+        "ok": "yes" if not alarms else "no",
+        "alarms": "|".join(a["code"] for a in alarms),
+        "notes": "|".join(notes),
+    }):
+        notes.append(f"could not append to {HEALTH_LOG_PATH} -- today's "
+                     f"history on the board will be short by this pass")
+
+    since, today_block = todays_pulse_history(now)
     for a in alarms:
-        a["since"] = prev.get(a["code"]) or now.isoformat(timespec="seconds")
+        a["since"] = since.get(a["code"]) or now.isoformat(timespec="seconds")
 
     health = {
         "checked_utc": now.isoformat(timespec="seconds"),
         "ok": not alarms,
         "alarms": alarms,
         "notes": notes,
+        "today": today_block,
     }
     with open(HEALTH_PATH, "w") as f:
         json.dump(health, f, indent=1)
@@ -308,6 +568,17 @@ def main():
             print(f"WATCHDOG ALARM [{a['code']}] since {a['since']}: "
                   f"{a['msg']}")
         sys.exit(2)
+    earlier = today_block.get("alarms") or []
+    if earlier:
+        # Clear NOW is not the same as clear TODAY. Say so in the run
+        # log too, not only on the board -- a rescued outage that
+        # leaves no trace anywhere is the failure this fix exists for.
+        recap = ", ".join(f"{e['code']} ({e['first_utc'][11:16]}-"
+                          f"{e['last_utc'][11:16]} UTC, {e['passes']}x)"
+                          for e in earlier)
+        print(f"watchdog: all pulses OK at {now.strftime('%H:%M')} UTC "
+              f"({len(notes)} note(s)) -- but EARLIER TODAY: {recap}")
+        return
     print(f"watchdog: all pulses OK at {now.strftime('%H:%M')} UTC "
           f"({len(notes)} note(s))")
 

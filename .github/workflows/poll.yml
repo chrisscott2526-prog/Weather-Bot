@@ -38,6 +38,18 @@ on:
 
 permissions:
   contents: write
+  # actions: write is THE THIRD STARTER (Sep 10 2026). watchdog.py runs
+  # with --start-money-lane below: when it finds the money lane dead
+  # during buying hours it dispatches morning.yml itself. On Sep 10 the
+  # relay's only two starters -- GitHub's cron and the owner's Claude
+  # routines -- failed on the same morning (seven crons dropped in a
+  # row; the routines fired into sessions blocked by an account usage
+  # limit), the lane did not start until 16:56 UTC, and three time
+  # zones went unbought. This poller relay polled 38 times that same
+  # day, right on cadence, so it is the one piece of infrastructure
+  # that proved it survives the outage -- which makes it the right
+  # place to keep the money lane's spare key.
+  actions: write
 
 # NOT repo-writes -- see the relay note above.
 concurrency:
@@ -58,9 +70,10 @@ jobs:
 
       - name: Run the polling relay (one pass every 15 min)
         env:
-          # for watchdog.py's money-lane check (read-only runs API);
-          # an unauthenticated call would share a rate limit with
-          # every other job on the runner's IP
+          # for watchdog.py's money-lane check (the runs API) and,
+          # with --start-money-lane, its dispatch of morning.yml; an
+          # unauthenticated call would share a rate limit with every
+          # other job on the runner's IP
           GITHUB_TOKEN: ${{ github.token }}
           # for swoop_alert.py (reads open positions to grade them)
           KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
@@ -113,7 +126,15 @@ jobs:
             # stale swoop/settlements) and writes health.json for the
             # Station Board's alarm banner. An alarm turns this run
             # red at the finish, which makes GitHub email the owner.
-            python watchdog.py || { echo "::warning::watchdog raised an alarm this pass -- see the lines above and the Station Board banner"; ANY_ERROR=1; }
+            #
+            # --start-money-lane (Sep 10 2026): a dead money lane is no
+            # longer only reported -- the watchdog presses Run on
+            # morning.yml itself, under a 20-minute cooldown and a
+            # 6-a-day cap counted from relay_starts.csv. The alarm and
+            # the red run STAND even when the rescue works: a saved day
+            # is still a day both scheduled starters failed, and the
+            # owner has to hear that.
+            python watchdog.py --start-money-lane || { echo "::warning::watchdog raised an alarm this pass -- see the lines above and the Station Board banner"; ANY_ERROR=1; }
             commit_push
             echo "::endgroup::"
 

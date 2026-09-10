@@ -71,6 +71,14 @@
   }
   .healthbar div+div{margin-top:6px}
   .healthbar b{font-weight:600}
+  /* Amber = nothing is wrong RIGHT NOW, but something was wrong
+     earlier today. health.json only ever held the current second, so
+     on Sep 10 2026 a 3h45m money-lane outage vanished from this
+     banner the moment it ended -- the owner saw "Self-check OK" over
+     cards that said nothing had been bought. Clear now is not the
+     same as clear today, and the board has to say which. */
+  .healthbar.recovered{border-color:var(--amber);background:#241f14}
+  .healthbar.recovered .htag{background:var(--amber)}
 
   .grid{
     display:grid;grid-template-columns:1fr;gap:10px;
@@ -664,9 +672,43 @@ function esc(s){
   return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;")
                   .replace(/>/g,"&gt;");
 }
+// Codes are watchdog.py's own alarm codes; the plain-English names
+// must move in the same commit as that script's alarm() calls.
+const ALARM_NAMES = {
+  POLLER: "the thermometer poller",
+  FORECAST: "today's forecast",
+  MONEYLANE: "the money lane",
+  ORDERS: "an order",
+  BAND: "the price band",
+  SWOOP: "the swoop grader",
+  SETTLE: "the settlements feed",
+};
+// "Nothing is wrong right now" is not "nothing went wrong today".
+// health.json's today block is recomputed from health_log.csv every
+// pass, so this line survives the outage it describes.
+function renderEarlierToday(health, bar){
+  const seen = (health.today && health.today.alarms) || [];
+  if(!seen.length){ bar.hidden = true; return ""; }
+  const parts = seen.map(e => {
+    const a = new Date(e.first_utc), b = new Date(e.last_utc);
+    const name = ALARM_NAMES[e.code] || esc(e.code);
+    return `<div><b>${name}</b> was down from `
+      + `<b>${fmtLocal(a)}</b> to <b>${fmtLocal(b)}</b> your time `
+      + `(${e.passes} check${e.passes === 1 ? "" : "s"} in a row).</div>`;
+  });
+  bar.className = "healthbar recovered";
+  bar.innerHTML = `<div><span class="htag">Earlier today</span>`
+    + `Everything is running now, but it was not all day &mdash; `
+    + `anything below that says <b>no bet</b> may be why.</div>`
+    + parts.join("");
+  bar.hidden = false;
+  return ` Self-check <b>OK now</b>, with <b>${seen.length}</b> `
+    + `problem${seen.length === 1 ? "" : "s"} earlier today.`;
+}
 function renderHealth(health, now){
   const bar = document.getElementById("healthbar");
   if(!health || !health.checked_utc){ bar.hidden = true; return ""; }
+  bar.className = "healthbar";
   const checked = new Date(health.checked_utc);
   const ageMin = isNaN(checked) ? null
     : Math.floor((now - checked) / 60000);
@@ -688,7 +730,8 @@ function renderHealth(health, now){
     }).join("");
     bar.hidden = false; return "";
   }
-  bar.hidden = true;
+  const recap = renderEarlierToday(health, bar);
+  if(recap) return recap;
   return ` Self-check <b>OK</b> as of <b>${fmtLocal(checked)}</b>.`;
 }
 
