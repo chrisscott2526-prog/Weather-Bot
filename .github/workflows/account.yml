@@ -1,0 +1,30 @@
+name: Account check (read-only)
+
+# WHERE IS THE MONEY? Runs account_check.py: prints available cash,
+# money held by unfilled resting orders, and money inside open
+# positions, in plain English. Places nothing, cancels nothing,
+# commits nothing. Born Sep 11 2026, the day a 92-cent order bounced
+# with "insufficient balance" while the app showed $20+ -- the $20
+# was not in the spendable-cash bucket.
+#
+# Manual only: press Run workflow from the Actions tab whenever the
+# balance question comes up.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install crypto library
+        run: pip install cryptography
+
+      - name: Where is the money
+        env:
+          KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
+          KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
+        run: python account_check.py
