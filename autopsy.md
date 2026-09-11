@@ -1,4 +1,4 @@
-# Loss autopsy — 2026-09-10 16:31 UTC
+# Loss autopsy — 2026-09-11 12:36 UTC
 
 174 settled bets on the scoreboard. Where did the day's real high land, relative to what we bought?
 
@@ -176,9 +176,9 @@
 | 2026-09-06 | Seattle | 72° to 73° | 55¢ | MISS-HIGH-BY-1 | settlement |
 | 2026-09-07 | Austin | 99° to 100° | 57¢ | MISS-HIGH-BY-1 | settlement |
 | 2026-09-07 | San Francisco | 82° or above | 55¢ | WIN | settlement |
-| 2026-09-09 | Las Vegas | 105° to 106° | 57¢ | MISS-LOW-BY-1 | instrument |
+| 2026-09-09 | Las Vegas | 105° to 106° | 57¢ | MISS-LOW-BY-1 | settlement |
 | 2026-09-09 | New York City | 83° or below | 51¢ | WIN | settlement |
-| 2026-09-09 | Phoenix | 108° to 109° | 53¢ | MISS-LOW-BY-1 | instrument |
+| 2026-09-09 | Phoenix | 108° to 109° | 53¢ | MISS-LOW-BY-1 | settlement |
 | 2026-09-09 | San Francisco | 92° or above | 54¢ | WIN | settlement |
 
 ## 1. Overall
