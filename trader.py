@@ -326,11 +326,59 @@ def reconcile_offbook_orders():
                   f"the book outside this bot with zero fills proven -- "
                   f"marking its row cancelled")
             unfilled_cancelled.add(oid)
+            continue
+        # The order object couldn't prove it either way (its field
+        # names vary by endpoint -- seen live on the first broom run,
+        # Sep 11 2026). Ask the fills ledger itself: the list of actual
+        # fills for this order id is the ground truth, whatever shape
+        # the order object takes.
+        fills = order_fill_count(oid)
+        if fills == 0:
+            print(f"reconcile: {o.get('ticker', oid[:8])} -- Kalshi's "
+                  f"fills ledger shows ZERO fills for this off-book "
+                  f"order -- marking its row cancelled")
+            unfilled_cancelled.add(oid)
+        elif fills is not None:
+            print(f"reconcile {oid[:8]}: fills ledger shows {fills} "
+                  f"contract(s) actually filled before it left the "
+                  f"book -- a real bet, leaving as submitted (if fewer "
+                  f"than the row's count, say so to the owner: the row "
+                  f"overstates the position)")
         else:
-            print(f"reconcile {oid[:8]}: off the book but Kalshi's "
-                  f"order object can't prove zero fills -- leaving as "
+            evidence = {k: o.get(k) for k in
+                        ("status", "initial_count", "remaining_count",
+                         "taker_fill_count", "maker_fill_count",
+                         "fill_count")}
+            print(f"reconcile {oid[:8]}: can't prove fills either way "
+                  f"(order object says {evidence}) -- leaving as "
                   f"submitted (fail closed)")
     mark_cancelled(unfilled_cancelled)
+
+def order_fill_count(oid):
+    """How many contracts did this order actually fill? Asks Kalshi's
+    fills ledger directly (GET /portfolio/fills?order_id=...), which
+    is the ground truth however the order object is shaped. Returns an
+    int, or None when the answer can't be trusted (API error, odd
+    row) -- callers MUST fail closed on None."""
+    total, cursor = 0, ""
+    for _ in range(20):
+        path = f"/trade-api/v2/portfolio/fills?order_id={oid}"
+        if cursor:
+            path += f"&cursor={cursor}"
+        try:
+            resp = api("GET", path)
+        except Exception as e:
+            print(f"fills {oid[:8]}: {e}")
+            return None
+        for f in resp.get("fills") or []:
+            try:
+                total += int(float(f.get("count") or 0))
+            except (TypeError, ValueError):
+                return None
+        cursor = resp.get("cursor") or ""
+        if not cursor:
+            break
+    return total
 
 def graded_tickers():
     """Tickers already graded in results.csv = markets Kalshi settled.

@@ -85,8 +85,13 @@ def bot_order_ids():
 
 
 def cents(v):
+    # int(float(...)) because Kalshi sometimes serializes counts as
+    # "2.0" -- plain int() throws on that and a position would
+    # silently read as zero (seen Sep 11 2026: the first run printed
+    # "0 markets" while the swoop board, reading the same API, was
+    # correctly grading 1 open position).
     try:
-        return int(v)
+        return int(float(v))
     except (TypeError, ValueError):
         return 0
 
@@ -123,12 +128,16 @@ def main():
     for ln in lines:
         print(ln)
 
-    # Bucket 3: money already inside open positions.
-    mpos = paged("/trade-api/v2/portfolio/positions", "market_positions")
+    # Bucket 3: money already inside open positions. Same query the
+    # swoop board uses (limit=200), so the two can never disagree by
+    # pagination.
+    mpos = paged("/trade-api/v2/portfolio/positions?limit=200",
+                 "market_positions")
     open_pos = [p for p in mpos if cents(p.get("position")) != 0]
     at_risk = 0
     print(f"\n3) INSIDE OPEN POSITIONS (money already spent on "
-          f"contracts that haven't settled): {len(open_pos)} market(s)")
+          f"contracts that haven't settled): {len(open_pos)} market(s) "
+          f"open, {len(mpos)} row(s) returned in all")
     for p in open_pos:
         exp = cents(p.get("market_exposure"))
         at_risk += exp
