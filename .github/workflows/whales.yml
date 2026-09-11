@@ -7,6 +7,15 @@ name: Whale Watcher
 # ONLY -- no secrets, no orders, and nothing that trades may ever read
 # its files. Each scan looks back 26 hours, so skipped crons lose
 # nothing. A dead Kalshi feed exits non-zero (dead-feed law).
+#
+# SINCE Sep 11 2026 (owner request, same day it shipped): the scan
+# RIDES THE POLLER RELAY (poll.yml) every 2 hours -- on its first day
+# GitHub fired only 1 of this file's 5 cron slots, the same
+# dropped-cron disease that moved the swoop board into the relay.
+# This workflow stays as a redundant backup starter and the owner's
+# Run button, exactly like swoop.yml. Overlapping runs are harmless:
+# the 26h lookback + dedupe mean no burst is logged twice, and the
+# append-only CSVs union-merge.
 
 on:
   schedule:

@@ -107,6 +107,18 @@ jobs:
             if [ "$H" -ge 16 ] || [ "$H" -lt 2 ] || { [ $((H % 2)) -eq 1 ] && [ "$M" -lt 15 ]; }; then
               python swoop_alert.py || { echo "::warning::swoop_alert.py failed this pass -- board keeps its last grade until the next pass"; ANY_ERROR=1; }
             fi
+            # The whale watcher rides the relay too (Sep 11 2026, owner
+            # request: on its first day GitHub fired 1 of its 5 cron
+            # slots -- the same dropped-cron disease that moved swoop
+            # in here). Same rhythm as whales.yml's schedule: one pass
+            # every 2 hours (the :34 pass of odd UTC hours, matching
+            # the old odd-hours-at-:37 slots). whales.yml stays as a
+            # redundant backup starter and Run button; the scanner's
+            # 26h lookback + dedupe make overlapping runs harmless,
+            # and it needs no secrets (public tape only).
+            if [ $((H % 2)) -eq 1 ] && [ "$M" -ge 30 ] && [ "$M" -lt 45 ]; then
+              python whale_watcher.py || { echo "::warning::whale_watcher.py failed this pass -- the whale board keeps its last state until the next 2-hour pass"; ANY_ERROR=1; }
+            fi
             # THE WATCHDOG (Aug 30 2026): every pass also checks the
             # pulses that have actually burned us (stale poller, dead
             # money lane, missing same-day forecast, failed orders,
