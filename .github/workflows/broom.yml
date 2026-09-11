@@ -1,0 +1,65 @@
+name: Broom (sweep + reconcile orders)
+
+# THE BROOM BUTTON. Runs trader.py --sweep-resting on demand: cancels
+# this bot's own still-resting orders, and reconciles "submitted"
+# trades.csv rows whose orders are no longer on the book -- marking a
+# row cancelled ONLY when Kalshi's own order object proves zero fills
+# (fail closed, and only order_ids from trades.csv are ever touched;
+# the owner's hand-placed orders are invisible to it). NO trading
+# happens in sweep mode, ever.
+#
+# Born Sep 11 2026: the owner hand-cancelled one of the bot's resting
+# orders in the app. The end-of-day sweep inside morning.yml only
+# walked orders still ON the book, so the hand-cancelled order's row
+# stayed "submitted" and settle.py would have graded it next morning
+# as a ~$1 bet that never existed. The reconcile step in trader.py
+# fixes the root; this button exists so the fix can run the same day
+# (the relay checks out its code at job start, so a fix merged mid-day
+# doesn't reach that day's 18:45 sweep) and any time the owner
+# hand-cancels a bot order again.
+#
+# Manual only. Best pressed after 18:45 UTC (the buying day is over,
+# so nothing else is writing trades.csv) or before the 12:20 UTC
+# settlement run.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: broom
+  cancel-in-progress: false
+
+jobs:
+  broom:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install crypto library
+        run: pip install cryptography
+
+      - name: Sweep and reconcile
+        env:
+          KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
+          KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
+        run: python trader.py --sweep-resting
+
+      # The repo-standard real retry loop (see settlements.yml for why
+      # the old one-liner fallback was a trap under bash -e).
+      - name: Commit the cleaned log
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "broom: sweep + reconcile orders $(date -u +'%Y-%m-%d %H:%M')"
+          n=0
+          until git push; do
+            n=$((n+1))
+            if [ "$n" -gt 4 ]; then echo "push failed after $n tries"; exit 1; fi
+            git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
+            sleep $((2*n))
+          done
