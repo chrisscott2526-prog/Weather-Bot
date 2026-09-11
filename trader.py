@@ -263,6 +263,75 @@ def cancel_resting_orders():
                 break
     mark_cancelled(unfilled_cancelled)
 
+def reconcile_offbook_orders():
+    """The broom's blind spot, found live Sep 11 2026: the owner
+    hand-cancelled one of the bot's resting orders in the Kalshi app.
+    cancel_resting_orders() only walks orders still ON the book, so a
+    hand-cancelled order keeps its "submitted" trades.csv row forever
+    and settle.py grades it at settlement as a real bet that never
+    filled -- the exact poison the broom was built to stop, arriving
+    through a side door. This walks the other direction: every
+    ungraded "submitted" row whose order is NO LONGER resting gets its
+    order object fetched from Kalshi. Filled = a real bet, left alone.
+    Cancelled with PROVEN zero fills = row marked cancelled. Anything
+    unprovable stays "submitted" -- same fail-closed guarantee as the
+    cancel sweep, and only order_ids from trades.csv are ever touched
+    (the owner's own manual orders remain invisible to it)."""
+    if not os.path.exists("trades.csv"):
+        return
+    graded = graded_tickers()
+    with open("trades.csv") as f:
+        rows = list(csv.DictReader(f))
+    candidates = [r["order_id"] for r in rows
+                  if (r.get("status") or "") == "submitted"
+                  and r.get("order_id")
+                  and r.get("ticker") not in graded]
+    if not candidates:
+        return
+    try:
+        resp = api("GET", "/trade-api/v2/portfolio/orders?status=resting")
+        still_resting = {o.get("order_id")
+                         for o in resp.get("orders", [])}
+    except Exception as e:
+        print(f"reconcile: couldn't list resting orders ({e}) -- "
+              f"leaving all rows as they are")
+        return
+    unfilled_cancelled = set()
+    for oid in candidates:
+        if oid in still_resting:
+            continue          # still on the book -- the cancel sweep's job
+        o = None
+        for path in (f"/trade-api/v2/portfolio/orders/{oid}",
+                     f"/trade-api/v2/portfolio/events/orders/{oid}"):
+            try:
+                resp = api("GET", path)
+                o = resp.get("order") or resp
+                break
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    continue
+                print(f"reconcile {oid[:8]}: HTTP {e.code} -- "
+                      f"leaving as submitted")
+                break
+            except Exception as e:
+                print(f"reconcile {oid[:8]}: {e} -- leaving as submitted")
+                break
+        if not o:
+            continue
+        status = (o.get("status") or "").lower()
+        if status.startswith("exec"):
+            continue          # filled -- a real bet, settle.py's to grade
+        if proven_unfilled(o):
+            print(f"reconcile: {o.get('ticker', oid[:8])} was taken off "
+                  f"the book outside this bot with zero fills proven -- "
+                  f"marking its row cancelled")
+            unfilled_cancelled.add(oid)
+        else:
+            print(f"reconcile {oid[:8]}: off the book but Kalshi's "
+                  f"order object can't prove zero fills -- leaving as "
+                  f"submitted (fail closed)")
+    mark_cancelled(unfilled_cancelled)
+
 def graded_tickers():
     """Tickers already graded in results.csv = markets Kalshi settled.
     A settled market is finished business, not exposure."""
@@ -322,6 +391,7 @@ def main():
         print(f"{stamp}: --sweep-resting -- end-of-day cleanup of this "
               f"bot's unfilled resting orders (no trading this run)")
         cancel_resting_orders()
+        reconcile_offbook_orders()
         return
 
     if not os.path.exists("edges.csv"):
