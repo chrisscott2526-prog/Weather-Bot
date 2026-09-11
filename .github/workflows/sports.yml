@@ -2,8 +2,13 @@ name: Sports card scan
 
 on:
   schedule:
-    - cron: "0 15 * * *"   # ~11am ET: lines are up for the day's slates
-    - cron: "0 22 * * *"   # ~6pm ET: evening slates + late line moves
+    # Off-peak minute :23 (Sep 11 2026): both slots sat on minute :00,
+    # the minute GitHub's best-effort scheduler drops most -- the 15:00
+    # scan was skipped outright on Sep 11 and the 22:00 one fired 95
+    # minutes late the night before, leaving the daily card a day
+    # stale. Same fix, same reason as settlements.yml on Sep 10.
+    - cron: "23 15 * * *"  # ~11am ET: lines are up for the day's slates
+    - cron: "23 22 * * *"  # ~6pm ET: evening slates + late line moves
   workflow_dispatch:
     inputs:
       probe:
