@@ -1,0 +1,57 @@
+<title>Whale Watcher</title><style>
+    body{background:#0b1220;color:#dbe4f0;font:15px/1.45 -apple-system,
+      'Segoe UI',Roboto,sans-serif;margin:0;padding:14px 10px 40px}
+    .wrap{max-width:760px;margin:0 auto}
+    h1{font-size:22px;margin:4px 0 2px}
+    .meta{color:#7d8aa0;font-size:12px;margin-bottom:10px}
+    .law{background:#121b2e;border:1px solid #23324d;border-radius:10px;
+      padding:8px 12px;font-size:12.5px;color:#9fb0c8;margin-bottom:14px}
+    .sec{margin:18px 0 6px;font-size:16px;font-weight:700;
+      letter-spacing:.4px;color:#e8eefc;border-bottom:1px solid #23324d;
+      padding-bottom:4px}
+    .sec .tally{float:right;font-size:12px;font-weight:400;color:#7d8aa0}
+    .card{background:#121b2e;border:1px solid #23324d;border-radius:12px;
+      padding:10px 12px;margin:8px 0}
+    .row1{display:flex;justify-content:space-between;gap:8px;
+      align-items:baseline;flex-wrap:wrap}
+    .bet{font-weight:700;font-size:15.5px}
+    .no .bet::after{content:" (bet AGAINST)";color:#f0a45c;
+      font-weight:400;font-size:12px}
+    .dollars{font-weight:800;font-size:17px;color:#7fd8a4;
+      white-space:nowrap}
+    .detail{color:#9fb0c8;font-size:12.5px;margin-top:3px}
+    .expert{font-size:12.5px;margin-top:3px}
+    .agree{color:#7fd8a4}.disagree{color:#f0a45c}
+    .empty{color:#5d6a80;font-size:13px;padding:6px 2px 2px}
+    .old{color:#ff8f8f}
+    </style>
+<div class="wrap">
+<h1>🐋 Whale Watcher</h1>
+<div class="meta"><span class="age" data-built="1789086698525">just built</span> &middot; big executed bets on our hand-verified markets, last 48h &middot; whale bar: $250+ weather, $1000+ sports</div>
+<div class="law">Research only &mdash; this board places no bets and never touches the weather bot or the daily card. Kalshi does not reveal who traded; each line is a burst of filled orders, not a person. Every line is graded later by Kalshi's own settled result (HIT/MISS).</div>
+<div class="sec">College Football<span class="tally">no grades yet</span></div>
+<div class="empty">No whale-sized bets in the last 48 hours.</div>
+<div class="sec">NFL<span class="tally">no grades yet</span></div>
+<div class="empty">No whale-sized bets in the last 48 hours.</div>
+<div class="sec">NBA<span class="tally">no grades yet</span></div>
+<div class="empty">No whale-sized bets in the last 48 hours.</div>
+<div class="sec">Major League Baseball<span class="tally">no grades yet</span></div>
+<div class="empty">No whale-sized bets in the last 48 hours.</div>
+<div class="sec">Weather<span class="tally">no grades yet</span></div>
+<div class="empty">No whale-sized bets in the last 48 hours.</div>
+<div class="sec">Tennis<span class="tally">no grades yet</span></div>
+<div class="empty">No whale-sized bets in the last 48 hours.</div>
+</div><script>
+    function whaleTick(){
+      var now=Date.now();
+      document.querySelectorAll('[data-utc]').forEach(function(el){
+        var d=new Date(+el.dataset.utc);
+        el.textContent=d.toLocaleString([],{weekday:'short',hour:'numeric',
+          minute:'2-digit'});});
+      document.querySelectorAll('[data-built]').forEach(function(el){
+        var m=Math.max(0,Math.floor((now-+el.dataset.built)/60000));
+        el.textContent=m<1?'built just now':'built '+m+'m ago';
+        el.classList.toggle('old',m>180);});
+    }
+    whaleTick();setInterval(whaleTick,30000);
+    </script>
