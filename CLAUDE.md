@@ -512,8 +512,12 @@ sports_scanner.py (2x daily)      sharps consensus (MLB/NFL/CFB/NBA/
 sports_probe.py  (on demand)      read-only inventory: what the Odds API
                                   plan carries + Kalshi's live sports
                                   series. Run sports.yml with probe=true.
-whale_watcher.py (every 2h at     Kalshi public trade tape on the
-              :37, whales.yml)    hand-verified series -> big executed
+whale_watcher.py (every 2h inside Kalshi public trade tape on the
+              the poller relay
+              since Sep 11 2026;
+              whales.yml cron +
+              Run button = backup)
+                                  hand-verified series -> big executed
                                   bets ($250+ weather / $1000+ sports,
                                   fill-bursts, 26h lookback) ->
                                   whale_trades.csv + whales.html board
@@ -802,6 +806,16 @@ hours its old crons kept), because swoop.yml's cron starved the board
 schedule as a redundant backup and its Run button for manual passes;
 racing pushes are the same solved problem as everywhere else.
 
+Since Sep 11 2026 the relay also carries the **whale watcher** (owner
+request, the day it shipped): whale_watcher.py runs inside the pass
+every 2 hours (the :34 pass of odd UTC hours — the old odd-hours-at-
+:37 cadence), because on its first day GitHub fired only 1 of
+whales.yml's 5 cron slots. whales.yml keeps its schedule as a
+redundant backup and its Run button, exactly like swoop.yml. Safe by
+construction: the scan needs no secrets, the 26h lookback + dedupe
+mean overlapping runs log nothing twice, and the whale CSVs
+union-merge.
+
 ## THE WATCHDOG (Aug 30, 2026)
 
 Born from the owner's exact words: "every single solitary time I ask
@@ -1062,6 +1076,12 @@ The laws, agreed before it was built:
   logged, so skipped crons lose nothing. A fully dead Kalshi feed
   exits RED (dead-feed law). Low-volume markets that could not
   possibly contain a whale are skipped to keep scans cheap.
+- **The scan rides the poller relay** (owner request, Sep 11 2026 —
+  the day it shipped, after GitHub fired only 1 of its first 5 cron
+  slots): whale_watcher.py runs inside poll.yml's relay pass every 2
+  hours, on the same cadence whales.yml's cron kept. whales.yml stays
+  as a redundant backup starter and the owner's Run button — the
+  swoop.yml pattern exactly.
 
 ## ROADMAP — how this grows
 
