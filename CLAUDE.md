@@ -161,11 +161,12 @@ translated one-to-one:
    bracket containing the **most ensemble members** is the pick.
    Full stop. Price plays **no part** in choosing it.
 2. **Price is only a gate.** If the pick's YES ask is inside
-   `MIN_PICK_COST..MAX_PICK_COST` (**45¢–60¢ since Aug 30 2026 — the
-   accuracy tightening, see its section; 40¢–60¢ Aug 28–30 — the
-   two-week band trial, see its own section below**; the history:
-   8¢ floor → 15¢ on Aug 24 2026 — see the accuracy rebuild — → 20¢
-   on Aug 28 2026 ("no long shots") → the 40–60¢ trial that evening).
+   `MIN_PICK_COST..MAX_PICK_COST` (**45¢–54¢ since Sep 11 2026 — the
+   cap trim, decided at the Sep 11 band review, see the trial section;
+   45–60¢ Aug 30–Sep 11 — the accuracy tightening; 40¢–60¢ Aug 28–30;
+   the floor history: 8¢ → 15¢ on Aug 24 2026 — see the accuracy
+   rebuild — → 20¢ on Aug 28 2026 ("no long shots") → 40¢ that
+   evening → 45¢ on Aug 30).
    Then buy is flagged.
    Outside the band → **NO BUY for that city that day. No substitutes.**
    Never fall back to a cheaper neighboring bracket — a week of babysitting
@@ -292,7 +293,9 @@ Trader hard caps, all enforced in `trader.py` — do not loosen:
 - `MAX_PER_CITY_DAY = 1` position per city per day (counts existing
   positions and resting orders via the FAIL-CLOSED exposure check — if the
   account can't be read, **no trades are placed that run**).
-- `MIN_COST, MAX_COST = 45, 60` — must always equal the scanner's gate.
+- `MIN_COST, MAX_COST = 45, 54` — must always equal the scanner's gate.
+  (Cap 60 → 54 on Sep 11 2026 at the band review, with the scanner's
+  in one commit, as they always must.)
   (They were once 15/10, an impossible range that silently placed zero
   trades for days. Floor raised 8 → 15 on Aug 24 2026, 15 → 20 on
   Aug 28 2026, then the 40–60 band trial that evening, each time with
@@ -952,6 +955,23 @@ Terms of the trial, set when it started:
   review can compare what 40–60 actually bought against what 20–68
   would have bought on the same days. Expect FEWER buys per day
   during the trial — that is the band working, not a bug.
+
+**THE SEP 11 REVIEW — OWNER DECISION.** Real money in the trial
+window (Aug 31–Sep 10): 24 settled bets, 11W–13L, −$2.53 (−16¢/$1).
+The paper counterfactuals, graded against official settlements under
+identical simulation rules: every alternative lost MORE — skipped
+20–44¢ picks 9W–28L (−20¢/$1), skipped 61–68¢ picks 7W–7L (−24¢/$1),
+and the picks the prob-40 bar dropped went 10W–25L (−47¢/$1). The
+bad fortnight was a forecast problem (a run of too-cool picks during
+the Feedback Fix's stated convergence window), not a band problem.
+Decisions, recorded: **keep the 45¢ floor and the prob-40 bar; trim
+the cap 60¢ → 54¢** (55–60¢ ran 3W–6L, −45¢/$1 in the trial, and the
+high side has lost in every era — 60–68¢ was 3W–7L historically;
+stated caveat: the trial slice is 9 bets). Two-week trial, **review
+~Sep 25** off settled results. **The bench holds** (OKC in-band paper
+1W–2L, Dallas 2W–2L — far too thin to overturn 1W–16L); the watch
+list stands, with San Francisco 2W–0L real-money in the trial — the
+Feedback Fix repair looking real.
 
 ## THE MODEL LAB (Aug 31, 2026) — OWNER DECISION
 

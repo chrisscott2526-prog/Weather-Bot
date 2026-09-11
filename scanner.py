@@ -143,7 +143,11 @@ WINDOW = window_from_argv()
 # recorded). MIN_PICK_PROB 35 -> 40 (cuts the weakest-agreement
 # picks). Cap stays 60. Small samples, stated plainly to the owner --
 # the Sep 11 review judges this with the band trial.
-MAX_PICK_COST = 60.0   # past this, no buy for that city today
+MAX_PICK_COST = 54.0   # past this, no buy for that city today (60 -> 54
+                       # Sep 11 2026, owner call at the band review:
+                       # 55-60c ran 3W-6L, -45c/$1 in the trial and the
+                       # high side has lost in every era; two-week trial,
+                       # review ~Sep 25)
 MIN_PICK_COST = 45.0   # under this the market is screaming we're wrong
 MIN_PICK_PROB = 40.0   # top bracket weaker than this = day too uncertain
 

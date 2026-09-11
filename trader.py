@@ -67,7 +67,9 @@ MAX_ORDERS = 5
 BET_DOLLARS = 1      # $ per bet. Change ONLY after 100+ settled bets
                      # show positive P&L. Applies to BOTH strategies.
 MAX_RUN_DOLLARS = 10  # hard ceiling on total $ placed in one run
-MIN_COST, MAX_COST = 45, 60  # matches scanner.py's MIN/MAX_PICK_COST
+MIN_COST, MAX_COST = 45, 54  # matches scanner.py's MIN/MAX_PICK_COST
+                             # (cap 60 -> 54 Sep 11 2026, moved with the
+                             # scanner in one commit, as they always must)
                      # THE ACCURACY TIGHTENING, owner's call Aug 30
                      # 2026: floor 40 -> 45 (>=45c was 66% wins
                      # +28c/$1 on all 146 settled bets vs 58% +15c at
