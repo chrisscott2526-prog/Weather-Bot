@@ -356,4 +356,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-09-09T16:10:30+00:00,KXHIGHTLV-26SEP09-B105.5,105° to 106°,yes,1,57,40.2,,True,submitted,01a086ef-64d8-7994-9909-823084baf6e1,morning
 2026-09-09T17:39:28+00:00,KXHIGHTPHX-26SEP09-B108.5,108° to 109°,yes,1,53,42.7,,True,submitted,01a08740-d480-7114-8900-39a54473183a,morning
 2026-09-11T14:09:32+00:00,KXHIGHTSATX-26SEP11-B101.5,101° to 102°,yes,2,46,43.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,morning
-2026-09-11T14:39:31+00:00,KXHIGHTSATX-26SEP11-B101.5,101° to 102°,yes,2,49,43.9,,True,submitted,01a090e8-d0a0-77c7-835b-f9d157c219a9,morning
+2026-09-11T14:39:31+00:00,KXHIGHTSATX-26SEP11-B101.5,101° to 102°,yes,2,49,43.9,,True,cancelled,01a090e8-d0a0-77c7-835b-f9d157c219a9,morning
