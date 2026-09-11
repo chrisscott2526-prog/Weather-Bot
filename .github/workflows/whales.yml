@@ -1,0 +1,52 @@
+name: Whale Watcher
+
+# THE WHALE WATCHER (owner request, Sep 11 2026): reads the public
+# Kalshi trade tape on our hand-verified markets and logs big EXECUTED
+# bets ($250+ weather, $1000+ sports), grades them later by Kalshi's
+# own settled result, and publishes the whales.html board. RESEARCH
+# ONLY -- no secrets, no orders, and nothing that trades may ever read
+# its files. Each scan looks back 26 hours, so skipped crons lose
+# nothing. A dead Kalshi feed exits non-zero (dead-feed law).
+
+on:
+  schedule:
+    # every 2 hours at an off-peak minute (GitHub drops :00 slots most;
+    # the settlements Clock-Fix lesson). The 26h lookback makes any
+    # number of skipped slots harmless.
+    - cron: "37 1,3,5,7,9,11,13,15,17,19,21,23 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Own concurrency group (never the shared repo-writes line -- a queued
+# run there gets displaced-and-cancelled by newer jobs; the Sep 10 2026
+# forecast.yml lesson). Serializes only against itself.
+concurrency:
+  group: whale-watcher
+  cancel-in-progress: false
+
+jobs:
+  whales:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Scan the tape, grade, build the board
+        run: python3 whale_watcher.py
+
+      - name: Commit the log
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "whales $(date -u +'%Y-%m-%d %H:%M')"
+          # real retry loop -- the repo-standard pattern (see poll.yml)
+          n=0
+          until git push; do
+            n=$((n+1))
+            if [ "$n" -gt 4 ]; then echo "push failed after $n tries"; exit 1; fi
+            git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
+            sleep $((2*n))
+          done

@@ -509,6 +509,15 @@ sports_scanner.py (2x daily)      sharps consensus (MLB/NFL/CFB/NBA/
 sports_probe.py  (on demand)      read-only inventory: what the Odds API
                                   plan carries + Kalshi's live sports
                                   series. Run sports.yml with probe=true.
+whale_watcher.py (every 2h at     Kalshi public trade tape on the
+              :37, whales.yml)    hand-verified series -> big executed
+                                  bets ($250+ weather / $1000+ sports,
+                                  fill-bursts, 26h lookback) ->
+                                  whale_trades.csv + whales.html board
+                                  (CFB/NFL/NBA/MLB/Weather/Tennis);
+                                  graded by Kalshi settlement ->
+                                  whale_results.csv. RESEARCH ONLY --
+                                  no money code may ever read it.
 index.html                        static dashboard reading the CSVs
 ```
 
@@ -547,6 +556,8 @@ check that line first when a feed dies.
 | `health.json` | `watchdog.py` (full rewrite each relay pass) | JSON: `checked_utc, ok, alarms[{code,since,msg}], notes` (added Aug 30 2026 — the watchdog's pulse report for the Station Board banner; display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `swoop_pulse.json` | `swoop_alert.py` (full rewrite each run) | JSON: `checked_utc, open_weather_positions, graded, note` (added Sep 1 2026 — the grader's heartbeat, written every run even with zero open positions, so the watchdog can tell "grader dead" from "nothing to grade"; a no-bet day writes zero `swoop_log.csv` rows honestly and used to false-alarm. Display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `model_research.csv` | `model_lab.py` (forecast.yml, nightly after the money forecast) | `forecast_date,station,city,model,forecast_high_f,n_members,members,fetched_utc` (THE MODEL LAB, Aug 31 2026 — candidate models riding as research passengers: `icon` = the German global ensemble, `nws` = the NWS public point forecast, raw and uncalibrated. RESEARCH LOG ONLY, same law as afternoon_forecasts.csv: **no trading or calibration code may ever read it**; union-merged append-only) |
+| `whale_trades.csv` | `whale_watcher.py` (whales.yml, every 2h at :37) | `seen_utc,sector,series,ticker,event,bet_on,side,contracts,avg_price_cents,dollars,n_fills,first_trade_utc,last_trade_utc,close_time_utc,hours_before_close,expert_pct,agrees` (THE WHALE WATCHER, Sep 11 2026 — big executed bets from Kalshi's public tape on hand-verified series only; a row is a fill-burst, never a person; sector ∈ CFB/NFL/NBA/MLB/WEATHER/TENNIS; expert_pct = ensemble % (weather, from edges.csv) or sharps' de-vigged % (sports, from sports_picks.csv) for the whale's side, blank when no fresh row; append-only, union-merged; **RESEARCH ONLY — nothing that trades, scans, or calibrates may ever read it**) |
+| `whale_results.csv` | `whale_watcher.py` | `graded_utc,sector,ticker,bet_on,side,dollars,market_result,result` (HIT/MISS by Kalshi's own settled result; **no pnl column on purpose** — no bet was placed, a dollar figure would be invented data; the scoreboard question is "does big money actually know?", per sector and per timing; append-only, union-merged; same research-only law) |
 | `model_report.md` | `model_report.py` (autopsy.yml, full rewrite each run) | per-city, per-model median miss vs the settled number: `pool`/`gfs`/`ecmwf` from forecasts.csv (calibrated; member_models splits the voters) and the research passengers from model_research.csv. Derived human-readable output ONLY — no code reads it, NEVER union-merge it. Promotion of a model into the vote is an owner decision made on this evidence |
 
 Calibration is applied **exactly once**, at forecast time
@@ -987,6 +998,50 @@ this round proves out. **Every one of those is an owner decision made
 on the report's evidence. The scoreboard promotes; conviction never
 does — no model joins, leaves, or changes weight in the vote without
 it.**
+
+## THE WHALE WATCHER (Sep 11, 2026) — OWNER REQUEST
+
+The owner's question, in their words: out of 30 college games on a
+Saturday, where is the big money landing on a single team — and is it
+way early? What do they know that we don't? `whale_watcher.py` reads
+the **public Kalshi trade tape** on our hand-verified markets only
+(the 20 weather series from `cities.py` + the sports card's verified
+moneyline/match series: KXNCAAFGAME, KXNFLGAME, KXNBAGAME, KXMLBGAME,
+KXATPMATCH, KXWTAMATCH — no discovery, ever) and logs big **executed**
+bets to `whale_trades.csv`. The board is `whales.html`, sectioned in
+the owner's order: CFB / NFL / NBA / MLB / Weather / Tennis.
+
+The laws, agreed before it was built:
+
+- **RESEARCH ONLY — nothing that trades, scans for money, or
+  calibrates may EVER read `whale_trades.csv` or `whale_results.csv`.**
+  Same law as afternoon_forecasts.csv and the Model Lab. It places no
+  orders, needs no secrets, and must never influence the weather
+  bot's picks or the daily card's picks. Promotion to influencing
+  anything is an owner decision made on the scoreboard, never before.
+- **Executed trades only, never resting orders** — a resting wall can
+  be placed for show and cancelled for free; filled money is the only
+  honest signal.
+- **No invented identity.** Kalshi never reveals who traded and we
+  never guess. A row is a *burst* — fills on the same market+side
+  with gaps under 90 seconds, summed, because whales slice orders —
+  not a person. That is arithmetic, not identity.
+- **Thresholds (owner's call): $250+ weather, $1000+ sports** per
+  burst. Tuning them later from the logged size distribution is an
+  owner decision.
+- **Graded by settlement truth**: every burst becomes HIT/MISS in
+  `whale_results.csv` by Kalshi's own `result` field, and the board
+  shows each sector's running record. **No P&L column on purpose** —
+  we placed no bet, so a dollar figure would be invented data.
+- **Expert cross-check is opportunistic and read-only**: a weather
+  burst is compared against the freshest `edges.csv` scan (our
+  ensemble %), a sports burst against the freshest `sports_picks.csv`
+  row (the sharps' de-vigged %) — blank when no fresh row exists,
+  never guessed, and no paid feed is ever called.
+- Each scan looks back 26 hours and dedupes against what's already
+  logged, so skipped crons lose nothing. A fully dead Kalshi feed
+  exits RED (dead-feed law). Low-volume markets that could not
+  possibly contain a whale are skipped to keep scans cheap.
 
 ## ROADMAP — how this grows
 
