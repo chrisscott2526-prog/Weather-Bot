@@ -1,5 +1,22 @@
 # CHANGELOG
 
+- 2026-09-12 (later): WHALE WATCHER WAS BLIND SINCE BIRTH — the owner
+  called it ("hard to believe no one has bet a grand on football"),
+  and they were right: Kalshi's 2026 field migration renamed the
+  numbers the scanner read (volume → volume_fp fixed-point string,
+  yes/no_price → *_price_dollars, count → count_fp), so every market
+  parsed as volume 0, not one trade tape was ever read, and every
+  run finished green in ~1.5 seconds having scanned nothing —
+  whale_trades.csv was never even created. Proven from the Sep 10
+  probe's raw market dump (no old fields present) and the Kalshi API
+  docs. Fix: new field names first with old names kept as fallback
+  (the scanner.py pattern), units normalized to cents, fractional
+  contracts handled, a belt-and-suspenders time filter on the tape,
+  and a new dead-feed tripwire: 50+ open markets with ZERO passing
+  even the $250 weather volume bar turns the run RED — that exact
+  silence was green for a full CFB Friday night. whale_watcher.py +
+  CHANGELOG, one commit.
+
 - 2026-09-12: SETTLEMENTS FALSE ALARM FIXED (the swoop_pulse lesson,
   applied) — the watchdog judged the settlements feed by checked_utc
   in settlements.csv, but that timestamp moves only when Kalshi
