@@ -2,6 +2,28 @@
 
 One line of why per decision, newest first, as the standing orders require.
 
+## 2026-09-12 — per-model bias (owner: "Go for it", after catching the wild brackets themselves)
+
+1. **Each ensemble member is now shifted by its own model's learned
+   bias, not one station-wide number.** Why: the pooled bias is
+   dominated by ECMWF's 51 votes, and where the two models lean
+   opposite ways it manufactured phantom extreme-bracket clusters
+   (New Orleans 39% on "95° or above" against a 90.7° median).
+
+2. **A model needs 4 tagged settled nights at a station to earn its
+   own bias; otherwise its members use the pooled bias.** Why: the
+   fallback is the exact old behavior, so thin history can never
+   make the fix worse than what it replaced.
+
+3. **bias_applied stores the exact per-slice correction
+   (`pool:…|gfs:…|ecmwf:…`), measured after widening.** Why: the
+   Feedback Fix's raw-error reconstruction must stay exact per
+   model, with no guessing of the widening scale.
+
+4. **Nothing else moved** — gates, sizing, widening, the scanner's
+   display table, and the pick-first law are untouched. Why: the
+   gates were the part that worked that morning.
+
 ## 2026-09-10 (later) — the league expansion (owner ask: CFB, NFL, MLB, NBA, tennis, golf on the card)
 
 1. **Verified every new Kalshi series against live markets before

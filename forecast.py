@@ -70,6 +70,18 @@ pooled members exactly as before. Old rows have the column blank
 scripts: model_lab.py logs outside candidate models to
 model_research.csv (NOTHING trades or calibrates from it) and
 model_report.py grades every model against settlements.
+
+PER-MODEL BIAS (Sep 12 2026): calibrate_members now takes the tags
+too and shifts each member by ITS OWN MODEL's learned bias (falling
+back to the pooled station bias where a model's history is thin) --
+the one-thermostat-for-two-rooms fix: a single station bias learned
+from the ECMWF-dominated pooled median was over-shifting every GFS
+member and manufacturing phantom extreme-bracket votes (New Orleans,
+Sep 12: all 31 GFS members pushed into "95 or above"). When tags are
+usable, bias_applied is stored as the exact tagged record
+'pool:-3.46|gfs:-0.85|ecmwf:-5.52' -- per-slice (raw median - stored
+median), widening included -- which calibration.parse_applied
+inverts exactly; scalar on the fallback path, as before.
 """
 
 import csv, json, os, sys, time, urllib.request
@@ -200,15 +212,19 @@ def main():
                 d, members, tags = pooled_highs(city, lat, lon, day_index)
                 if not d or not members:
                     raise ValueError("no model delivered any members")
-                members, bias = calibrate_members(sid, members)
                 if len(tags) != len(members):
-                    # calibration must never add or drop a member; if it
-                    # ever does, mislabeled tags would poison the model
-                    # scoreboard -- store no tags rather than wrong ones.
+                    # misaligned tags would shift members by the WRONG
+                    # model's bias and poison the model scoreboard --
+                    # fall back to the pooled bias and store no tags
+                    # rather than wrong ones. (Checked BEFORE
+                    # calibration since Sep 12 2026: calibrate_members
+                    # now shifts each member by its own model's bias,
+                    # so it must only ever see honest tags.)
                     print(f"  {city}: tag/member count mismatch "
                           f"({len(tags)} vs {len(members)}) -- "
                           "member_models left blank this row")
                     tags = []
+                members, bias = calibrate_members(sid, members, tags)
                 med = round(true_median(members), 1)
                 w.writerow({"forecast_date": d, "station": sid,
                             "city": city, "forecast_high_f": med,

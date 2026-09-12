@@ -424,7 +424,11 @@ settle.py    (daily 12:20 UTC)    asks Kalshi how each market settled
      |                            -> results.csv  (THE scoreboard)
      v
 calibration.py  learns per-station bias AND error spread from NIGHT
-                forecasts vs actuals. The actual, in order of trust
+                forecasts vs actuals — and, since Sep 12 2026, a
+                separate bias PER MODEL per station (the two-humped-
+                pool fix, see its own section): each member is
+                shifted by its own model's bias, pooled bias as the
+                fallback. The actual, in order of trust
                 (Aug 24 2026): official settled bracket from
                 settlements.csv > our own settled bets pinning the
                 instrument > raw instrument (which understates by
@@ -546,7 +550,7 @@ check that line first when a feed dies.
 
 | File | Writer | Header |
 |---|---|---|
-| `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members,bias_applied,member_models` (members pipe-separated, already calibrated, pooled across GFS+ECMWF since Aug 24 2026; bias_applied added Aug 26 2026 = the correction already subtracted from that row's members, so calibration can reconstruct the raw error — blank on old rows, read as 0; member_models added Aug 31 2026 = one tag per member, pipe-separated, aligned with members (`gfs`/`ecmwf`), so the Model Lab can grade each voter separately — blank on old rows and whenever alignment can't be guaranteed; a morning `--today` row is fetched on its own forecast_date between 06:00–22:59 UTC — `csvio.is_morning_row` is the one true classifier, there is no extra column. The hour window exists because a delayed nightly cron slips past UTC midnight and stamps the same date; those rows are still night) |
+| `forecasts.csv` | `forecast.py` | `forecast_date,station,city,forecast_high_f,fetched_utc,members,bias_applied,member_models` (members pipe-separated, already calibrated, pooled across GFS+ECMWF since Aug 24 2026; bias_applied added Aug 26 2026 = the correction already subtracted from that row's members, so calibration can reconstruct the raw error — blank on old rows, read as 0; since Sep 12 2026 it is the tagged record `pool:-3.46\|gfs:-0.85\|ecmwf:-4.40` whenever member_models is usable — per slice, exactly (raw median − stored median), widening included, so `calibration.parse_applied` inverts it with no guesswork — and stays a plain scalar on the no-tags fallback path (old scalar rows keep their old one-shift-for-everyone meaning); member_models added Aug 31 2026 = one tag per member, pipe-separated, aligned with members (`gfs`/`ecmwf`), so the Model Lab can grade each voter separately — blank on old rows and whenever alignment can't be guaranteed; a morning `--today` row is fetched on its own forecast_date between 06:00–22:59 UTC — `csvio.is_morning_row` is the one true classifier, there is no extra column. The hour window exists because a delayed nightly cron slips past UTC midnight and stamps the same date; those rows are still night) |
 | `afternoon_forecasts.csv` | `forecast.py --today --out afternoon_forecasts.csv` (afternoon.yml, 19:30 UTC) | same header as `forecasts.csv` (RESEARCH LOG ONLY, added Aug 24 2026 — measures the value of forecast freshness; **no trading or calibration code reads it**, and it must stay that way: pointing scanner/calibration at it would poison the race and the bias table) |
 | `temps_log.csv` | `poller.py` | `utc_time,station,city,temp_f,obs_time_utc` |
 | `daily_highs.csv` | `poller.py` (full rewrite each run, regenerated from `temps_log.csv` via `highs.py`) | `date,station,city,high_f,last_update_utc,obs_time_utc` (last_update/obs_time = poll/observation time of the day's peak; derived human-readable summary ONLY — since Aug 21 2026 **no code reads it**; retirement candidate) |
@@ -1058,6 +1062,65 @@ this round proves out. **Every one of those is an owner decision made
 on the report's evidence. The scoreboard promotes; conviction never
 does — no model joins, leaves, or changes weight in the vote without
 it.**
+
+## THE PER-MODEL BIAS FIX (Sep 12, 2026) — OWNER DECISION
+
+Found the morning the owner caught the board "running wild": New
+Orleans' card claimed 39% of members on "95° or above" while its own
+median said 90.7°, yesterday settled 89–90°, and NYC's pick was
+priced at 1¢. The gates (MIN_PICK_PROB, the price band) blocked
+every one of those buys — the discipline held — but the votes
+themselves were broken, and the owner called it before any money
+moved.
+
+Root cause, proven from the stored rows: **one thermostat cannot fix
+two rooms.** The pool is two models with, at many stations, OPPOSITE
+biases (that morning at New Orleans: raw ECMWF ~4.4°F cold, raw GFS
+slightly hot). The single per-station bias is learned from the
+pooled median, which ECMWF dominates 51:31 — so the +3.5°F shift
+that fixed ECMWF at New Orleans pushed all 31 already-hot GFS
+members into "95° or above": a phantom cluster wearing 38% of the
+vote (31/82), one point under the prob bar. NYC was the same disease
+mirrored (shift-down overcooling ECMWF into a 1¢ bracket). The
+Feedback Fix's converged (larger, correct-on-the-median) biases plus
+an unusually wide GFS-ECMWF split that week made it blow up; the
+median stayed honest throughout while the top BRACKET lied — the
+two-humped-pool disease.
+
+The fix, one commit (this is exactly what member_models was built
+for): `calibrate_members` now takes the tags and shifts each member
+by ITS OWN MODEL's learned bias — `compute_calibration_full()` in
+calibration.py learns bias per (station, model) from tagged night
+rows, needing `MIN_MODEL_N = 4` settled tagged nights before a model
+earns its own number; under that, and for untagged members, the
+pooled per-station bias applies (the old behavior, unchanged as
+fallback and as scanner.py's display number). Replaying the sick
+New Orleans morning through the fix: the phantom "95° or above"
+falls 35% → 1% and the pool becomes one hump centered 89–92, where
+the NWS forecast, the market, and the settlement all sat.
+
+The plumbing law that rode along: `bias_applied` in forecasts.csv is
+the tagged record `pool:-3.46|gfs:-0.85|ecmwf:-4.40` whenever tags
+are usable — each number is exactly (raw median − stored median) for
+that slice, measured AFTER the spread widening, so
+`calibration.parse_applied` reconstructs raw errors with no
+guesswork (the Feedback Fix's reconstruction now holds per model).
+Scalar on the fallback path and on all old rows, which keep their
+one-shift-for-everyone meaning. Spread widening itself is untouched
+— and now engages more often, honestly, because de-splitting the
+pool shrinks its raw sigma.
+
+Stated caveats, recorded at ship time: per-model history was 7
+tagged settled nights per city (thin — but the mechanism being
+corrected is arithmetic, not a streak, and the fallback is the
+exact old behavior); and per-model reconstruction from PRE-fix
+scalar rows is approximate by the old widening displacement, which
+ages out of the 14-day window. Watch the same monitors as the
+rebuild: autopsy §4 claimed-vs-delivered, and the calibration
+printout's per-model biases converging. NYC-GFS and LA-ECMWF hit
+the ±6°F clamp with the warning printing loudly — if that repeats
+daily the bias is real, and raising the clamp is an owner decision,
+never a silent edit.
 
 ## THE WHALE WATCHER (Sep 11, 2026) — OWNER REQUEST
 
