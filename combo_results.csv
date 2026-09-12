@@ -1,0 +1,3 @@
+graded_utc,combo_id,n_legs,sectors,legs,tickers,combined_pct,legs_won,legs_lost,legs_void,result
+2026-09-12T00:23:04+00:00,2026-09-10-COMBO-2LEG,2,TENNIS|WEATHER,"Alexander Zverev wins (Karen Khachanov @ Alexander Zverev) | San Francisco high 84° or above (San Francisco daily high, 2026-09-10)",KXATPMATCH-26SEP11ZVEKHA-ZVE|KXHIGHTSFO-26SEP10-T83,60.8,2,0,0,HIT
+2026-09-12T00:23:04+00:00,2026-09-10-COMBO-2LEG,2,WEATHER|TENNIS,"San Francisco high 84° or above (San Francisco daily high, 2026-09-10) | Alexander Zverev wins (Karen Khachanov @ Alexander Zverev)",KXHIGHTSFO-26SEP10-T83|KXATPMATCH-26SEP11ZVEKHA-ZVE,78.5,2,0,0,HIT
