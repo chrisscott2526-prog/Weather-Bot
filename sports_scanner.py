@@ -749,9 +749,17 @@ def match_event_by_names(kalshi_events, series, game):
 
 def match_event(kalshi_events, series, sport, game):
     """The matcher. An event matches ONLY if its ticker parses cleanly,
-    its team block equals AWAYCODE+HOMECODE exactly, and its start time
-    agrees with the books' start to within 30 minutes (doubleheader
-    safety). Anything less is a SKIP, never a guess."""
+    its team block equals AWAYCODE+HOMECODE exactly, and -- when the
+    ticker carries a start time -- that time agrees with the books'
+    start to within 30 minutes (doubleheader safety). NFL tickers since
+    the 2026 season carry NO time (KXNFLGAME-26SEP13DALNYG -- date +
+    codes, same anatomy as the names-matched series; read off the
+    whale tape Sep 12 2026, the day all 8 NFL games went UNMATCHED
+    while thousands of dollars traded on them). For those, the ticker
+    date must equal the game's ET calendar date; an NFL team never
+    plays twice on one date, so the exact-code guarantee holds without
+    a clock -- the names matcher's own justification. Two date-format
+    events matching one game = ambiguous = loud skip, never a guess."""
     codes = TEAM_CODES.get(sport, {})
     ac, hc = codes.get(game["away"]), codes.get(game["home"])
     if not ac or not hc:
@@ -759,19 +767,34 @@ def match_event(kalshi_events, series, sport, game):
         return None, None
     want = ac + hc
     best = None
+    dated = []
     for et, mkts in kalshi_events.items():
         parsed = parse_event_ticker(et, series)
-        if not parsed:
+        if parsed:
+            start_et, teams = parsed
+            if teams != want:
+                continue
+            drift = abs((start_et - game["commence"]).total_seconds())
+            if drift <= 1800 and (best is None or drift < best[0]):
+                best = (drift, et, mkts)
             continue
-        start_et, teams = parsed
-        if teams != want:
+        m = re.match(r"^\d{2}[A-Z]{3}\d{2}([A-Z0-9]+)$",
+                     et[len(series) + 1:]) \
+            if et.startswith(series + "-") else None
+        if not m or m.group(1) != want:
             continue
-        drift = abs((start_et - game["commence"]).total_seconds())
-        if drift <= 1800 and (best is None or drift < best[0]):
-            best = (drift, et, mkts)
-    if not best:
-        return None, None
-    return best[1], best[2]
+        if parse_event_date(et, series) != \
+                game["commence"].astimezone(ET).date():
+            continue
+        dated.append((et, mkts))
+    if best:
+        return best[1], best[2]
+    if len(dated) == 1:
+        return dated[0]
+    if len(dated) > 1:
+        print(f"  AMBIGUOUS {series}: {game['game']} matched "
+              f"{len(dated)} date-format events -- refusing to guess")
+    return None, None
 
 
 # ---------------------------------------------------------- the shelves
