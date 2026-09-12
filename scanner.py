@@ -262,25 +262,48 @@ def load_members(strategy="night"):
 
 # ---------- brackets ----------
 def parse_bracket(m):
-    """(lo, hi) for a market. Strike fields first; subtitle fallback for
-    tail markets, which return empty strikes."""
-    lo, hi = m.get("floor_strike"), m.get("cap_strike")
-    lo = float(lo) if lo not in (None, "") else None
-    hi = float(hi) if hi not in (None, "") else None
-    if lo is not None or hi is not None:
-        return lo, hi
+    """(lo, hi) INCLUSIVE degree bounds for a market. SUBTITLE FIRST.
+
+    THE TAIL-STRIKE FIX (Sep 12 2026). Kalshi's tail markets carry
+    OFF-BY-ONE strike fields: "98\u00b0 or below" has cap_strike=99 and
+    "107\u00b0 or above" has floor_strike=106 (exclusive bounds), while a
+    middle bracket "103\u00b0 to 104\u00b0" carries inclusive 103/104.
+    settlements.py verified and documented exactly this on Aug 20 2026
+    ("ranges come from the market SUBTITLE, never the raw strike
+    fields") -- but this scanner kept trusting the strikes. The old
+    comment here claimed tails "return empty strikes"; they no longer
+    do, so the correct subtitle fallback below had become dead code
+    and every tail bracket was counting a FULL EXTRA DEGREE of
+    ensemble members: a member forecasting 99\u00b0 voted for "98\u00b0 or
+    below", and that boundary degree was counted TWICE (it also
+    belongs to "99\u00b0 to 100\u00b0"). Caught by the owner on the Sep 12
+    Austin card: "98\u00b0 or below" showed 31.7% of members while the
+    forecast median was 101.2\u00b0 -- the honest count was 20.7%.
+    Tail votes and their model_prob_pct in edges.csv rows from before
+    this date are inflated by that boundary degree; middle brackets
+    were always counted right."""
     s = (m.get("yes_sub_title") or m.get("subtitle") or "").lower()
     s = s.replace("\u00b0", " ")
     nums = re.findall(r"-?\d+(?:\.\d+)?", s)
-    if not nums:
-        return None, None
-    if " to " in s and len(nums) >= 2:
-        return float(nums[0]), float(nums[1])
-    if "below" in s or "under" in s or "less" in s:
-        return None, float(nums[0])
-    if "above" in s or "over" in s or "greater" in s or "higher" in s:
-        return float(nums[0]), None
-    return None, None
+    if nums:
+        if " to " in s and len(nums) >= 2:
+            return float(nums[0]), float(nums[1])
+        if "below" in s or "under" in s or "less" in s:
+            return None, float(nums[0])
+        if "above" in s or "over" in s or "greater" in s or "higher" in s:
+            return float(nums[0]), None
+    # Unreadable subtitle: fall back to the strike fields, converting
+    # a tail's exclusive strike to the inclusive degree the subtitle
+    # would have named. Two-sided (middle) strikes are already
+    # inclusive and pass through untouched.
+    lo, hi = m.get("floor_strike"), m.get("cap_strike")
+    lo = float(lo) if lo not in (None, "") else None
+    hi = float(hi) if hi not in (None, "") else None
+    if lo is not None and hi is None:
+        lo += 1.0          # floor_strike 106 means "107 or above"
+    elif hi is not None and lo is None:
+        hi -= 1.0          # cap_strike 99 means "98 or below"
+    return lo, hi
 
 
 def prob_in_bracket(members, lo, hi):

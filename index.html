@@ -207,7 +207,19 @@
     rule said no (bracket too weak, price too high, price a long shot,
     no fresh forecast). A red box means the bot tried to buy and the
     order failed &mdash; usually an empty wallet &mdash; or that no run
-    reached the city in its window. This page updates itself
+    reached the city in its window.
+    <br><br>
+    <b>The money line at the top</b> is the Kalshi account's
+    <i>spendable cash</i> &mdash; the only bucket a new $1 bet can
+    spend. The number on the Kalshi app's home screen is the whole
+    portfolio: cash <i>plus</i> money riding in open positions
+    <i>plus</i> money held by unfilled resting orders &mdash; so the
+    app can show $20 while a 92&cent; order bounces. The line shows
+    when the number was last checked (it refreshes on every trading
+    pass); after moving money in or out, press Run on
+    <b>Account check (read-only)</b> in GitHub Actions to refresh it
+    on the spot. If it shows red before the buying windows open, the
+    bot will have picks and no way to pay for them. This page updates itself
     every 2 minutes and whenever you press Refresh, and it can never be
     fresher than the last poll. For anything bet-sized, the
     judge is the Daily Climate Report on weather.gov.
@@ -509,6 +521,25 @@ function todaysTrades(trades, sid, today){
   return {placed, failed};
 }
 
+// Subtitle -> [lo, hi] inclusive degree bounds, mirroring
+// scanner.py's parse_bracket (subtitle-first since the TAIL-STRIKE
+// FIX, Sep 12 2026). Display only.
+function parseBracketSub(sub){
+  const s = String(sub || "").toLowerCase().replace(/°/g, " ");
+  const nums = (s.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+  if(!nums.length) return [null, null];
+  if(s.indexOf(" to ") >= 0 && nums.length >= 2) return [nums[0], nums[1]];
+  if(/below|under|less/.test(s)) return [null, nums[0]];
+  if(/above|over|greater|higher/.test(s)) return [nums[0], null];
+  return [null, null];
+}
+
+function medianOf(a){
+  if(!a.length) return NaN;
+  const s = a.slice().sort((x, y) => x - y), m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
 // The latest same-day ("morning") forecast row for a station, by the
 // same timestamp rule as csvio.is_morning_row: fetched on/after its
 // own forecast date, 06:00-22:59 UTC. Display mirror only.
@@ -574,6 +605,41 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
           ? ` About the same as ${anchorTxt} high.`
           : ` Runs <b>${Math.abs(d).toFixed(1)}&deg; ${dir}</b> than `
             + `${anchorTxt} high.`;
+      }
+    }
+
+    // THE SPLIT-FORECAST NOTE (Sep 12 2026). The owner caught the
+    // Austin card claiming "98° or below" as the top bracket under a
+    // 101.2° median and rightly asked how both could be true. They
+    // can: when GFS and ECMWF pull far apart, the vote scatters, and
+    // a wide edge bracket can collect one model's whole cluster --
+    // the biggest single group -- away from the median. Say that in
+    // plain English instead of leaving the card looking broken.
+    // Uses the same member_models tags the Model Lab logs; blank on
+    // old rows, in which case nothing is added (never guess).
+    if(fc && fc.members && fc.member_models){
+      const vals = fc.members.split("|").map(Number);
+      const tags = fc.member_models.split("|");
+      if(vals.length === tags.length && vals.every(v => !isNaN(v))){
+        const gm = medianOf(vals.filter((v, i) => tags[i] === "gfs"));
+        const em = medianOf(vals.filter((v, i) => tags[i] === "ecmwf"));
+        const bk = parseBracketSub(p.subtitle);
+        const medIn = !isNaN(med)
+          && (bk[0] === null || med >= bk[0] - 0.5)
+          && (bk[1] === null || med < bk[1] + 0.5);
+        if(!isNaN(gm) && !isNaN(em) && Math.abs(gm - em) >= 3){
+          why += ` <b>The forecast is split today:</b> the American `
+            + `model (GFS) centers near <b>${gm.toFixed(0)}&deg;</b>, `
+            + `the European (ECMWF) near <b>${em.toFixed(0)}&deg;</b>. `
+            + `When the two disagree this much the vote scatters, and `
+            + `the biggest single group of members can land in a wide `
+            + `edge bracket away from the median &mdash; the 40% bar `
+            + `is what keeps money out of days like this.`;
+        }else if(!medIn && !isNaN(med)){
+          why += ` The members are spread out today &mdash; the `
+            + `biggest single group is not in the bracket the median `
+            + `sits in, which is why the vote looks weak.`;
+        }
       }
     }
   }
@@ -692,11 +758,47 @@ function renderHealth(health, now){
   return ` Self-check <b>OK</b> as of <b>${fmtLocal(checked)}</b>.`;
 }
 
+// THE WALLET LINE (Sep 12 2026). balance.json is written by trader.py
+// on every trading pass and by account_check.py (the "Account check"
+// Run button) -- full-rewrite, display only. Born the morning the
+// owner moved the cash elsewhere because nothing on this board said
+// how much spendable money the bot had, and the day's buy then
+// bounced on "insufficient balance". The Kalshi app's home-screen
+// number is the whole portfolio; only the CASH bucket can buy.
+function walletLine(w, now){
+  if(!w || typeof w.cash_cents !== "number") return "";
+  const when = new Date(w.checked_utc);
+  const ageH = isNaN(when) ? null : (now - when) / 3600000;
+  const cash = (w.cash_cents / 100).toFixed(2);
+  let extra = "";
+  if(typeof w.riding_cents === "number"
+     && typeof w.held_cents === "number"
+     && (w.riding_cents > 0 || w.held_cents > 0)){
+    extra = ` (plus $${(w.riding_cents / 100).toFixed(2)} riding in `
+      + `open positions and $${(w.held_cents / 100).toFixed(2)} held `
+      + `by resting orders &mdash; money a new bet can NOT spend)`;
+  }
+  const asOf = isNaN(when) ? `` : ` as of <b>${fmtLocal(when)}</b>`;
+  const stale = (ageH !== null && ageH > 20)
+    ? ` That number is <b>${Math.floor(ageH)} hours old</b> &mdash; `
+      + `press Run on <b>Account check (read-only)</b> in GitHub `
+      + `Actions for a fresh one.`
+    : ``;
+  if(w.cash_cents < 100){
+    return ` <b style="color:var(--red)">Kalshi spendable cash: `
+      + `$${cash}${asOf} &mdash; not enough for even one $1 bet. `
+      + `Fund the account or the bot buys nothing.</b>${extra}${stale}`;
+  }
+  return ` Kalshi spendable cash: <b>$${cash}</b>${asOf}${extra}.`
+    + stale;
+}
+
 async function load(){
   const grid = document.getElementById("grid");
   const line = document.getElementById("boardline");
   try{
-    const [temps, settles, trades, edges, fcs, health] = await Promise.all([
+    const [temps, settles, trades, edges, fcs, health, wallet]
+        = await Promise.all([
       fetchCSV("temps_log.csv"),
       fetchCSV("settlements.csv").catch(() => []),
       fetchCSV("trades.csv").catch(() => []),
@@ -704,9 +806,12 @@ async function load(){
       fetchCSVTail("forecasts.csv", 120000).catch(() => []),
       fetch("health.json?t=" + Date.now(), {cache:"no-store"})
         .then(r => r.ok ? r.json() : null).catch(() => null),
+      fetch("balance.json?t=" + Date.now(), {cache:"no-store"})
+        .then(r => r.ok ? r.json() : null).catch(() => null),
     ]);
     const now = new Date();
     const healthLine = renderHealth(health, now);
+    const moneyLine = walletLine(wallet, now);
     const latest = latestPerStation(temps);
     const hiByDay = highsByDay(temps);
     const settleBy = settlementsByStation(settles);
@@ -730,7 +835,7 @@ async function load(){
       + `${bought === 1 ? "city" : "cities"} bought`
       + (failedN ? `, <b style="color:var(--red)">${failedN} failed</b>` : ``)
       + `. Each card below shows its own station's buying window and `
-      + `what happened in it.` + healthLine;
+      + `what happened in it.` + moneyLine + healthLine;
 
     const cards = [];
     const names = Object.keys(latest).sort(

@@ -2,16 +2,32 @@ name: Account check (read-only)
 
 # WHERE IS THE MONEY? Runs account_check.py: prints available cash,
 # money held by unfilled resting orders, and money inside open
-# positions, in plain English. Places nothing, cancels nothing,
-# commits nothing. Born Sep 11 2026, the day a 92-cent order bounced
-# with "insufficient balance" while the app showed $20+ -- the $20
-# was not in the spendable-cash bucket.
+# positions, in plain English. Places nothing, cancels nothing.
+# Born Sep 11 2026, the day a 92-cent order bounced with
+# "insufficient balance" while the app showed $20+ -- the $20 was not
+# in the spendable-cash bucket.
+#
+# Since Sep 12 2026 it also commits balance.json (the WALLET LINE) so
+# the Station Board shows the three buckets instead of burying them
+# in this log -- born the morning the owner moved the cash elsewhere
+# because nothing on the board said how much spendable money the bot
+# had. balance.json is a FULL-REWRITE display file: never
+# union-merge it, no money code reads it.
 #
 # Manual only: press Run workflow from the Actions tab whenever the
-# balance question comes up.
+# balance question comes up. trader.py refreshes the same file on
+# every trading pass, so pressing Run here is only needed for an
+# out-of-hours answer (e.g. right after funding the account).
 
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo-writes
+  cancel-in-progress: false
 
 jobs:
   check:
@@ -28,3 +44,19 @@ jobs:
           KALSHI_API_KEY_ID: ${{ secrets.KALSHI_API_KEY_ID }}
           KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
         run: python account_check.py
+
+      # The repo-standard real retry loop (the Aug 20 2026 lost-commit
+      # scar): this run races the 15-minute poller relay.
+      - name: Commit the wallet snapshot
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "wallet snapshot $(date -u +'%Y-%m-%d %H:%M')"
+          n=0
+          until git push; do
+            n=$((n+1))
+            if [ "$n" -gt 4 ]; then echo "push failed after $n tries"; exit 1; fi
+            git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
+            sleep $((2*n))
+          done

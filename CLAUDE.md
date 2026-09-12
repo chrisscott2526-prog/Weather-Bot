@@ -555,7 +555,7 @@ check that line first when a feed dies.
 | `temps_log.csv` | `poller.py` | `utc_time,station,city,temp_f,obs_time_utc` |
 | `daily_highs.csv` | `poller.py` (full rewrite each run, regenerated from `temps_log.csv` via `highs.py`) | `date,station,city,high_f,last_update_utc,obs_time_utc` (last_update/obs_time = poll/observation time of the day's peak; derived human-readable summary ONLY — since Aug 21 2026 **no code reads it**; retirement candidate) |
 | `settlements.csv` | `settlements.py` (full rewrite each run) | `date,station,city,series,low_f,high_f,n_markets,n_settled,source,utc_offset_hours,checked_utc` (blank low/high = unbounded tail; row exists only when a market settled YES — exclusions alone never make a row) |
-| `edges.csv` | `scanner.py` | `scanned_utc,city,market,subtitle,floor,cap,yes_ask,no_ask,model_prob_pct,edge_yes,edge_no,bias_f,spread_scale,sigma_f,n_members,pick,edge_pick,would_bet,strategy` (strategy added Aug 20 2026, old rows backfilled `night`; sigma_f added Aug 24 2026 = the calibration's learned target error spread in °F — it replaces the old unitless spread_scale ratio, whose column stays so old rows keep meaning; new rows leave spread_scale blank, the two numbers must never share a column) |
+| `edges.csv` | `scanner.py` | `scanned_utc,city,market,subtitle,floor,cap,yes_ask,no_ask,model_prob_pct,edge_yes,edge_no,bias_f,spread_scale,sigma_f,n_members,pick,edge_pick,would_bet,strategy` (strategy added Aug 20 2026, old rows backfilled `night`; sigma_f added Aug 24 2026 = the calibration's learned target error spread in °F — it replaces the old unitless spread_scale ratio, whose column stays so old rows keep meaning; new rows leave spread_scale blank, the two numbers must never share a column; floor/cap are INCLUSIVE degree bounds since Sep 12 2026 — the tail-strike fix: tail rows before that date carry Kalshi's exclusive strike (T99 → cap 99 meaning "98 or below") and an inflated tail `model_prob_pct`, see the fix's section) |
 | `trades.csv` | `trader.py` | `placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,order_id,strategy` (strategy added Aug 20 2026, old rows backfilled `night`) |
 | `results.csv` | `settle.py` | `graded_utc,ticker,city,action,cost_cents,count,fee_cents,market_result,result,pnl,strategy` (fee_cents added Aug 18, strategy Aug 20 2026; old rows backfilled `night`; readers treat a blank strategy as night) |
 | `sports_picks.csv` | `sports_scanner.py` | `scanned_utc,sport,shelf,game,detail,commence_utc,series,ticker,side,pick,books_pct,kalshi_cents,fee_cents,gap_cents,n_books,shown,why` (wiped + new header Aug 19, 2026 — edge-era rows graded a dead rule) |
@@ -566,6 +566,7 @@ check that line first when a feed dies.
 | `combo_results.csv` | `sports_scanner.py` | `graded_utc,combo_id,n_legs,sectors,legs,tickers,combined_pct,legs_won,legs_lost,legs_void,result` (HIT/MISS/VOID by Kalshi settlement per leg, void legs drop out, **no pnl column on purpose** — same laws as `parlay_results.csv`; the scoreboard question is calibration of the cross-sector product, which the card admits is approximate when weather legs share an air mass) |
 | `health.json` | `watchdog.py` (full rewrite each relay pass) | JSON: `checked_utc, ok, alarms[{code,since,msg}], notes` (added Aug 30 2026 — the watchdog's pulse report for the Station Board banner; display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `swoop_pulse.json` | `swoop_alert.py` (full rewrite each run) | JSON: `checked_utc, open_weather_positions, graded, note` (added Sep 1 2026 — the grader's heartbeat, written every run even with zero open positions, so the watchdog can tell "grader dead" from "nothing to grade"; a no-bet day writes zero `swoop_log.csv` rows honestly and used to false-alarm. Display/alerting ONLY, no money code reads it, NEVER union-merge it) |
+| `balance.json` | `trader.py` (every trading pass + end-of-day sweep: cash bucket) and `account_check.py` (Run button: all buckets) — full rewrite each write | JSON: `checked_utc, cash_cents, source, note` (+ `held_cents, riding_cents, n_resting, n_open` when written by account_check) (THE WALLET LINE, Sep 12 2026 — the Station Board's spendable-cash display, red under $1; display/alerting ONLY, no money code reads it, NEVER union-merge it; a dead balance call leaves the old file, whose own checked_utc shows the staleness) |
 | `settlements_pulse.json` | `settlements.py` (full rewrite each run) | JSON: `checked_utc, api_tried, api_ok, rows_written, rows_total, note` (added Sep 12 2026 — the settlements job’s heartbeat, written every run even when nothing new settled, so the watchdog can tell "job dead" from "Kalshi slow to finalize"; checked_utc in settlements.csv moves only when a settlement pins, and on Sep 11–12 2026 that false-alarmed SETTLEMENTS STALE for ~20 h at a healthy job — the swoop_pulse lesson applied. Display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `model_research.csv` | `model_lab.py` (forecast.yml, nightly after the money forecast) | `forecast_date,station,city,model,forecast_high_f,n_members,members,fetched_utc` (THE MODEL LAB, Aug 31 2026 — candidate models riding as research passengers: `icon` = the German global ensemble, `nws` = the NWS public point forecast, raw and uncalibrated. RESEARCH LOG ONLY, same law as afternoon_forecasts.csv: **no trading or calibration code may ever read it**; union-merged append-only) |
 | `whale_trades.csv` | `whale_watcher.py` (whales.yml, every 2h at :37) | `seen_utc,sector,series,ticker,event,bet_on,bet_type,side,contracts,avg_price_cents,dollars,n_fills,first_trade_utc,last_trade_utc,close_time_utc,hours_before_close,expert_pct,agrees` (THE WHALE WATCHER, Sep 11 2026 — big executed bets from Kalshi's public tape on hand-verified series only; a row is a fill-burst, never a person; sector ∈ CFB/NFL/NBA/MLB/WEATHER/TENNIS; expert_pct = ensemble % (weather, from edges.csv) or sharps' de-vigged % (sports, from sports_picks.csv) for the whale's side, blank when no fresh row; bet_type added Sep 12 2026 = MONEYLINE / SPREAD n / TOTAL n / PROP, parsed structured-first (series ticker + Kalshi's floor_strike, then title text; a PROP's bet_on carries the full market question) — blank on rows older than the column, which readers treat as MONEYLINE for sports (only winner/match series were ever watched) and as blank-on-purpose for weather (a bracket is not a sports bet type); the board shows one line per team+side+bet type, summing same-window bursts, while the CSV keeps every burst; append-only, union-merged; **RESEARCH ONLY — nothing that trades, scans, or calibrates may ever read it**) |
@@ -1121,6 +1122,84 @@ printout's per-model biases converging. NYC-GFS and LA-ECMWF hit
 the ±6°F clamp with the warning printing loudly — if that repeats
 daily the bias is real, and raising the clamp is an owner decision,
 never a silent edit.
+
+## THE TAIL-STRIKE FIX (Sep 12, 2026) — OWNER CATCH
+
+The owner read the Austin card — "98° or below" as the top bracket at
+31.7% of members, under a forecast median of 101.2° — and said
+something is wrong with the temperature. They were right, and the
+find was an off-by-one ON THE MONEY PATH:
+
+- **Kalshi's tail markets carry EXCLUSIVE strike fields.** "98° or
+  below" has `cap_strike=99`; "107° or above" has `floor_strike=106`.
+  Middle brackets ("103° to 104°") carry inclusive 103/104.
+  settlements.py verified and documented exactly this on Aug 20 2026
+  ("ranges come from the market SUBTITLE, never the raw strike
+  fields") — but scanner.py kept trusting the strikes. Its comment
+  claimed tails "return empty strikes"; Kalshi had since started
+  filling them, which silently switched the scanner onto the wrong
+  path and made its correct subtitle fallback dead code.
+- **Effect: every tail bracket over-counted a full degree of ensemble
+  members**, and that boundary degree voted TWICE (it also counts in
+  the adjacent middle bracket, so a card's bracket percentages could
+  sum past 100%). On the day it was caught, Austin's "98° or below"
+  showed 26 of 82 members (31.7%) when the honest count was 17
+  (20.7%) — nine members forecasting a 99° high were voting for "98
+  or below". "107° or above" showed 20.7% against an honest 9.8%.
+  New Orleans' phantom "95° or above" cluster (the per-model bias
+  fix's trigger, same day) was inflated by the same degree.
+- **The fix:** scanner.py's `parse_bracket` now parses the SUBTITLE
+  first (the same law settlements.py has followed since Aug 20) and
+  falls back to strikes only for an unreadable subtitle, converting a
+  one-sided strike to its inclusive degree (cap 99 → hi 98, floor
+  106 → lo 107). Middle brackets were always right and are unchanged.
+  edges.csv's floor/cap columns therefore log INCLUSIVE degree bounds
+  on all rows from Sep 12 2026 on; tail rows before that carry the
+  raw exclusive strike (and inflated `model_prob_pct` on tail
+  brackets — remember it when grading history).
+- Nothing else parsed strikes: swoop_alert.py and settlements.py both
+  parse subtitles (correct all along); settle.py grades only Kalshi's
+  own `result`. The gates held throughout — MIN_PICK_PROB kept the
+  phantom votes from ever buying — but the votes themselves, the
+  combo board's weather-leg shares, and the whale board's expert_pct
+  all read cleaner from here on.
+
+The card also learned to explain itself (same commit, display only):
+when GFS and ECMWF medians pull ≥3°F apart, the money box's WHY line
+says the forecast is split and names both numbers — a split pool
+scatters the vote, so the biggest single group can honestly sit in a
+wide edge bracket away from the median (Austin that morning: GFS
+~106°, ECMWF ~100°, ECMWF/NWS/ICON right, GFS ~5° hot). That is a
+real disagreement stated plainly, not a bug — and the 40% bar is
+what keeps money out of such days.
+
+## THE WALLET LINE (Sep 12, 2026) — OWNER REQUEST
+
+The owner moved the account's cash to their sportsbook one morning
+because nothing on the board said how much spendable money the bot
+had — then the day's buy bounced on "insufficient balance" (the
+banner was accurate; the information came too late). The Kalshi
+app's home number is the whole portfolio; only the CASH bucket can
+buy (the Sep 11 account_check lesson). So the money is now ON the
+Station Board:
+
+- `balance.json` — writers: `trader.py` (every trading pass and the
+  end-of-day sweep: cash bucket) and `account_check.py` (the
+  "Account check (read-only)" Run button: all three buckets — cash,
+  held-by-resting, riding-in-positions; account.yml now commits it).
+  JSON: `checked_utc, cash_cents, source, note` (+ `held_cents,
+  riding_cents, n_resting, n_open` from account_check). FULL REWRITE
+  each write — **never union-merge it**; display/alerting ONLY — **no
+  money code reads it** (the trader's own decisions never touch it;
+  its fail-closed exposure check still asks the API directly). A dead
+  balance call leaves the old file in place: its own checked_utc
+  shows the staleness honestly.
+- The board shows spendable cash with its checked time, red when it
+  can't cover a $1 bet ("fund the account or the bot buys nothing"),
+  plus the locked buckets when known, and a press-Run hint when the
+  snapshot is over 20 hours old. The number is only as fresh as the
+  last trader pass or Account-check run — the board says so rather
+  than pretending to be live.
 
 ## THE WHALE WATCHER (Sep 11, 2026) — OWNER REQUEST
 

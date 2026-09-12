@@ -1,5 +1,39 @@
 # CHANGELOG
 
+- 2026-09-12 (night): THE TAIL-STRIKE FIX (owner catch). The owner
+  read the Austin card — top bracket "98° or below" at 31.7% under a
+  101.2° median — and said something was wrong with the temperature.
+  It was an off-by-one on the money path: Kalshi tail markets carry
+  EXCLUSIVE strikes ("98° or below" has cap_strike=99), which
+  settlements.py documented Aug 20 2026 but scanner.py still trusted
+  raw (its subtitle fallback had gone dead when Kalshi started
+  filling tail strikes). Every tail bracket over-counted a full
+  degree of members, double-counted against the neighboring bracket:
+  Austin's honest tail count was 20.7%, not 31.7%; "107° or above"
+  showed 20.7% against an honest 9.8%. parse_bracket is now
+  subtitle-first with a corrected strike fallback; edges.csv floor/
+  cap log inclusive degrees from today. Gates held throughout — no
+  money moved on phantom votes. Same commit, display only: when GFS
+  and ECMWF medians split ≥3°F, the card's WHY line now says so with
+  both numbers (Austin that morning: GFS ~106°, ECMWF ~100° — ECMWF,
+  NWS and ICON were right, the station peaked ~100°), and explains
+  that a split pool can honestly put the biggest single group in a
+  wide edge bracket away from the median. Full write-up in CLAUDE.md.
+
+- 2026-09-12 (night): THE WALLET LINE (owner request). The owner
+  moved the cash to a sportsbook because nothing on the board showed
+  the account's spendable money; the day's San Francisco buy then
+  bounced on "insufficient balance" — accurate, but too late to
+  help. trader.py now writes balance.json (spendable cash +
+  checked_utc) on every trading pass and the end-of-day sweep;
+  account_check.py writes the fuller three-bucket picture and
+  account.yml commits it, so the Run button refreshes the board
+  after funding. The Station Board shows the number with its checked
+  time, red under $1 with "fund the account or the bot buys
+  nothing", and explains that the Kalshi app's home number includes
+  money a new bet cannot spend. Display only: no money code reads
+  balance.json, and it never joins the union-merge list.
+
 - 2026-09-12: PER-MODEL BIAS — the two-humped-pool fix (owner
   decision). The owner caught New Orleans claiming 39% of members on
   "95° or above" against a 90.7° median and a 89–90° settlement the

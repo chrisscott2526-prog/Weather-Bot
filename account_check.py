@@ -17,6 +17,7 @@ workflow. Any dead API call exits non-zero (the dead-feed law).
 """
 
 import base64, csv, json, os, re, sys, time, urllib.request, urllib.error
+from datetime import datetime, timezone
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 
@@ -156,6 +157,26 @@ def main():
         print("\nTO FIX: free up cash. Either deposit, or (if bucket 2 "
               "shows hand-placed resting orders) cancel them in the "
               "app, or wait for open positions to settle and pay out.")
+
+    # THE WALLET LINE (Sep 12 2026): the same three buckets, written
+    # to balance.json so the Station Board can show them instead of
+    # burying the answer in a workflow log. FULL REWRITE, display
+    # ONLY -- no money code reads it, never union-merge it. trader.py
+    # writes the same file (cash bucket only) on every trading pass;
+    # this run's version is the fuller picture, and whichever wrote
+    # last is the freshest by its own checked_utc.
+    data = {"checked_utc": datetime.now(timezone.utc)
+            .isoformat(timespec="seconds"),
+            "cash_cents": cash, "held_cents": held,
+            "riding_cents": at_risk, "n_resting": len(orders),
+            "n_open": len(open_pos), "source": "account-check",
+            "note": ""}
+    tmp = "balance.json.tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=1)
+    os.replace(tmp, "balance.json")
+    print("\nwallet: snapshot written to balance.json for the "
+          "Station Board")
 
 
 if __name__ == "__main__":
