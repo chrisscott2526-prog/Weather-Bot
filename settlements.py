@@ -48,6 +48,7 @@ from datetime import datetime, timedelta, timezone
 from cities import CITIES
 
 OUT = "settlements.csv"
+PULSE = "settlements_pulse.json"
 FIELDS = ["date", "station", "city", "series", "low_f", "high_f",
           "n_markets", "n_settled", "source", "utc_offset_hours",
           "checked_utc"]
@@ -306,6 +307,30 @@ def main():
     write_all(rows)
     print(f"{wrote} settlement row(s) written/updated, "
           f"{len(rows)} total in {OUT}")
+
+    # THE PULSE (Sep 12 2026 -- the SWOOP lesson of Sep 1, applied
+    # here). checked_utc in settlements.csv moves only when a
+    # settlement actually pins (the don't-churn rule above), so on a
+    # night Kalshi is slow to finalize, the CSV looks "stale" while
+    # this job runs green every 2 hours -- and the watchdog cried
+    # SETTLEMENTS STALE at a perfectly healthy job (Sep 11-12 2026:
+    # all 20 events unfinalized ~20 h, four green runs, alarm
+    # unclearable by any Run press). This heartbeat proves THE JOB
+    # ran; the CSV keeps recording only what actually settled.
+    # Full rewrite every run, display/alerting only, no money code
+    # reads it, NEVER union-merge it.
+    note = ""
+    if api_tried and not api_ok:
+        note = f"dead feed: all {api_tried} Kalshi API calls failed"
+    elif api_tried and wrote == 0:
+        note = ("ran fine; Kalshi has not finalized anything new yet "
+                "- will retry")
+    with open(PULSE, "w") as f:
+        json.dump({"checked_utc": stamp, "api_tried": api_tried,
+                   "api_ok": api_ok, "rows_written": wrote,
+                   "rows_total": len(rows), "note": note},
+                  f, indent=1)
+        f.write("\n")
 
     if api_tried and not api_ok:
         # Aug 19 scar: a dead feed must fail loudly, never publish

@@ -20,7 +20,10 @@ The heartbeats, each from the rawest source available:
   SWOOP        swoop_pulse.json fresh in its 15-min band (16:00-01:59 UTC;
                the pulse, not the log -- a no-bet day writes zero log
                rows honestly, which is not a dead grader)
-  SETTLEMENTS  settlements.csv checked recently         (always)
+  SETTLEMENTS  settlements_pulse.json fresh             (always;
+               the pulse, not the CSV -- checked_utc in the CSV moves
+               only when Kalshi finalizes something new, which is not
+               a dead job; CSV check survives as day-zero fallback)
 
 health.json is a FULL-REWRITE file (never add it to the union-merge
 list in .gitattributes) and it is NOT a money input: no scanner,
@@ -47,7 +50,9 @@ HEALTH_PATH = "health.json"
 # silence means at least two missed beats -- a real outage, not jitter.
 POLL_STALE_MIN = 40          # relay writes every ~15 min
 SWOOP_STALE_MIN = 45         # swoop band runs every 15 min
-SETTLE_STALE_MIN = 9 * 60    # settlements.py runs 4x daily
+SETTLE_STALE_MIN = 9 * 60    # settlements.py runs every 2 h; 9 h
+                             # of silent pulse = at least 4 missed
+                             # slots -- a dead job, not jitter
 LANE_RUN_GRACE_MIN = 40      # a relay handoff gap larger than this is real
 
 
@@ -270,15 +275,59 @@ def main():
                           f"are being graded on old readings. Press Run "
                           f"on swoop.yml.")
 
-    # -- SETTLEMENTS: the official-results feed (4x daily) ------------
-    t = newest_ts("settlements.csv", "checked_utc", tail_bytes=100_000)
-    if t is not None:
-        age = (now - t).total_seconds() / 60
-        if age > SETTLE_STALE_MIN:
-            alarm("SETTLE", f"SETTLEMENTS STALE -- last checked "
-                  f"{age / 60:.1f} h ago. Yesterday lines and the "
-                  f"calibration's actuals are running behind. Press "
-                  f"Run on settlements.yml.")
+    # -- SETTLEMENTS: the official-results feed (12x daily). The ------
+    # -- pulse (settlements_pulse.json, written by settlements.py -----
+    # -- every run, new settlements or not) is the heartbeat: ---------
+    # -- checked_utc in settlements.csv moves ONLY when Kalshi --------
+    # -- finalizes something new (the don't-churn rule), so the CSV ---
+    # -- alone cannot tell "job dead" from "Kalshi slow to settle". ---
+    # -- On Sep 11-12 2026 all 20 events sat unfinalized ~20 h while --
+    # -- the job ran green every 2 hours, and the old CSV check cried -
+    # -- SETTLEMENTS STALE with a Press-Run message no Run press ------
+    # -- could clear -- the SWOOP false alarm of Sep 1, same disease, -
+    # -- same cure. The CSV check survives only as the fallback for ---
+    # -- a repo where the pulse has never been written (day zero / ----
+    # -- forks). -------------------------------------------------------
+    if os.path.exists("settlements_pulse.json"):
+        try:
+            with open("settlements_pulse.json") as f:
+                t = parse_ts(json.load(f).get("checked_utc", ""))
+        except (OSError, ValueError):
+            t = None
+        if t is None:
+            alarm("SETTLE", "SETTLEMENTS PULSE UNREADABLE -- "
+                  "settlements_pulse.json exists but carries no valid "
+                  "timestamp, so the settlements job cannot prove it "
+                  "is alive. Press Run on settlements.yml.")
+        else:
+            age = (now - t).total_seconds() / 60
+            if age > SETTLE_STALE_MIN:
+                alarm("SETTLE", f"SETTLEMENTS JOB DEAD -- it last ran "
+                      f"{age / 60:.1f} h ago (limit "
+                      f"{SETTLE_STALE_MIN // 60} h). Yesterday lines "
+                      f"and the calibration's actuals are running "
+                      f"behind. Press Run on settlements.yml.")
+            else:
+                tc = newest_ts("settlements.csv", "checked_utc",
+                               tail_bytes=100_000)
+                if tc is not None:
+                    csv_age_h = (now - tc).total_seconds() / 3600
+                    if csv_age_h > 30:
+                        notes.append(
+                            f"settlements job is alive but Kalshi has "
+                            f"finalized nothing new in {csv_age_h:.0f} "
+                            f"h -- Yesterday lines catch up when the "
+                            f"exchange settles; no button fixes this")
+    else:
+        t = newest_ts("settlements.csv", "checked_utc",
+                      tail_bytes=100_000)
+        if t is not None:
+            age = (now - t).total_seconds() / 60
+            if age > SETTLE_STALE_MIN:
+                alarm("SETTLE", f"SETTLEMENTS STALE -- last checked "
+                      f"{age / 60:.1f} h ago. Yesterday lines and the "
+                      f"calibration's actuals are running behind. "
+                      f"Press Run on settlements.yml.")
 
     # -- keep each alarm's first-seen time across passes --------------
     prev = {}
