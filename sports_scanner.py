@@ -140,6 +140,33 @@ PARLAY_LEG_MIN_PROB = 60.0
 PARLAY_MAX_LEGS = 4        # beyond 4 legs even 65% favorites hit <18%
 PARLAY_LEGS_SHOWN = 6      # the ranked leg list on the card
 
+# THE BOOSTER STACKS (owner decision, Sep 12 2026). The owner typed a
+# whole ladder of 95%+ locks into their own book and watched the
+# payout barely move: two 95% legs multiply to ~90% -- $1.09 fair, "no
+# money in them" -- while the graded record showed the 2-leg locks
+# hitting like crazy and the 4-leg rungs barely ever. The payout lives
+# in the 65-89% favorites: one 95% lock plus three ~70-75% favorites
+# multiplies to ~33% and pays ~$3 fair. So the board builds TWO
+# ladders from the same sharps pool, criteria-gated exactly like the
+# weather bot's money gates:
+#   - the LOCKS ladder (unchanged): the top favorites stacked
+#     top-down, 2..PARLAY_MAX_LEGS legs. The safe stack.
+#   - the BOOSTER stacks: the strongest lock (>= PARLAY_LOCK_PROB) as
+#     anchor plus the strongest 65-89% favorites, up to
+#     PARLAY_BOOST_MAX_LEGS legs. The payout builders.
+# PARLAY_BOOST_FLOOR is the owner's boundary on the caliber of shots:
+# every booster is still the sharps' CLEAR FAVORITE to win its game.
+# A leg the sharps call an underdog never boards, at any payout --
+# that is the edge-first disease (9-21) wearing a parlay slip. Same
+# law as the weather lane, in the owner's words: it doesn't matter
+# what the edge is, it's gotta be teams that are gonna win.
+PARLAY_BOOST_FLOOR = 65.0   # owner's call, Sep 12 2026 (options 60/65/70
+                            # were on the table with the math for each)
+PARLAY_LOCK_PROB = 90.0     # a "lock" for anchoring a booster stack
+PARLAY_BOOST_MAX_LEGS = 6   # 95 x 75^4 ~ 30% / ~$3.3 fair at 5 legs,
+                            # ~23% / ~$4.4 at 6; deeper than 6 even
+                            # honest favorites multiply into a lottery
+
 # THE COMBO BOARD (owner request, Sep 10 2026): "build high paying
 # combos from the Kalshi market, combining any sector." Same
 # constitution as the parlay board, one shelf wider: the stack may mix
@@ -1243,12 +1270,36 @@ def build_combos(pool):
 PARLAY_POOL = []            # candidates collected by scan_winner this run
 
 
+def stack_row(stack, pid):
+    """One parlay_picks.csv row for a stack of legs. Combined
+    probability is the plain product -- separate games are independent
+    events, and one leg per game is guaranteed by construction
+    (scan_winner emits at most one favorite per game per moneyline
+    shelf)."""
+    combined = 1.0
+    for c in stack:
+        combined *= c["fair_pct"] / 100.0
+    return {
+        "scanned_utc": SCAN_STAMP,
+        "parlay_id": pid,
+        "n_legs": len(stack),
+        "legs": " | ".join(f"{c['pick']} ({c['game']})" for c in stack),
+        "tickers": "|".join(c["ticker"] for c in stack),
+        "leg_probs_pct": "|".join(f"{c['fair_pct']:.1f}" for c in stack),
+        "combined_pct": round(combined * 100, 1),
+        "fair_payout": round(1 / combined, 2) if combined > 0 else "",
+        "last_start_utc": max(c["commence"] for c in stack).isoformat()}
+
+
 def build_parlays(pool):
-    """Rank the day's sharps favorites and stack the top ones.
-    Returns (ranked_legs, parlay_rows). Combined probability is the
-    plain product -- separate games are independent events, and one
-    leg per game is guaranteed by construction (scan_winner emits at
-    most one favorite per game per moneyline shelf)."""
+    """Rank the day's sharps favorites and build BOTH ladders (the
+    booster criteria, owner decision Sep 12 2026 -- see the config
+    block): the LOCKS ladder stacks the top favorites top-down, the
+    BOOSTER stacks anchor on the strongest lock and add the best
+    65-89% favorites so the fair payout reaches real money. Every leg
+    on either ladder is the sharps' clear favorite; grading is
+    unchanged (grade_stacks keys on the tickers set, so each distinct
+    stack is graded once by Kalshi settlement)."""
     seen = set()
     legs = []
     for c in sorted(pool, key=lambda c: -c["fair_pct"]):
@@ -1259,20 +1310,27 @@ def build_parlays(pool):
     parlays = []
     day = SCAN_STAMP[:10]
     for n in range(2, min(len(legs), PARLAY_MAX_LEGS) + 1):
-        top = legs[:n]
-        combined = 1.0
-        for c in top:
-            combined *= c["fair_pct"] / 100.0
-        parlays.append({
-            "scanned_utc": SCAN_STAMP,
-            "parlay_id": f"{day}-{n}LEG",
-            "n_legs": n,
-            "legs": " | ".join(f"{c['pick']} ({c['game']})" for c in top),
-            "tickers": "|".join(c["ticker"] for c in top),
-            "leg_probs_pct": "|".join(f"{c['fair_pct']:.1f}" for c in top),
-            "combined_pct": round(combined * 100, 1),
-            "fair_payout": round(1 / combined, 2) if combined > 0 else "",
-            "last_start_utc": max(c["commence"] for c in top).isoformat()})
+        parlays.append(stack_row(legs[:n], f"{day}-{n}LEG"))
+
+    # THE BOOSTER STACKS: anchor + payout builders. On a day with no
+    # 90%+ lock the stack is all boosters; a rung short of qualifying
+    # legs simply doesn't exist (never pad with a weaker leg -- the
+    # floor is the owner's boundary). A booster rung identical to a
+    # locks rung is skipped, not shown twice.
+    locks = [c for c in legs if c["fair_pct"] >= PARLAY_LOCK_PROB]
+    boosters = [c for c in legs
+                if PARLAY_BOOST_FLOOR <= c["fair_pct"] < PARLAY_LOCK_PROB]
+    seen_stacks = {p["tickers"] for p in parlays}
+    anchor = locks[:1]
+    for n in range(3, PARLAY_BOOST_MAX_LEGS + 1):
+        stack = anchor + boosters[:n - len(anchor)]
+        if len(stack) < n:
+            break                    # ran out of 65%+ favorites
+        row = stack_row(stack, f"{day}-BOOST{n}")
+        if row["tickers"] in seen_stacks:
+            continue
+        seen_stacks.add(row["tickers"])
+        parlays.append(row)
     return legs, parlays
 
 
@@ -1469,22 +1527,30 @@ def build_parlay_html(legs, parlays, presults):
                 f"<th>Win chance</th><th>Books</th></tr>{rows}</table>")
         for p in parlays:
             combined = float(p["combined_pct"])
-            leg_lines = "".join(
-                f"<div class='pick'>&#10148; <b>{html.escape(t)}</b> "
-                f"<span class='when'>{q}%</span></div>"
-                for t, q in zip(p["legs"].split(" | "),
-                                p["leg_probs_pct"].split("|")))
+            boost = "BOOST" in p["parlay_id"]
+            tag = "BOOSTER" if boost else "LOCKS"
+            sub = ("payout builder: the strongest lock + the best "
+                   f"{PARLAY_BOOST_FLOOR:.0f}&ndash;"
+                   f"{PARLAY_LOCK_PROB:.0f}% favorites &mdash; every "
+                   "leg still a clear favorite, no long shots"
+                   if boost else
+                   f"the safe stack &mdash; top {p['n_legs']} "
+                   "favorites")
             out += f"""
 <div class="slip"><div class="punch"></div>
 <div class="stamp gap">{p['n_legs']} LEGS</div>
 <div class="slipbody">
-<span class="tag">PARLAY</span><span class="when">stack of the top {p['n_legs']}</span>
-{leg_lines}
+<span class="tag">{tag}</span><span class="when">{sub}</span>
+{"".join(
+    f"<div class='pick'>&#10148; <b>{html.escape(t)}</b> "
+    f"<span class='when'>{q}%</span></div>"
+    for t, q in zip(p["legs"].split(" | "),
+                    p["leg_probs_pct"].split("|")))}
 <div class="nums"><span>Honest chance all hit: <b>{combined:.0f}%</b></span>
 <span>Fair payout <b>${p['fair_payout']} per $1</b></span></div>
 <div class="why">If your sportsbook pays less than ${p['fair_payout']}
 on a $1 stake for this exact combo, the difference is the parlay tax.
-These are the day's most likely winners &mdash; and this stack still
+Every leg is the sharps' favorite to win &mdash; and this stack still
 misses {100 - combined:.0f} times out of 100. Size accordingly.</div>
 </div></div>"""
     if presults:
