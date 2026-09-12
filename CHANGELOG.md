@@ -1,5 +1,24 @@
 # CHANGELOG
 
+- 2026-09-12: PER-MODEL BIAS — the two-humped-pool fix (owner
+  decision). The owner caught New Orleans claiming 39% of members on
+  "95° or above" against a 90.7° median and a 89–90° settlement the
+  day before, and NYC picking a 1¢ bracket — the gates blocked every
+  buy, but the votes were broken. Cause: the single per-station bias
+  is learned from the pooled median, which ECMWF dominates 51:31, so
+  at stations where the two models lean OPPOSITE ways (New Orleans:
+  ECMWF ~4.4°F cold, GFS hot) the correction that fixed ECMWF shoved
+  all 31 GFS members into a phantom extreme bracket. Fix:
+  calibration learns a bias per (station, model) from the
+  member_models tags (≥4 tagged settled nights, else that model
+  falls back to the pooled bias) and calibrate_members shifts each
+  member by its own model's number; bias_applied becomes the exact
+  tagged record `pool:…|gfs:…|ecmwf:…` when tags are usable (scalar
+  fallback and old rows unchanged). Replayed on the sick morning:
+  New Orleans' "95° or above" fell 35% → 1% and the pool became one
+  honest hump at 89–92. Widening, gates, sizing, scanner display —
+  all untouched. Full write-up in CLAUDE.md.
+
 - 2026-09-12 (evening): WHALE BOARD NAMES THE BET TYPE (owner
   request) — every Whale Watcher card now carries a chip saying what
   KIND of bet the whale made: MONEYLINE, SPREAD with the number,
