@@ -1,4 +1,4 @@
-# Loss autopsy — 2026-09-12 12:05 UTC
+# Loss autopsy — 2026-09-12 15:37 UTC
 
 174 settled bets on the scoreboard. Where did the day's real high land, relative to what we bought?
 
