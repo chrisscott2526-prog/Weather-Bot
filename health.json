@@ -1,12 +1,6 @@
 {
- "checked_utc": "2026-09-11T23:49:02+00:00",
- "ok": false,
- "alarms": [
-  {
-   "code": "ORDERS",
-   "msg": "ORDER FAILED today (1) -- the bot had a pick and could not pay for it. Likely an empty wallet: fund the Kalshi account.",
-   "since": "2026-09-11T14:34:03+00:00"
-  }
- ],
+ "checked_utc": "2026-09-12T00:04:02+00:00",
+ "ok": true,
+ "alarms": [],
  "notes": []
 }
