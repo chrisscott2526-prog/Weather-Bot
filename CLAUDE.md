@@ -120,6 +120,26 @@ translated one-to-one:
   the honesty rules. The scoreboard question is calibration: stated
   combined % vs actual hit rate. The board never bets — the permanent
   advisory-only rule covers it word for word.
+  **The booster stacks (owner decision, Sep 12 2026).** The owner
+  typed the locks ladder into their own book and watched the payout
+  barely move (two 95% legs = 90% combined = $1.09 fair — "no money
+  in them"), while the graded record showed 2-leg locks hitting and
+  4-leg rungs barely ever. So the board builds TWO ladders from the
+  same sharps pool: the **LOCKS ladder** (top favorites top-down,
+  unchanged) and the **BOOSTER stacks** — the strongest 90%+ lock as
+  anchor plus the strongest **65–89%** favorites, up to 6 legs
+  (`PARLAY_BOOST_FLOOR = 65`, the owner's boundary on the caliber of
+  shots, chosen from the 60/65/70 options with the math stated).
+  Every booster is still the sharps' CLEAR FAVORITE to win its game
+  — a leg the sharps call an underdog never boards, at any payout
+  (the 9–21 edge-first disease wearing a parlay slip). A rung short
+  of qualifying legs doesn't exist; never pad with a weaker leg. The
+  pool floor stays 60 (the combo board's documented bars are
+  unchanged), so a 60–64% leg can still appear on a deep LOCKS rung
+  on a thin slate — only the booster stacks carry the 65 floor.
+  Grading is unchanged: same CSVs, same HIT/MISS-by-settlement, ids
+  `<day>-BOOST<n>`, and the calibration question (stated % vs hit
+  rate) now judges both ladders.
 - **The combo board (owner request, Sep 10 2026)** is the parlay
   board with every sector invited: one cross-sector stack ladder on
   the same card, mixing the sharps' 60%+ full-game favorites (the
@@ -1235,6 +1255,18 @@ The laws, agreed before it was built:
   `whale_results.csv` by Kalshi's own `result` field, and the board
   shows each sector's running record. **No P&L column on purpose** —
   we placed no bet, so a dollar figure would be invented data.
+- **The standings (owner request, Sep 12 2026)** answer "what do we
+  do with this data after today": the log never resets (bursts
+  accumulate and grade forever), and whales.html now opens with a
+  per-sector standings section — burst-level record, the
+  **matched-dollar test** (matching every graded burst $1-for-$1 at
+  the whale's own price — hit rate alone flatters whales: CFB's
+  first days ran 64% hits and −1.0% matched), and the record split
+  by **how early the money landed** (first days: 3-days-early CFB
+  money went 2–5 — early ≠ smart so far). Computed on the board from
+  the two whale CSVs, no new files, no dollar invented. Following
+  whales anywhere is an owner decision these standings would have to
+  earn first — the scoreboard promotes; conviction never does.
 - **Expert cross-check is opportunistic and read-only**: a weather
   burst is compared against the freshest `edges.csv` scan (our
   ensemble %), a sports burst against the freshest `sports_picks.csv`

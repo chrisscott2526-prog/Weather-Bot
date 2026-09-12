@@ -595,6 +595,60 @@ def sector_scoreboard():
     return board
 
 
+TIMING_BUCKETS = ["3+ days early", "1-3 days early", "6-24h before",
+                  "last 6h"]
+
+
+def whale_standings():
+    """THE STANDINGS (owner request, Sep 12 2026): are the whales
+    worth following? Per sector, from every graded burst: the
+    burst-level record, and the honest money test -- if you had
+    matched every graded burst $1-for-$1 AT THE WHALE'S OWN PRICE,
+    what came back. Hit rate alone flatters whales (favorites hit
+    often at fat prices; 64% winners bought at 70c still lose), so
+    the matched return is the number that could ever justify
+    following anyone. Also split by how early the money landed --
+    the owner's question: is way-early money smarter? Research only,
+    like everything on this board; prices come from the burst log
+    itself, results only from Kalshi's settled result field."""
+    res = {}
+    if os.path.exists(RESULTS_CSV):
+        with open(RESULTS_CSV) as f:
+            for r in csv.DictReader(f):
+                if r.get("result") in ("HIT", "MISS"):
+                    res[(r.get("ticker"),
+                         (r.get("side") or "").lower())] = r["result"]
+    if not res or not os.path.exists(TRADES_CSV):
+        return {}
+    sect = {}
+    with open(TRADES_CSV) as f:
+        for r in csv.DictReader(f):
+            verdict = res.get((r.get("ticker"),
+                               (r.get("side") or "").lower()))
+            if not verdict:
+                continue
+            p = fnum(r.get("avg_price_cents")) or 0
+            d = fnum(r.get("dollars")) or 0
+            if p <= 0 or d <= 0:
+                continue
+            s = sect.setdefault(r.get("sector", ""), {
+                "hits": 0, "misses": 0, "staked": 0.0,
+                "returned": 0.0, "timing": {}})
+            won = verdict == "HIT"
+            s["hits" if won else "misses"] += 1
+            s["staked"] += d
+            if won:
+                s["returned"] += d * 100.0 / p
+            h = fnum(r.get("hours_before_close"))
+            h = h if h is not None else 0
+            b = ("3+ days early" if h >= 72 else
+                 "1-3 days early" if h >= 24 else
+                 "6-24h before" if h >= 6 else "last 6h")
+            t = s["timing"].setdefault(b, [0, 0])
+            t[0 if won else 1] += 1
+    return sect
+
+
 def esc(s):
     return (str(s).replace("&", "&amp;").replace("<", "&lt;")
             .replace(">", "&gt;"))
@@ -704,6 +758,48 @@ def build_page(rows_all):
              "burst of filled orders, not a person. Every line is "
              "graded later by Kalshi's own settled result "
              "(HIT/MISS).</div>"]
+
+    # THE STANDINGS (owner request, Sep 12 2026): what the graded
+    # record says the whales are worth so far -- the answer to "what
+    # do we do with this data after today". Every burst becomes a row
+    # here once its market settles; the log never resets.
+    stand = whale_standings()
+    if stand:
+        srows = ""
+        for sector, label, _series, _thr in SECTORS:
+            s = stand.get(sector)
+            if not s:
+                continue
+            n = s["hits"] + s["misses"]
+            ret = (100.0 * (s["returned"] - s["staked"]) / s["staked"]
+                   if s["staked"] else 0.0)
+            cls = "agree" if ret >= 0 else "disagree"
+            timing = " &middot; ".join(
+                f"{esc(b)}: {s['timing'][b][0]}&ndash;{s['timing'][b][1]}"
+                for b in TIMING_BUCKETS if b in s["timing"])
+            srows += (f"<div class='card'><div class='row1'>"
+                      f"<span class='bet'>{esc(label)}</span>"
+                      f"<span class='dollars'>{s['hits']}&ndash;"
+                      f"{s['misses']} ({100.0 * s['hits'] / n:.0f}%)"
+                      f"</span></div>"
+                      f"<div class='detail'>Matching every graded "
+                      f"burst $1-for-$1 at the whale's own price: "
+                      f"<b class='{cls}'>{ret:+.1f}%</b> "
+                      f"(${s['staked']:,.0f} of whale money graded)"
+                      f"</div>"
+                      f"<div class='detail'>By how early the money "
+                      f"landed: {timing}</div></div>")
+        if srows:
+            parts.append('<div class="sec">The standings &mdash; are '
+                         'the whales worth following?</div>')
+            parts.append('<div class="detail" style="margin:6px 2px">'
+                         "Hit rate alone flatters a whale &mdash; "
+                         "favorites hit often at fat prices. The "
+                         "matched-dollar return is the honest test, "
+                         "and the record is only days old: nobody has "
+                         "earned a follow yet. The scoreboard "
+                         "promotes; conviction never does.</div>")
+            parts.append(srows)
 
     for sector, label, _series, _thr in SECTORS:
         h, ms = score.get(sector, [0, 0])

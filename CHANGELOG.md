@@ -1,5 +1,34 @@
 # CHANGELOG
 
+- 2026-09-13: BOOSTER STACKS on the parlay board (owner decision).
+  The owner typed the whole locks ladder into their book and watched
+  the payout barely move -- two 95% legs multiply to 90%, $1.09
+  fair, "no money in them" -- while the record showed 2-leg locks
+  hitting and 4-leg rungs barely ever. The board now builds two
+  ladders from the same sharps pool: the LOCKS ladder (unchanged)
+  and BOOSTER stacks -- the strongest 90%+ lock anchoring the
+  strongest 65-89% favorites, up to 6 legs (~$2-5 fair). The 65%
+  floor is the owner's boundary on the caliber of shots, picked from
+  the 60/65/70 options with the math for each: every booster is
+  still the sharps' clear favorite; an underdog never boards at any
+  payout (the 9-21 edge-first disease wearing a parlay slip). Rungs
+  short of qualifying legs don't exist -- never padded. Same CSVs,
+  same settlement grading (ids <day>-BOOST<n>), pool floor and combo
+  board untouched. Injury feeds discussed and deliberately deferred
+  by the owner pending investigation.
+
+- 2026-09-13: WHALE STANDINGS on whales.html (owner request --
+  "what do we do with that data after today?"). The burst log never
+  resets; every burst grades at settlement forever. The board now
+  opens with per-sector standings: burst record, the matched-dollar
+  test ($1-for-$1 at the whale's own price -- the honest number,
+  since hit rate flatters favorites: CFB's first days ran 64% hits
+  yet -1.0% matched), and the record split by how early the money
+  landed (3-days-early CFB money opened 2-5 -- early is not smart so
+  far; the $3.8M Oklahoma split proved big money sits on BOTH sides
+  and the $2.0M YES side lost). Computed from the two whale CSVs at
+  board build, research-only law unchanged.
+
 - 2026-09-12 (night): THE TAIL-STRIKE FIX (owner catch). The owner
   read the Austin card — top bracket "98° or below" at 31.7% under a
   101.2° median — and said something was wrong with the temperature.
