@@ -1,5 +1,19 @@
 # CHANGELOG
 
+- 2026-09-12 (evening): NFL COULD NEVER MATCH — KXNFLGAME's 2026-season
+  event tickers carry date + team codes but NO game time
+  (KXNFLGAME-26SEP13DALNYG, read off the whale tape the day the fixed
+  whale watcher lit up), while the code matcher demanded an MLB-style
+  4-digit start time in the ticker. Every NFL game since the season
+  started went UNMATCHED — zero NFL_GAME rows ever logged — so no NFL
+  favorite could reach the card, the parlay board, or the combos.
+  Fix: match_event accepts the no-time format with the exact-code
+  guarantee intact (block must equal AWAYCODE+HOMECODE, ticker date
+  must equal the game's ET date; an NFL team never plays twice on one
+  date — the names matcher's own justification; two candidates =
+  loud refusal). MLB's timed matching and 30-minute doubleheader
+  drift check are untouched, verified by regression test.
+
 - 2026-09-12 (later): WHALE WATCHER WAS BLIND SINCE BIRTH — the owner
   called it ("hard to believe no one has bet a grand on football"),
   and they were right: Kalshi's 2026 field migration renamed the
