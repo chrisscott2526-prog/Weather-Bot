@@ -165,6 +165,38 @@ def balance():
         return f"ERR {e}"
 
 
+WALLET = "balance.json"
+
+def write_wallet(note=""):
+    """balance.json -- THE WALLET LINE (Sep 12 2026). Born the morning
+    the owner moved the account's cash elsewhere because nothing on
+    the board said how much spendable money the bot actually had --
+    then a buy bounced on "insufficient balance". The Station Board
+    reads this file and shows the spendable-cash number, in red when
+    it can't cover a $1 bet, with its checked time (the number is only
+    as fresh as the last trader pass or Account-check run).
+    FULL REWRITE every call, display/alerting ONLY: no money code
+    reads it (the trader's own decisions never touch it), and it must
+    NEVER join the union-merge list. A dead balance call leaves the
+    old file in place -- its own checked_utc shows the staleness
+    honestly (never invent a number, never wipe a real one)."""
+    bal = balance()
+    try:
+        cash = int(float(bal))
+    except (TypeError, ValueError):
+        print(f"wallet: balance unreadable ({bal}) -- "
+              f"leaving {WALLET} as it was")
+        return
+    data = {"checked_utc": datetime.now(timezone.utc)
+            .isoformat(timespec="seconds"),
+            "cash_cents": cash, "source": "trader", "note": note}
+    tmp = WALLET + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(data, f, indent=1)
+    os.replace(tmp, WALLET)
+    print(f"wallet: ${cash / 100:.2f} spendable cash -> {WALLET}")
+
+
 def in_maintenance_window(now):
     return MAINT_START <= (now.hour, now.minute) <= MAINT_END
 
@@ -440,7 +472,15 @@ def main():
               f"bot's unfilled resting orders (no trading this run)")
         cancel_resting_orders()
         reconcile_offbook_orders()
+        # end-of-day snapshot: the number the owner sees on the board
+        # next morning, before the first trader pass refreshes it
+        write_wallet("after the end-of-day sweep")
         return
+
+    # Snapshot the spendable cash EVERY trading run, before any early
+    # return -- a "no picks today" run still tells the owner what a $1
+    # bet could spend right now (the whole point of the wallet line).
+    write_wallet()
 
     if not os.path.exists("edges.csv"):
         print("No edges.csv yet - run scanner first.")
@@ -575,6 +615,8 @@ def main():
                         "live": LIVE, "status": status, "order_id": oid,
                         "strategy": (r.get("strategy") or "night").strip()})
     print("Balance after:", balance())
+    # refresh the wallet line with the post-buy truth
+    write_wallet("after placing orders")
 
 
 if __name__ == "__main__":
