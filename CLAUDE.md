@@ -562,6 +562,7 @@ check that line first when a feed dies.
 | `combo_results.csv` | `sports_scanner.py` | `graded_utc,combo_id,n_legs,sectors,legs,tickers,combined_pct,legs_won,legs_lost,legs_void,result` (HIT/MISS/VOID by Kalshi settlement per leg, void legs drop out, **no pnl column on purpose** — same laws as `parlay_results.csv`; the scoreboard question is calibration of the cross-sector product, which the card admits is approximate when weather legs share an air mass) |
 | `health.json` | `watchdog.py` (full rewrite each relay pass) | JSON: `checked_utc, ok, alarms[{code,since,msg}], notes` (added Aug 30 2026 — the watchdog's pulse report for the Station Board banner; display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `swoop_pulse.json` | `swoop_alert.py` (full rewrite each run) | JSON: `checked_utc, open_weather_positions, graded, note` (added Sep 1 2026 — the grader's heartbeat, written every run even with zero open positions, so the watchdog can tell "grader dead" from "nothing to grade"; a no-bet day writes zero `swoop_log.csv` rows honestly and used to false-alarm. Display/alerting ONLY, no money code reads it, NEVER union-merge it) |
+| `settlements_pulse.json` | `settlements.py` (full rewrite each run) | JSON: `checked_utc, api_tried, api_ok, rows_written, rows_total, note` (added Sep 12 2026 — the settlements job’s heartbeat, written every run even when nothing new settled, so the watchdog can tell "job dead" from "Kalshi slow to finalize"; checked_utc in settlements.csv moves only when a settlement pins, and on Sep 11–12 2026 that false-alarmed SETTLEMENTS STALE for ~20 h at a healthy job — the swoop_pulse lesson applied. Display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `model_research.csv` | `model_lab.py` (forecast.yml, nightly after the money forecast) | `forecast_date,station,city,model,forecast_high_f,n_members,members,fetched_utc` (THE MODEL LAB, Aug 31 2026 — candidate models riding as research passengers: `icon` = the German global ensemble, `nws` = the NWS public point forecast, raw and uncalibrated. RESEARCH LOG ONLY, same law as afternoon_forecasts.csv: **no trading or calibration code may ever read it**; union-merged append-only) |
 | `whale_trades.csv` | `whale_watcher.py` (whales.yml, every 2h at :37) | `seen_utc,sector,series,ticker,event,bet_on,side,contracts,avg_price_cents,dollars,n_fills,first_trade_utc,last_trade_utc,close_time_utc,hours_before_close,expert_pct,agrees` (THE WHALE WATCHER, Sep 11 2026 — big executed bets from Kalshi's public tape on hand-verified series only; a row is a fill-burst, never a person; sector ∈ CFB/NFL/NBA/MLB/WEATHER/TENNIS; expert_pct = ensemble % (weather, from edges.csv) or sharps' de-vigged % (sports, from sports_picks.csv) for the whale's side, blank when no fresh row; append-only, union-merged; **RESEARCH ONLY — nothing that trades, scans, or calibrates may ever read it**) |
 | `whale_results.csv` | `whale_watcher.py` | `graded_utc,sector,ticker,bet_on,side,dollars,market_result,result` (HIT/MISS by Kalshi's own settled result; **no pnl column on purpose** — no bet was placed, a dollar figure would be invented data; the scoreboard question is "does big money actually know?", per sector and per timing; append-only, union-merged; same research-only law) |
@@ -868,7 +869,17 @@ burned us, each against its rawest source:
   healthy board — exactly the alarm-the-owner-learns-to-ignore this
   section warns against. The log check survives only as the fallback
   when the pulse file has never been written (day zero / forks).
-- **SETTLEMENTS** — `settlements.csv` checked within 9 hours.
+- **SETTLEMENTS** — `settlements_pulse.json` written within 9 hours.
+  The pulse, NOT the CSV (fixed Sep 12 2026): `checked_utc` in
+  `settlements.csv` moves only when Kalshi finalizes a new
+  settlement (the don't-churn rule), so on a night the exchange is
+  slow — Sep 11–12 2026, all 20 events unfinalized ~20 h — the old
+  CSV check cried SETTLEMENTS STALE at a job that had run green
+  four times, with a "Press Run" message no Run press could clear.
+  Same disease and same cure as the SWOOP fix above. The CSV check
+  survives only as the fallback when the pulse has never been
+  written (day zero / forks); a fresh pulse with a >30 h quiet CSV
+  is a NOTE ("Kalshi hasn't settled yet"), never an alarm.
 
 An alarm does two things: the relay pass flags it and the finished
 run turns **RED** (GitHub then emails the owner — the dead-feed law),

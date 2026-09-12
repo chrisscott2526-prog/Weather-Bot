@@ -97,6 +97,32 @@ def iso(dt):
     return dt.isoformat(timespec="seconds")
 
 
+def fnum(v):
+    """float or None -- Kalshi's 2026 field migration turned numbers
+    into fixed-point STRINGS ('93.93'), so parse, never int() blindly."""
+    try:
+        return float(v)
+    except (TypeError, ValueError):
+        return None
+
+
+def trade_price_cents(t, side):
+    """One executed fill's price in CENTS for the taker's side.
+    THE FIELD MIGRATION (found Sep 12 2026, the day the empty whale
+    board got explained): Kalshi renamed the tape's fields --
+    yes_price/no_price (integer cents) became yes_price_dollars/
+    no_price_dollars (dollar strings, '0.7600'), and count became
+    count_fp. This scanner shipped Sep 11 reading only the OLD names,
+    so every fill parsed as None and every market showed volume 0 --
+    zero whales logged while runs stayed green. New names first, old
+    names kept as fallback (the scanner.py pattern), units normalized
+    here so the mistake cannot repeat."""
+    d = fnum(t.get(f"{side}_price_dollars"))
+    if d is not None:
+        return d * 100.0
+    return fnum(t.get(f"{side}_price"))
+
+
 def parse_time(v):
     """Kalshi timestamps: ISO string or epoch seconds. None on failure."""
     if v is None:
@@ -182,22 +208,27 @@ def market_label(sector, m):
     return sub or title or m.get("ticker", "")
 
 
-def bursts_from_trades(trades):
+def bursts_from_trades(trades, since=None):
     """Group fills on the same side into bursts (gap <= BURST_GAP_S).
-    Yields dicts; caller applies the dollar threshold."""
+    Yields dicts; caller applies the dollar threshold. Fills older
+    than `since` are dropped here as a belt-and-suspenders on the
+    API's min_ts filter -- if Kalshi ever ignores that param, ancient
+    tape must not flood the board."""
     by_side = defaultdict(list)
     for t in trades:
-        side = (t.get("taker_side") or "").lower()
+        side = (t.get("taker_side") or
+                t.get("taker_outcome_side") or "").lower()
         if side not in ("yes", "no"):
             continue
-        price = t.get("yes_price") if side == "yes" else t.get("no_price")
+        price = trade_price_cents(t, side)
         when = parse_time(t.get("created_time"))
-        try:
-            count = int(t.get("count"))
-            price = float(price)
-        except (TypeError, ValueError):
+        count = fnum(t.get("count_fp"))
+        if count is None:
+            count = fnum(t.get("count"))
+        if when is None or (since is not None and when < since):
             continue
-        if when is None or count <= 0 or not (0 < price < 100):
+        if count is None or price is None or count <= 0 or \
+                not (0 < price < 100):
             continue
         by_side[side].append((when, count, price))
     for side, fills in by_side.items():
@@ -361,6 +392,7 @@ def scan():
     min_ts = int(since.timestamp())
     logged = load_logged_keys()
     new_rows, series_ok, series_dead = [], 0, 0
+    markets_seen, tapes_read = 0, 0
 
     for sector, _label, series_list, threshold in SECTORS:
         # a burst can't reach $T on fewer than ~T contracts (price<$1),
@@ -374,17 +406,25 @@ def scan():
             series_ok += 1
             for m in markets:
                 ticker = m.get("ticker") or ""
-                try:
-                    vol = int(m.get("volume") or 0)
-                except (TypeError, ValueError):
-                    vol = 0
-                if not ticker or vol < min_volume:
+                if not ticker:
                     continue
+                markets_seen += 1
+                # volume_fp first: Kalshi's 2026 migration made volume
+                # a fixed-point string and later DROPPED the old int
+                # field -- reading only "volume" scored every market 0
+                # and this scanner silently read zero tapes for its
+                # first day (found Sep 12 2026, CFB Saturday)
+                vol = fnum(m.get("volume_fp"))
+                if vol is None:
+                    vol = fnum(m.get("volume")) or 0
+                if vol < min_volume:
+                    continue
+                tapes_read += 1
                 trades = fetch_trades(ticker, min_ts)
                 if trades is None:
                     continue
                 close = parse_time(m.get("close_time"))
-                for b in bursts_from_trades(trades):
+                for b in bursts_from_trades(trades, since):
                     if b["dollars"] < threshold:
                         continue
                     key = (ticker, b["side"], iso(b["first"]))
@@ -414,7 +454,7 @@ def scan():
                         "event": m.get("event_ticker") or "",
                         "bet_on": market_label(sector, m),
                         "side": b["side"],
-                        "contracts": b["contracts"],
+                        "contracts": round(b["contracts"], 2),
                         "avg_price_cents": round(b["avg_price_cents"], 1),
                         "dollars": round(b["dollars"], 2),
                         "n_fills": b["n_fills"],
@@ -429,9 +469,21 @@ def scan():
         # dead-feed law: a dead tape must never scroll away green
         print("!! WHALE WATCHER: every series fetch failed -- feed dead")
         raise SystemExit(1)
+    if markets_seen >= 50 and tapes_read == 0:
+        # The tripwire this scanner shipped without: on Sep 11-12 2026
+        # every market parsed as volume 0 (field renamed), zero tapes
+        # were read, and the runs stayed green for a full day. Hundreds
+        # of open markets with not ONE above even the $250 weather bar
+        # is a broken field, not a quiet exchange -- dead-feed law.
+        print(f"!! WHALE WATCHER: {markets_seen} open markets but ZERO "
+              f"passed the volume gate -- the volume field is broken "
+              f"or renamed, not a quiet day. No tape was read.")
+        raise SystemExit(1)
     if series_dead:
         print(f"note: {series_dead} series fetch(es) failed this pass; "
               f"{series_ok} succeeded")
+    print(f"scan: read {tapes_read} tape(s) across {markets_seen} "
+          f"open market(s)")
     if new_rows:
         with appender(TRADES_CSV, TRADE_FIELDS) as w:
             for r in new_rows:
