@@ -1,5 +1,24 @@
 # CHANGELOG
 
+- 2026-09-12 (evening): WHALE BOARD NAMES THE BET TYPE (owner
+  request) — every Whale Watcher card now carries a chip saying what
+  KIND of bet the whale made: MONEYLINE, SPREAD with the number,
+  TOTAL with the line, or PROP (a prop card shows the full market
+  question, since its subtitle alone — "Seth Lugo: 9+" — names the
+  line but not the ask). Parsed structured-first so wording can't
+  fool it: the series ticker and Kalshi's own floor_strike field
+  decide before any title text; a market fitting no known shape is a
+  PROP, never a guessed moneyline. whale_trades.csv grew a bet_type
+  column (align() migrates the old rows; a blank sports row reads as
+  MONEYLINE by construction — only winner/match series were ever
+  watched — and weather rows stay blank on purpose, a bracket isn't
+  a sports bet type). The board now shows ONE line per team + side +
+  bet type — same-window bursts on the same market+side sum into one
+  line ("26 bursts (3,969 fills)") so a moneyline whale and a spread
+  whale on the same team can never share a line and a sliced whale
+  no longer floods a sector; the CSV keeps every burst separately
+  and grading is untouched. Research-only law unchanged.
+
 - 2026-09-12 (evening): NFL COULD NEVER MATCH — KXNFLGAME's 2026-season
   event tickers carry date + team codes but NO game time
   (KXNFLGAME-26SEP13DALNYG, read off the whale tape the day the fixed
