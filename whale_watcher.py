@@ -32,12 +32,16 @@ Tune later from the logged size distribution -- an owner decision.
 
 Outputs:
   whale_trades.csv   append-only, union-merged: one row per flagged burst
+                     (bet_type since Sep 12 2026: MONEYLINE / SPREAD n /
+                     TOTAL n / PROP, parsed by classify_bet)
   whale_results.csv  append-only, union-merged: HIT/MISS at settlement
   whales.html        the Whale Watcher board (full rewrite, sectioned
-                     CFB / NFL / NBA / MLB / WEATHER / TENNIS)
+                     CFB / NFL / NBA / MLB / WEATHER / TENNIS; one line
+                     per team+side+bet type -- bursts on the same
+                     market+side sum into one line, the CSV keeps each)
 """
 
-import csv, json, os, time, urllib.error, urllib.request
+import csv, json, os, re, time, urllib.error, urllib.request
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
@@ -51,10 +55,14 @@ RESULTS_CSV = "whale_results.csv"
 PAGE = "whales.html"
 
 TRADE_FIELDS = ["seen_utc", "sector", "series", "ticker", "event",
-                "bet_on", "side", "contracts", "avg_price_cents",
-                "dollars", "n_fills", "first_trade_utc",
-                "last_trade_utc", "close_time_utc",
+                "bet_on", "bet_type", "side", "contracts",
+                "avg_price_cents", "dollars", "n_fills",
+                "first_trade_utc", "last_trade_utc", "close_time_utc",
                 "hours_before_close", "expert_pct", "agrees"]
+# The pre-bet_type layout (born Sep 11 2026). align() migrates old
+# rows into the new layout on the first append; their bet_type stays
+# blank, and row_bet_type() below says what a blank means.
+TRADE_FIELDS_V1 = [f for f in TRADE_FIELDS if f != "bet_type"]
 RESULT_FIELDS = ["graded_utc", "sector", "ticker", "bet_on", "side",
                  "dollars", "market_result", "result"]
 
@@ -206,6 +214,80 @@ def market_label(sector, m):
         city = SERIES_TO_CITY.get((m.get("ticker") or "").split("-")[0], "")
         return f"{city} {sub}".strip() or title or m.get("ticker", "")
     return sub or title or m.get("ticker", "")
+
+
+# ---------------------------------------------------------------------
+# Bet-type parsing (owner request, Sep 12 2026). Every card names what
+# KIND of bet the whale made: MONEYLINE, SPREAD (with the number),
+# TOTAL (with the line), or PROP (which shows the full market
+# question). Evidence order is structured-first, so wording can't fool
+# it: the series ticker and Kalshi's own floor_strike field decide
+# before any title text is read. A market that fits no known shape is
+# a PROP showing its full question -- never a guessed moneyline.
+
+# "wins by more than 6.5 points" / "by 7+ points" -- a spread, said in
+# words; and "total/combined ... 45.5" -- a total, said in words.
+SPREAD_TEXT_RE = re.compile(
+    r"\bby\s+(?:more\s+than\s+|over\s+)?(\d+(?:\.\d+)?)\s*\+?"
+    r"(?:\s+or\s+more)?\s*(?:point|pt|run|goal|game)s?\b", re.I)
+TOTAL_TEXT_RE = re.compile(
+    r"\b(?:total|combined)\b\D{0,40}?(\d+(?:\.\d+)?)", re.I)
+
+
+def classify_bet(sector, m):
+    """(bet_type, bet_on) for one live market.
+
+    bet_type: 'MONEYLINE', 'SPREAD 6.5', 'TOTAL 45.5', or 'PROP'.
+    Weather rows get '' on purpose -- a temperature bracket is not a
+    sports bet type, and the bracket already IS the card's label.
+    bet_on is market_label() except for props, where the owner asked
+    for the full market question (the subtitle alone -- 'Seth Lugo:
+    9+' -- names the line but not what is being asked)."""
+    label = market_label(sector, m)
+    if sector == "WEATHER":
+        return "", label
+    series = (m.get("ticker") or "").split("-")[0].upper()
+    title = (m.get("title") or "").strip()
+    sub = (m.get("yes_sub_title") or m.get("subtitle") or "").strip()
+    text = f"{title} {sub}".strip()
+    strike = fnum(m.get("floor_strike"))
+
+    def with_line(kind, hit):
+        n = f"{strike:g}" if strike is not None else \
+            (hit.group(1) if hit else "")
+        return f"{kind} {n}".strip()
+
+    if "SPREAD" in series:
+        return with_line("SPREAD", SPREAD_TEXT_RE.search(text)), label
+    if "TOTAL" in series:
+        return with_line("TOTAL", TOTAL_TEXT_RE.search(text)), label
+    hit = SPREAD_TEXT_RE.search(text)
+    if hit:
+        return f"SPREAD {hit.group(1)}", label
+    hit = TOTAL_TEXT_RE.search(text)
+    if hit:
+        return f"TOTAL {hit.group(1)}", label
+    if strike is None and (series.endswith("GAME") or
+                           series.endswith("MATCH")):
+        # a strike-less market in a hand-verified full-game/match
+        # winner series is the plain "who wins" bet
+        return "MONEYLINE", label
+    question = title or label
+    if sub and sub.lower() not in question.lower():
+        question = f"{question} ({sub})"
+    return "PROP", question
+
+
+def row_bet_type(r):
+    """bet_type for one LOGGED row. Rows older than the column
+    (pre-Sep 12 2026) are blank: every sports row ever logged came
+    from the six hand-verified full-game/match winner series, so a
+    blank sports row is a MONEYLINE by construction, not a guess.
+    Blank weather rows stay blank -- see classify_bet."""
+    bt = (r.get("bet_type") or "").strip()
+    if bt:
+        return bt
+    return "" if (r.get("sector") or "") == "WEATHER" else "MONEYLINE"
 
 
 def bursts_from_trades(trades, since=None):
@@ -424,6 +506,7 @@ def scan():
                 if trades is None:
                     continue
                 close = parse_time(m.get("close_time"))
+                bet_type, bet_on = classify_bet(sector, m)
                 for b in bursts_from_trades(trades, since):
                     if b["dollars"] < threshold:
                         continue
@@ -452,7 +535,7 @@ def scan():
                         "seen_utc": stamp, "sector": sector,
                         "series": series, "ticker": ticker,
                         "event": m.get("event_ticker") or "",
-                        "bet_on": market_label(sector, m),
+                        "bet_on": bet_on, "bet_type": bet_type,
                         "side": b["side"],
                         "contracts": round(b["contracts"], 2),
                         "avg_price_cents": round(b["avg_price_cents"], 1),
@@ -485,7 +568,8 @@ def scan():
     print(f"scan: read {tapes_read} tape(s) across {markets_seen} "
           f"open market(s)")
     if new_rows:
-        with appender(TRADES_CSV, TRADE_FIELDS) as w:
+        with appender(TRADES_CSV, TRADE_FIELDS,
+                      legacy=(TRADE_FIELDS_V1,)) as w:
             for r in new_rows:
                 w.writerow(r)
     print(f"scan: {len(new_rows)} new whale burst(s) flagged")
@@ -516,6 +600,46 @@ def esc(s):
             .replace(">", "&gt;"))
 
 
+def group_lines(recent):
+    """One board line per (ticker, side) -- i.e. per team, side AND
+    bet type, since a Kalshi ticker pins the team, the bet type and
+    the line (owner request, Sep 12 2026: a moneyline whale and a
+    spread whale on the same team must never share a line). Several
+    bursts inside the window sum into one line; the CSV keeps every
+    burst separately and grading is untouched."""
+    groups = defaultdict(list)
+    for r in recent:
+        groups[(r.get("ticker", ""),
+                (r.get("side") or "yes").lower())].append(r)
+    out = []
+    for (_ticker, side), rows in groups.items():
+        rows.sort(key=lambda r: r["_when"])          # oldest burst first
+        newest = max(rows, key=lambda r: r.get("seen_utc") or "")
+        contracts = sum(float(r.get("contracts") or 0) for r in rows)
+        weighted = sum(float(r.get("avg_price_cents") or 0) *
+                       float(r.get("contracts") or 0) for r in rows)
+        stored = next(((r.get("bet_type") or "").strip() for r in rows
+                       if (r.get("bet_type") or "").strip()), "")
+        out.append({
+            "sector": newest.get("sector", ""),
+            "side": side,
+            "bet_on": newest.get("bet_on", ""),
+            "bet_type": stored or row_bet_type(newest),
+            "dollars": sum(float(r.get("dollars") or 0) for r in rows),
+            "contracts": contracts,
+            "avg": (weighted / contracts) if contracts else None,
+            "fills": sum(int(float(r.get("n_fills") or 1))
+                         for r in rows),
+            "n_bursts": len(rows),
+            # the earliest burst answers "how early did big money
+            # land" -- its time and its distance to close
+            "when": rows[0]["_when"],
+            "hours_before_close": rows[0].get("hours_before_close", ""),
+            "expert_pct": newest.get("expert_pct", ""),
+            "agrees": newest.get("agrees", "")})
+    return out
+
+
 def build_page(rows_all):
     now = now_utc()
     cutoff = now - timedelta(hours=BOARD_WINDOW_H)
@@ -528,8 +652,8 @@ def build_page(rows_all):
             r["_when"] = seen
             recent.append(r)
     by_sector = defaultdict(list)
-    for r in recent:
-        by_sector[r.get("sector", "")].append(r)
+    for g in group_lines(recent):
+        by_sector[g["sector"]].append(g)
     score = sector_scoreboard()
     built_ms = int(now.timestamp() * 1000)
 
@@ -550,6 +674,10 @@ def build_page(rows_all):
     .row1{display:flex;justify-content:space-between;gap:8px;
       align-items:baseline;flex-wrap:wrap}
     .bet{font-weight:700;font-size:15.5px}
+    .type{font-size:10.5px;font-weight:700;letter-spacing:.6px;
+      color:#8fb8ff;background:#182642;border:1px solid #2b4370;
+      border-radius:6px;padding:1px 6px;margin-right:6px;
+      white-space:nowrap;vertical-align:2px}
     .no .bet::after{content:" (bet AGAINST)";color:#f0a45c;
       font-weight:400;font-size:12px}
     .dollars{font-weight:800;font-size:17px;color:#7fd8a4;
@@ -582,44 +710,49 @@ def build_page(rows_all):
         tally = f"record {h}&ndash;{ms}" if (h or ms) else "no grades yet"
         parts.append(f'<div class="sec">{esc(label)}'
                      f'<span class="tally">{tally}</span></div>')
-        rows = sorted(by_sector.get(sector, []),
-                      key=lambda r: float(r.get("dollars") or 0),
-                      reverse=True)
-        if not rows:
+        lines = sorted(by_sector.get(sector, []),
+                       key=lambda g: g["dollars"], reverse=True)
+        if not lines:
             parts.append('<div class="empty">No whale-sized bets in '
                          f"the last {BOARD_WINDOW_H} hours.</div>")
             continue
-        for r in rows:
-            side = (r.get("side") or "yes").lower()
-            when_ms = int(r["_when"].timestamp() * 1000)
-            fills = int(float(r.get("n_fills") or 1))
-            burst = "1 fill" if fills == 1 else f"{fills} fills"
-            hrs = r.get("hours_before_close")
+        for g in lines:
+            side = g["side"]
+            when_ms = int(g["when"].timestamp() * 1000)
+            if g["n_bursts"] > 1:
+                burst = f'{g["n_bursts"]} bursts ({g["fills"]:,} fills)'
+                first = "first "
+            else:
+                burst = ("1 fill" if g["fills"] == 1
+                         else f'{g["fills"]} fills')
+                first = ""
+            hrs = g["hours_before_close"]
             early = f" &middot; {hrs}h before close" if hrs else ""
-            try:
-                price = f"{float(r.get('avg_price_cents')):.0f}&cent;"
-            except (TypeError, ValueError):
-                price = "?"
+            price = (f'{g["avg"]:.0f}&cent;' if g["avg"] is not None
+                     else "?")
             expert_html = ""
-            ep = r.get("expert_pct")
+            ep = g["expert_pct"]
             if ep not in ("", None):
-                who = ("our ensemble" if r.get("sector") == "WEATHER"
+                who = ("our ensemble" if g["sector"] == "WEATHER"
                        else "the sharps")
-                cls = "agree" if r.get("agrees") == "yes" else "disagree"
-                verdict = ("agrees with" if r.get("agrees") == "yes"
+                cls = "agree" if g["agrees"] == "yes" else "disagree"
+                verdict = ("agrees with" if g["agrees"] == "yes"
                            else "fights")
                 expert_html = (f'<div class="expert {cls}">'
                                f"{verdict} {who} ({ep}% on this side)"
                                "</div>")
+            chip = (f'<span class="type">{esc(g["bet_type"])}</span>'
+                    if g["bet_type"] else "")
             parts.append(
                 f'<div class="card {"no" if side == "no" else ""}">'
                 '<div class="row1">'
-                f'<span class="bet">{esc(r.get("bet_on", ""))}</span>'
-                f'<span class="dollars">${float(r.get("dollars") or 0):,.0f}'
+                f'<span class="bet">{chip}{esc(g["bet_on"])}</span>'
+                f'<span class="dollars">${g["dollars"]:,.0f}'
                 "</span></div>"
-                f'<div class="detail">{int(float(r.get("contracts") or 0)):,}'
+                f'<div class="detail">{int(g["contracts"]):,}'
                 f" contracts @ {price} avg &middot; {burst} &middot; "
-                f'<span data-utc="{when_ms}">&hellip;</span>{early}</div>'
+                f'{first}<span data-utc="{when_ms}">&hellip;</span>'
+                f"{early}</div>"
                 f"{expert_html}</div>")
 
     parts.append("""</div><script>
@@ -638,7 +771,9 @@ def build_page(rows_all):
     </script>""")
     with open(PAGE, "w") as f:
         f.write("\n".join(parts))
-    print(f"board: wrote {PAGE} ({len(recent)} burst(s) shown)")
+    n_lines = sum(len(v) for v in by_sector.values())
+    print(f"board: wrote {PAGE} ({n_lines} line(s) from "
+          f"{len(recent)} burst(s))")
 
 
 def main():
