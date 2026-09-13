@@ -87,7 +87,18 @@ translated one-to-one:
   this shipped; the wider card burns ~8/scan (~480/month at 2
   scans/day), so the free key will run dry — the card then fails RED
   (dead-feed law), never silently. Upgrading the Odds API plan is the
-  owner's lever.
+  owner's lever. **And it played out exactly that way (Sep 13 2026):**
+  the free key hit OUT_OF_USAGE_CREDITS, the card failed RED as
+  designed, and the owner pulled the lever — upgraded to the paid
+  **20,000-credits/month** plan (~$30/mo) and replaced the
+  `ODDS_API_KEY` secret in GitHub the same day. Probe verified live:
+  `used=0 remaining=20000`, props included. No code changed for the
+  rotation — the workflows read the secret by NAME, so a new key
+  saved under the same name links itself through everything. At ~8
+  credits/scan the new plan has ~40× headroom, so `CREDIT_RESERVE`
+  in `sports_scanner.py` should never bind; if the CREDIT GUARD
+  message ever prints again, check the plan's renewal (and the
+  empty-secret scar below) first.
 - **Series are hand-verified, never substring-matched.** Every Kalshi
   series ticker the scanner reads is whitelisted by hand after a human
   reads the series title. `sports_probe.py` (run `sports.yml` with
