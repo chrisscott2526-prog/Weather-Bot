@@ -682,8 +682,18 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
         : `pick was flagged but not bought &mdash; a trader guard said `
           + `no (already owned, city cap, sanity gap, or balance)`;
     else if(!isNaN(prob) && prob < MIN_PICK_PROB)
-      reason = `top bracket only <b>${prob}%</b> &mdash; day too `
-             + `uncertain (needs ${MIN_PICK_PROB}%)`;
+      // Sep 13 2026, owner audit: quote the market's price next to
+      // the vote share. The two numbers live on the same card and can
+      // sit close together by coincidence (a good buy is exactly when
+      // they agree), so say which is which: % = our forecast's vote,
+      // cents = Kalshi's price.
+      reason = `only <b>${prob}%</b> of the forecast members agree on `
+             + `the top bracket &mdash; day too uncertain (needs `
+             + `${MIN_PICK_PROB}%)`
+             + (ask !== null
+                ? `. That bracket's own price on Kalshi is `
+                  + `<b>${ask}&cent;</b> &mdash; a separate number`
+                : ``);
     else if(ask !== null && ask > MAX_PICK_COST)
       reason = `pick costs <b>${ask}&cent;</b> &mdash; too expensive `
              + `(cap ${MAX_PICK_COST}&cent;)`;
