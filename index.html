@@ -687,13 +687,12 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
       // sit close together by coincidence (a good buy is exactly when
       // they agree), so say which is which: % = our forecast's vote,
       // cents = Kalshi's price.
-      reason = `top bracket holds only <b>${prob}%</b> of the forecast `
-             + `members &mdash; day too uncertain (needs `
+      reason = `only <b>${prob}%</b> of the forecast members agree on `
+             + `the top bracket &mdash; day too uncertain (needs `
              + `${MIN_PICK_PROB}%)`
              + (ask !== null
-                ? `. Kalshi prices that bracket at <b>${ask}&cent;</b> `
-                  + `&mdash; a different number: the % is our `
-                  + `forecast's vote, the &cent; is the market's price`
+                ? `. That bracket's own price on Kalshi is `
+                  + `<b>${ask}&cent;</b> &mdash; a separate number`
                 : ``);
     else if(ask !== null && ask > MAX_PICK_COST)
       reason = `pick costs <b>${ask}&cent;</b> &mdash; too expensive `
