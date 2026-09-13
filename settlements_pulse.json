@@ -1,8 +1,8 @@
 {
- "checked_utc": "2026-09-13T04:57:51+00:00",
- "api_tried": 0,
- "api_ok": 0,
- "rows_written": 0,
- "rows_total": 507,
+ "checked_utc": "2026-09-13T12:03:28+00:00",
+ "api_tried": 20,
+ "api_ok": 20,
+ "rows_written": 6,
+ "rows_total": 513,
  "note": ""
 }
