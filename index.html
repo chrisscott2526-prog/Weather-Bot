@@ -506,6 +506,23 @@ function morningPick(edges, sid, today){
   return pick ? {pick, scannedUtc: bestStamp} : null;
 }
 
+// The latest MORNING scan's row for one specific bracket subtitle
+// (Sep 13 2026, owner audit: a BOUGHT card's why-line must describe
+// the bracket it bought, not whatever the newest scan's top bracket
+// drifted to after the buy). Returns the row or null.
+function morningRowFor(edges, sid, today, subtitle){
+  let bestStamp = "", row = null;
+  for(const r of edges){
+    if((r.strategy || "") !== "morning") continue;
+    if(tickerStation(r.market) !== sid) continue;
+    if(tickerDay(r.market) !== today) continue;
+    if(r.scanned_utc < bestStamp) continue;
+    if(r.scanned_utc > bestStamp){ bestStamp = r.scanned_utc; row = null; }
+    if(r.subtitle === subtitle) row = r;
+  }
+  return row;
+}
+
 // Today's real-money trades for a station (any strategy -- money is
 // money), split into placed and failed.
 function todaysTrades(trades, sid, today){
@@ -577,15 +594,30 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
   const mp = morningPick(edges, sid, today);
   const fc = morningForecast(fcs, sid, today);
 
-  // the WHY line: ensemble vote + how today differs from yesterday
+  // the WHY line: ensemble vote + how today differs from yesterday.
+  // On a BOUGHT card the line describes the bracket that was BOUGHT
+  // (Sep 13 2026, owner audit: the newest scan's top bracket can
+  // drift after the buy, and explaining a different bracket than the
+  // money box names made the card read broken).
   let why = "";
   if(mp){
-    const p = mp.pick;
+    const boughtRow = placed.length
+      ? morningRowFor(edges, sid, today, placed[0].subtitle) : null;
+    const p = boughtRow || mp.pick;
+    const isTop = !boughtRow || p.subtitle === mp.pick.subtitle;
     const prob = Number(p.model_prob_pct);
     const nm = p.n_members || "?";
     why = `<b>${isNaN(prob) ? "?" : prob}%</b> of ${esc(nm)} forecast `
         + `members put today's high in <b>${esc(p.subtitle)}</b> `
-        + `&mdash; the top bracket.`;
+        + `&mdash; ${isTop ? `the top bracket` : `the bracket it `
+        + `bought`}.`;
+    if(!isTop){
+      const tp = Number(mp.pick.model_prob_pct);
+      why += ` (Since the buy the newest scan's top bracket has `
+           + `shifted to <b>${esc(mp.pick.subtitle)}</b> at `
+           + `${isNaN(tp) ? "?" : tp}% &mdash; the bet stays as `
+           + `placed.)`;
+    }
     const med = fc ? Number(fc.forecast_high_f) : NaN;
     if(!isNaN(med)){
       why += ` Forecast median <b>${med.toFixed(1)}&deg;</b>.`;
@@ -682,24 +714,22 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
         : `pick was flagged but not bought &mdash; a trader guard said `
           + `no (already owned, city cap, sanity gap, or balance)`;
     else if(!isNaN(prob) && prob < MIN_PICK_PROB)
-      // Sep 13 2026, owner audit: quote the market's price next to
-      // the vote share. The two numbers live on the same card and can
-      // sit close together by coincidence (a good buy is exactly when
-      // they agree), so say which is which: % = our forecast's vote,
-      // cents = Kalshi's price.
-      reason = `only <b>${prob}%</b> of the forecast members agree on `
-             + `the top bracket &mdash; day too uncertain (needs `
-             + `${MIN_PICK_PROB}%)`
-             + (ask !== null
-                ? `. That bracket's own price on Kalshi is `
-                  + `<b>${ask}&cent;</b> &mdash; a separate number`
-                : ``);
+      // Sep 13 2026, owner request: every NO BET box wears the same
+      // shape -- the pick's Kalshi price in cents first, then the
+      // rule that said no. The vote share (a %) lives in the why
+      // paragraph below, so cents and percent can never be mistaken
+      // for each other again.
+      reason = (ask !== null
+                ? `pick costs <b>${ask}&cent;</b> &mdash; ` : ``)
+             + `only <b>${prob}%</b> of the forecast members agree `
+             + `on it (needs ${MIN_PICK_PROB}%)`;
     else if(ask !== null && ask > MAX_PICK_COST)
       reason = `pick costs <b>${ask}&cent;</b> &mdash; too expensive `
              + `(cap ${MAX_PICK_COST}&cent;)`;
     else if(ask !== null && ask < MIN_PICK_COST)
-      reason = `pick priced <b>${ask}&cent;</b> &mdash; a long shot the `
-             + `market disagrees with; skipped on purpose`;
+      reason = `pick costs <b>${ask}&cent;</b> &mdash; too cheap, a `
+             + `long shot the market disagrees with (floor `
+             + `${MIN_PICK_COST}&cent;)`;
     else if(ask === null)
       reason = `pick has no ask price on Kalshi`;
     else
