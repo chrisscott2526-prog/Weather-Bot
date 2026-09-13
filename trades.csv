@@ -362,3 +362,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-09-12T17:40:40+00:00,KXHIGHTSFO-26SEP12-B71.5,71° to 72°,yes,1,54,43.9,,True,"ERROR 400 {""error"":{""code"":""insufficient_balance"",""message"":""insufficient balance""}}",,morning
 2026-09-13T14:09:26+00:00,KXHIGHTMIN-26SEP13-T72,73° or above,yes,2,48,46.3,,True,submitted,01a09b19-fdd8-713c-b10f-3d3039d5cddf,morning
 2026-09-13T14:09:26+00:00,KXHIGHTSATX-26SEP13-B100.5,100° to 101°,yes,2,46,40.2,,True,submitted,01a09b19-fdd8-72a4-a113-e92404bf552f,morning
+2026-09-13T16:09:26+00:00,KXHIGHTSFO-26SEP13-B71.5,71° to 72°,yes,1,53,58.5,,True,submitted,01a09b87-dad8-79c1-b1b0-3f2a23f7739c,morning
