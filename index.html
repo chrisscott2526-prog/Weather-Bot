@@ -713,16 +713,14 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
         ? `pick flagged &mdash; order pending the trader's checks`
         : `pick was flagged but not bought &mdash; a trader guard said `
           + `no (already owned, city cap, sanity gap, or balance)`;
-    else if(!isNaN(prob) && prob < MIN_PICK_PROB)
-      // Sep 13 2026, owner request: every NO BET box wears the same
-      // shape -- the pick's Kalshi price in cents first, then the
-      // rule that said no. The vote share (a %) lives in the why
-      // paragraph below, so cents and percent can never be mistaken
-      // for each other again.
-      reason = (ask !== null
-                ? `pick costs <b>${ask}&cent;</b> &mdash; ` : ``)
-             + `only <b>${prob}%</b> of the forecast members agree `
-             + `on it (needs ${MIN_PICK_PROB}%)`;
+    // Sep 13 2026, owner request: every NO BET box wears the same
+    // shape -- the pick's Kalshi price in cents first, then the rule
+    // that said no. The PRICE rule reports first even when the vote
+    // also failed (both are true; the price one reads like Chicago's
+    // card, which the owner named as the model). A vote share (%)
+    // appears in the box only in the one case the price cannot
+    // explain the skip: price inside the band, members under the
+    // bar. The full member breakdown lives in the why paragraph.
     else if(ask !== null && ask > MAX_PICK_COST)
       reason = `pick costs <b>${ask}&cent;</b> &mdash; too expensive `
              + `(cap ${MAX_PICK_COST}&cent;)`;
@@ -730,6 +728,12 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
       reason = `pick costs <b>${ask}&cent;</b> &mdash; too cheap, a `
              + `long shot the market disagrees with (floor `
              + `${MIN_PICK_COST}&cent;)`;
+    else if(!isNaN(prob) && prob < MIN_PICK_PROB)
+      reason = (ask !== null
+                ? `pick costs <b>${ask}&cent;</b> &mdash; price is `
+                  + `fine, but ` : ``)
+             + `only <b>${prob}%</b> of the forecast members agree `
+             + `on it (needs ${MIN_PICK_PROB}%)`;
     else if(ask === null)
       reason = `pick has no ask price on Kalshi`;
     else
