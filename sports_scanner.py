@@ -104,13 +104,17 @@ MAX_HOURS_OUT = 30          # only games starting inside this window
 PROP_EVENT_CAP = 12         # per-event odds calls per sport per scan
                             # (props cost 1 credit per market per event;
                             #  this caps a scan at ~36 credits/sport)
-# CREDIT_RESERVE: the Odds API plan verified Aug 19 2026 is the FREE
-# tier -- 500 credits/month. Featured markets cost ~2/sport/scan (~250/mo
-# at 2 scans a day); prop lookups cost 3-5 per game and would drain the
-# month in under a week. So: once remaining credits drop below this
-# floor, prop calls stop for the run (loudly) and the card runs on
-# featured markets only. Raise the plan, raise the shelf -- the guard
-# reads the live header, so a bigger plan lifts it automatically.
+# CREDIT_RESERVE: once remaining credits drop below this floor, prop
+# calls stop for the run (loudly) and the card runs on featured markets
+# only. The guard reads the live x-requests-remaining header, so it
+# adapts to whatever plan the key is on. Plan history: the FREE tier
+# (500 credits/month, verified Aug 19 2026) ran dry on Sep 13 2026
+# exactly as the CLAUDE.md cost note predicted -- the card failed RED,
+# never silently -- and the owner upgraded to the 20K-credits/month
+# paid plan and rotated the ODDS_API_KEY secret the same day (probe
+# verified: used=0 remaining=20000). At 20K/month this guard should
+# never bind; if the log ever shows the CREDIT GUARD message again,
+# check the plan's renewal before anything else.
 CREDIT_RESERVE = 150
 
 # THE PARLAY BOARD (owner request, Sep 8 2026). Same constitution,
