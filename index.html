@@ -660,17 +660,15 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
           && (bk[0] === null || med >= bk[0] - 0.5)
           && (bk[1] === null || med < bk[1] + 0.5);
         if(!isNaN(gm) && !isNaN(em) && Math.abs(gm - em) >= 3){
-          why += ` <b>The forecast is split today:</b> the American `
-            + `model (GFS) centers near <b>${gm.toFixed(0)}&deg;</b>, `
-            + `the European (ECMWF) near <b>${em.toFixed(0)}&deg;</b>. `
-            + `When the two disagree this much the vote scatters, and `
-            + `the biggest single group of members can land in a wide `
-            + `edge bracket away from the median &mdash; the 40% bar `
-            + `is what keeps money out of days like this.`;
+          // one line, not a lecture (owner request Sep 13 2026:
+          // every card the same compact shape)
+          why += ` <b>The forecast is split today:</b> GFS near `
+            + `<b>${gm.toFixed(0)}&deg;</b>, ECMWF near `
+            + `<b>${em.toFixed(0)}&deg;</b> &mdash; a split like `
+            + `that scatters the vote.`;
         }else if(!medIn && !isNaN(med)){
-          why += ` The members are spread out today &mdash; the `
-            + `biggest single group is not in the bracket the median `
-            + `sits in, which is why the vote looks weak.`;
+          why += ` The members are spread out today, which is why `
+            + `the vote looks weak.`;
         }
       }
     }
@@ -741,7 +739,8 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
              + `sanity gap)`;
     txt = `<span class="tag">No bet</span> ${reason}.`
         + (inside ? ` Rechecks about every half hour until the window `
-                  + `closes.` : ``);
+                  + `closes.`
+                  : ` Its buying window has closed for today.`);
   }else if(before){
     cls = "WAIT";
     txt = `<span class="tag">Waiting</span> buys between <b>${winTxt}</b> `
