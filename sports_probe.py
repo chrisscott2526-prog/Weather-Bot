@@ -60,6 +60,13 @@ NFL_PROP_MARKETS = [
     # markets so the SHARPS can price every leg (we never price props
     # from raw stats ourselves).
     "player_receptions", "player_reception_yds", "player_rush_yds",
+    # The base keys carry only each player's MAIN line -- a deliberate
+    # ~50/50 coin flip, useless for a 70%+ ladder. Kalshi's low-bar
+    # strikes ("150+ passing yards" at ~90%) correspond to ALTERNATE
+    # lines, which the Odds API serves under separate keys. Verify the
+    # plan carries them and that their points land on Kalshi's strikes.
+    "player_pass_yds_alternate", "player_receptions_alternate",
+    "player_reception_yds_alternate", "player_rush_yds_alternate",
 ]
 
 
@@ -104,6 +111,20 @@ def summarize_event_odds(ev, requested):
         else:
             print(f"    none {mk:<24} no book returned it (not offered on "
                   f"this game, or not on this plan -- see per-key test)")
+    # For alternate-line keys, dump sample outcome rows so the points
+    # can be checked against Kalshi's strikes (349.5, 129.5, ...).
+    for bk in ev.get("bookmakers", []):
+        for m in bk.get("markets", []):
+            mk = m.get("key", "")
+            if mk in requested and "alternate" in mk:
+                print(f"    sample rows for {mk} ({bk.get('key')}):")
+                for oc in m.get("outcomes", [])[:12]:
+                    print(f"      {oc.get('name', '')!r:<8} "
+                          f"{oc.get('description', '')!r:<28} "
+                          f"point={oc.get('point')!r} "
+                          f"price={oc.get('price')!r}")
+                requested = [k for k in requested if k != mk]
+                break
 
 
 def probe_event_markets(sport_key, markets):
