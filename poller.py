@@ -43,6 +43,12 @@ LOG_FIELDS = ["utc_time", "station", "city", "temp_f", "obs_time_utc"]
 # layout before obs_time_utc was added (Aug 5 2026)
 LOG_LEGACY = [["utc_time", "station", "city", "temp_f"]]
 
+# THE OVERNIGHT PEAK LOG (Sep 14 2026) -- the official 6-hour max
+# temperatures the synoptic observations carry, logged for the
+# floor-at-official-max backtest. RESEARCH ONLY (CLAUDE.md law).
+SIXHR_LOG = "sixhr_max_log.csv"
+SIXHR_FIELDS = ["utc_time", "station", "city", "max6_f", "obs_time_utc"]
+
 # (Local-day attribution now lives in highs.py -- one convention,
 # shared by every consumer: round(longitude / 15) hours from UTC.)
 
@@ -55,7 +61,13 @@ def c_to_f(c):
 
 
 def fetch(station):
-    """Return (temp_f, obs_time_iso) from the latest METAR observation."""
+    """Return (temp_f, obs_time_iso, max6_f) from the latest METAR
+    observation. max6_f is the station's OFFICIAL 6-hour maximum
+    (populated only on the 00/06/12/18 UTC synoptic observations,
+    None otherwise) -- the between-hour peak our hourly sampling
+    misses and the number TWC's settled max is built from. Same API
+    payload we already fetch; no extra call. Floored like every
+    temperature here, never rounded up."""
     url = f"https://api.weather.gov/stations/{station}/observations/latest"
     req = urllib.request.Request(url, headers={"User-Agent": "weather-bot-personal"})
     with urllib.request.urlopen(req, timeout=30) as r:
@@ -63,9 +75,11 @@ def fetch(station):
     props = data.get("properties", {})
     c = props.get("temperature", {}).get("value")
     obs_time = props.get("timestamp", "")
+    m6 = props.get("maxTemperatureLast6Hours", {}).get("value")
+    max6_f = c_to_f(m6) if isinstance(m6, (int, float)) else None
     if c is None:
-        return None, obs_time
-    return c_to_f(c), obs_time
+        return None, obs_time, max6_f
+    return c_to_f(c), obs_time, max6_f
 
 
 def write_highs():
@@ -92,10 +106,11 @@ def main():
     now = datetime.now(timezone.utc)
     stamp = now.isoformat(timespec="seconds")
 
+    six = []   # (station, city, max6_f, obs_time) research rows
     with appender(LOG, LOG_FIELDS, LOG_LEGACY) as w:
         for sid, city in STATIONS.items():
             try:
-                t, obs_time = fetch(sid)
+                t, obs_time, max6 = fetch(sid)
             except Exception as e:
                 w.writerow({"utc_time": stamp, "station": sid, "city": city,
                             "temp_f": "ERROR", "obs_time_utc": ""})
@@ -103,13 +118,44 @@ def main():
                 continue
             w.writerow({"utc_time": stamp, "station": sid, "city": city,
                         "temp_f": t, "obs_time_utc": obs_time})
+            if max6 is not None:
+                six.append((sid, city, max6, obs_time))
             age = ""
             try:
                 ot = datetime.fromisoformat(obs_time.replace("Z", "+00:00"))
                 age = f" (obs {int((now - ot).total_seconds() // 60)}m old)"
             except Exception:
                 pass
-            print(f"{city}: {t}F{age}")
+            m6txt = f" [6h max {max6}F]" if max6 is not None else ""
+            print(f"{city}: {t}F{age}{m6txt}")
+
+    # THE OVERNIGHT PEAK LOG (Sep 14 2026, research only). The
+    # Philadelphia $10: the deciding overnight peak happened BETWEEN
+    # hourly readings, the official 6-hour max in the same API payload
+    # knew it, and nothing read that field. Log it here so the "floor
+    # at the official 6-hour max" idea can be backtested against real
+    # rows before it is allowed anywhere near the money floor -- the
+    # walk-forward standard the morning thermostat set. RESEARCH LOG
+    # ONLY: nothing that trades, scans for money, or calibrates may
+    # read this file until a backtest and an owner decision promote
+    # it (CLAUDE.md has the law). Dedupe by (station, obs_time): the
+    # same synoptic observation stays "latest" for up to an hour of
+    # passes.
+    if six:
+        seen = set()
+        try:
+            with open(SIXHR_LOG) as f:
+                for row in csv.DictReader(f):
+                    seen.add((row.get("station"), row.get("obs_time_utc")))
+        except OSError:
+            pass
+        fresh = [r for r in six if (r[0], r[3]) not in seen]
+        if fresh:
+            with appender(SIXHR_LOG, SIXHR_FIELDS) as w:
+                for sid, city, max6, obs_time in fresh:
+                    w.writerow({"utc_time": stamp, "station": sid,
+                                "city": city, "max6_f": max6,
+                                "obs_time_utc": obs_time})
 
     write_highs()
 
