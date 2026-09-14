@@ -1449,6 +1449,31 @@ decided, whichever session runs it:
   This section pre-authorizes the review's direction and appetite,
   not a specific list.
 
+**PHASE 1 EXECUTED — THE HANDFUL CUT (Sep 14 2026, same day, owner
+order).** The owner didn't wait for the per-MODEL record to run the
+per-CITY half of the cut, because the per-city evidence already
+existed at twice the sample: the ensemble's DAY-OF PICK graded
+against official settlements over ~21–22 scanned days per city (433
+picks from edges.csv, bought or not — money gates played no part;
+blind chance among ~6 brackets ≈ 17%). The owner's framing,
+recorded: the city was never the problem, the "manager" (the
+ensemble in that city) is — so keep the 10 cities the manager is
+best at, bench the rest. `BENCHED_CITIES` grew from 2 to 11:
+the bottom 10 by pick accuracy (Washington DC 29%, Philadelphia
+29%, Phoenix 27%, Dallas 27%, Austin 27%, Boston 24%, Chicago 23%,
+Houston 18%, Seattle 14%, New Orleans 14% — the bottom three are
+all water cities, where global models are weakest) plus Oklahoma
+City, which ranked #5 on picks but keeps its own Aug 30 bench
+(0W–7L real money) until the owner lifts it by name. Active nine:
+San Antonio 55%, Minneapolis 45%, Atlanta 43%, NYC 38%, LA 36%,
+Las Vegas 36%, Miami 33%, Denver 33%, San Francisco 32% (SF's
+caveat, stated: only 32% land even NEXT DOOR — when its pick
+misses, it misses big; a October cut candidate). All benched
+cities keep full paper records, as the bench law requires. The
+October review (phase 2) still does the per-model work — benching
+a model inside a city, promoting icon/nws — and re-judges this
+city list with the thicker record, both directions.
+
 ## ROADMAP — how this grows
 
 Flat $1 stakes are **temporary tuition**. The record in `results.csv`,

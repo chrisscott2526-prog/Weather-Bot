@@ -164,13 +164,24 @@ MIN_PICK_PROB = 40.0   # top bracket weaker than this = day too uncertain
 # keeps accruing and the ~Sep 11 review can grade exactly what the
 # bench saved or cost. Only would_bet is forced off. Un-benching is an
 # owner decision off that settled evidence, never a silent edit.
-# On watch, NOT benched (their losses were mostly the already-banned
-# cheap night bets; current-rules record too thin to convict): Denver,
-# Washington DC, San Francisco (known bias mid-repair, feedback fix
-# Aug 26), Austin. Re-slice all four at the review.
+# THE HANDFUL CUT (Sep 14 2026, owner decision -- see CLAUDE.md, THE
+# HANDFUL MANDATE): the ensemble's day-of pick was graded per city
+# against official settlements over ~21-22 scanned days each (433
+# picks, bought or not -- money gates played no part). The owner cut
+# the map to the top 10 cities the ensemble actually finds the right
+# bracket in. Benched below: the bottom 10 by pick accuracy (DC 29%,
+# Philadelphia 29%, Phoenix 27%, Dallas 27%, Austin 27%, Boston 24%,
+# Chicago 23%, Houston 18%, Seattle 14%, New Orleans 14% -- blind
+# chance among ~6 brackets is ~17%), plus Oklahoma City, which ranked
+# #5 on picks but stays benched on its own 0W-7L betting record (the
+# Aug 30 mandate) until the owner lifts it. Active: San Antonio 55%,
+# Minneapolis 45%, Atlanta 43%, NYC 38%, LA 36%, Las Vegas 36%,
+# Miami 33%, Denver 33%, San Francisco 32%.
 # Mirrored for display in index.html (BENCHED_STATIONS) -- change both
 # in the same commit, same law as every money-gate mirror.
-BENCHED_CITIES = {"Oklahoma City", "Dallas"}
+BENCHED_CITIES = {"Oklahoma City", "Dallas", "Washington DC",
+                  "Philadelphia", "Phoenix", "Austin", "Boston",
+                  "Chicago", "Houston", "Seattle", "New Orleans"}
 
 # Day-of reality check (Aug 28 2026): on a morning scan, the settlement
 # station has already reported real readings. The final high can never
