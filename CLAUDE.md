@@ -1515,6 +1515,43 @@ the method (walk-forward on stored morning members, re-voted over
 edges.csv bracket sets, graded by settlements) is the required
 standard for any future forecast-correction proposal.
 
+## THE AFTERNOON-LEADER TEST (Sep 14, 2026) — TESTED, NO EDGE
+
+The owner's musing, mid-afternoon with Kalshi open: by ~2:30 PM the
+winning bracket is obvious, a 65–70¢ favorite still pays ~40%, and
+"I can pick five winners every single day just by looking at it."
+Tested the same day against our own logs before anything was built —
+the exact play, no gates: for each city-day, take the edges.csv scan
+nearest 2:30 PM that city's LOCAL time (±90 min), buy the bracket
+with the highest YES ask (the market's favorite, price no object),
+grade by settlements.csv, Kalshi fees included. 341 graded city-days,
+Aug 17 – Sep 12 2026.
+
+**The record said no edge:**
+
+- All afternoon favorites: **232W–109L (68%), −11¢ per $1** after fees.
+- By ask price: under 50¢ (uncertain days) 9%, −87¢/$1 — the killer.
+  50–60¢: 59%, +5¢/$1. 60–70¢: 70%, +5¢/$1. 70–80¢: 70%, **−8¢/$1**.
+  80–90¢: 85%, −1¢/$1. 90¢+: **96% wins and still −1¢/$1** — the fee
+  eats the whole payout. Picking winners and making money are
+  different questions; late prices are roughly calibrated, so you pay
+  for exactly the certainty the thermometer shows, minus fees.
+- The +5¢ pocket (50–70¢, 136 bets) is thin noise, nowhere near the
+  morning 45–54¢ band's evidence, and one band away from −8¢.
+- "Five winners every day": no day in the record swept. Typical days
+  the 2:30 favorites lost 3–6 of 20 cities (Aug 18: 9 of 20 lost);
+  best stretch 14/15. At $1 that's tuition; at $50 a leg it's a bad
+  afternoon every few days.
+
+No afternoon lane was built and nothing in the money path changed.
+Building one is an owner money-path decision this record argues
+against; any future proposal must beat this same test (afternoon
+scan rows re-graded against settlements, fees in) on newer data,
+not the feeling that late picks look easy. The reason the feeling
+is real but unpayable, stated once: by 2:30 PM the market has read
+the same thermometer we poll — the information advantage is gone
+and only the fee remains.
+
 ## THE SELL-SIGNAL FIXES (Sep 14, 2026) — OWNER INCIDENT
 
 Context every future session must know: **the owner mirrors the
