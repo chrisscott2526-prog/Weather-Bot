@@ -125,6 +125,7 @@ def station_day_highs(path=TEMPS_LOG):
                 "high_f": t, "peak_obs_utc": obs_dt,
                 "peak_poll_utc": poll_dt,
                 "latest_obs_utc": obs_dt, "latest_poll_utc": poll_dt,
+                "latest_temp_f": t,
             }
         else:
             if t > rec["high_f"]:
@@ -134,6 +135,7 @@ def station_day_highs(path=TEMPS_LOG):
             if obs_dt > rec["latest_obs_utc"]:
                 rec["latest_obs_utc"] = obs_dt
                 rec["latest_poll_utc"] = poll_dt
+                rec["latest_temp_f"] = t
     return out
 
 
@@ -142,6 +144,30 @@ def day_high_map(path=TEMPS_LOG):
     calibration.py and autopsy.py used to read from daily_highs.csv."""
     return {key: rec["high_f"]
             for key, rec in station_day_highs(path).items()}
+
+
+def latest_readings(now=None, path=TEMPS_LOG):
+    """city -> (latest_temp_f, age_min) for each city's CURRENT local
+    day -- the freshest instrument reading itself, not the day's high.
+    Added Sep 14 2026 so the swoop board can tell 'temperature climbing
+    toward the cap' apart from 'the high was banked hours ago and the
+    temperature has since fallen' (the Philadelphia sell-signal
+    incident: a 2 AM high wore the words of an afternoon heat push).
+    Same pass, same raw source, same day attribution as highs_today --
+    the two can never disagree. A city with no reading today is absent;
+    callers must skip it, never guess."""
+    if now is None:
+        now = datetime.now(timezone.utc)
+    per_day = station_day_highs(path)
+    out = {}
+    for station, city in STATION_CITY.items():
+        today = local_date(station, now)
+        rec = per_day.get((today, station))
+        if rec is None:
+            continue
+        age = int((now - rec["latest_obs_utc"]).total_seconds() // 60)
+        out[city] = (rec["latest_temp_f"], max(0, age))
+    return out
 
 
 def highs_today(now=None, path=TEMPS_LOG):

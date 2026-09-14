@@ -47,7 +47,7 @@ from datetime import datetime, timedelta, timezone
 
 from cities import CITY_TO_STATION, SERIES_TO_CITY, SITES
 from csvio import appender
-from highs import highs_today
+from highs import highs_today, latest_readings
 
 BASE = "https://api.elections.kalshi.com"
 KEY_ID = os.environ["KALSHI_API_KEY_ID"].strip()
@@ -245,7 +245,13 @@ def grade(side, lo, hi, obs):
 
 
 # ---------- overshoot risk ----------
-def overshoot_check(status, side, hi, obs, age, loc_hr, fetch_cents):
+BANKED_DROP_F = 1.5   # current reading this far under the day's high
+                      # = the high was set earlier and temps have
+                      # fallen off it (a banked high, not a live climb)
+
+
+def overshoot_check(status, side, hi, obs, age, loc_hr, fetch_cents,
+                    now_t=None):
     """OVERSHOOT RISK gate for a graded YES position. Returns
     (flag, extra_note) -- extra_note is None when the tag does not
     apply and the caller should leave the card alone.
@@ -255,7 +261,21 @@ def overshoot_check(status, side, hi, obs, age, loc_hr, fetch_cents):
     station's local heating hours. Highs only rise, so the gap can
     only shrink. A stale or unknown-age reading makes it WORSE (the
     true temp may already be past the cap), so staleness never
-    suppresses this warning. Advisory only -- alerts, never trades."""
+    suppresses this warning. Advisory only -- alerts, never trades.
+
+    THE BANKED-HIGH FIX (Sep 14 2026, owner incident): the warning
+    used to wear one set of words -- "heat of the day, one more push
+    blows past this bracket" -- even when the day's high was set at
+    2 AM ahead of a cold front and the CURRENT temperature had since
+    fallen well below it (Philadelphia: high 77.0 banked overnight,
+    reading 71.6 and falling at 10 AM; the owner sells on this board
+    and dumped a position those words painted as dying). now_t is the
+    station's freshest reading: when it sits BANKED_DROP_F or more
+    under the day's high, the card now says the true shape of the day
+    -- the high is banked, the position wins if the heat stays away --
+    while keeping the tag, because a second warm-up is still a real
+    risk. Same freshness laws; the risk never disappears, only the
+    story gets told honestly."""
     if side != "yes" or hi is None:
         return status, None
     if status not in ("ON TRACK", "AT RISK"):
@@ -265,18 +285,31 @@ def overshoot_check(status, side, hi, obs, age, loc_hr, fetch_cents):
     gap = float(hi) - obs
     if gap > OVERSHOOT_GAP_F:
         return status, None
+    age_txt = "of unknown age" if age is None else f"{age}m old"
+    fetch_txt = f"{fetch_cents:.0f}c" if fetch_cents else "n/a"
+    banked = (now_t is not None and obs - now_t >= BANKED_DROP_F)
+    high_word = "The day's high" if banked else "Observed high"
     if gap > 0:
-        gap_txt = (f"Observed high {obs:.1f}\u00b0 is only {gap:.1f}\u00b0 "
+        gap_txt = (f"{high_word} {obs:.1f}\u00b0 is only {gap:.1f}\u00b0 "
                    f"under the {hi:.0f}\u00b0 cap")
+    elif banked:
+        gap_txt = (f"The day's high {obs:.1f}\u00b0 is at or past the "
+                   f"{hi:.0f}\u00b0 cap itself")
     else:
         gap_txt = (f"Instrument already reads {obs:.1f}\u00b0 - at or past "
                    f"the {hi:.0f}\u00b0 cap itself")
-    age_txt = "of unknown age" if age is None else f"{age}m old"
-    fetch_txt = f"{fetch_cents:.0f}c" if fetch_cents else "n/a"
-    note = (f"{gap_txt}, and it is the heat of the day "
-            f"(~{loc_hr}:00 local). Highs only rise - one more push "
-            f"blows past this bracket. Reading is {age_txt}. Our side "
-            f"currently fetches {fetch_txt} on the market.")
+    if banked:
+        note = (f"{gap_txt} - but that high is BANKED: the station now "
+                f"reads {now_t:.1f}\u00b0, {obs - now_t:.1f}\u00b0 below "
+                f"the day's peak. This wins if the heat stays away; it "
+                f"dies only if the afternoon climbs back past the "
+                f"{hi:.0f}\u00b0 cap. Reading is {age_txt}. Our side "
+                f"currently fetches {fetch_txt} on the market.")
+    else:
+        note = (f"{gap_txt}, and it is the heat of the day "
+                f"(~{loc_hr}:00 local). Highs only rise - one more push "
+                f"blows past this bracket. Reading is {age_txt}. Our "
+                f"side currently fetches {fetch_txt} on the market.")
     if age is None or age > MAX_OBS_AGE_MIN:
         note += (" WARNING: that reading is STALE - the true temp may "
                  "already be past the cap. Check weather.gov NOW.")
@@ -343,11 +376,16 @@ def build_page(cards, note, counts):
             age_txt = (f' &nbsp;|&nbsp; <span class="age{old}" '
                        f'data-obs="{obs_ms}">reading '
                        f'{c["age"]}m old</span>')
+        # the freshest reading itself, so a banked high (set hours ago,
+        # temps since fallen) can't wear a live climb's face
+        now_txt = ""
+        if c.get("now") is not None:
+            now_txt = f' &nbsp;|&nbsp; Now: <b>{c["now"]:.1f}&deg;</b>'
         body += f"""
 <div class="card {cls}"><div class="top">
 <span class="city">{html.escape(c['city'])} &mdash; {html.escape(c['side'].upper())} {html.escape(c['bracket'])}</span>
 <span class="badge">{html.escape(c['flag'])}</span></div>
-<div class="det">Observed high so far: <b>{c['obs']:.1f}&deg;</b>{age_txt}
+<div class="det">High so far: <b>{c['obs']:.1f}&deg;</b>{now_txt}{age_txt}
  &nbsp;|&nbsp; Market now: <b>{c['ask']}</b></div>
 <div class="note">{html.escape(c['note'])}</div></div>"""
     if not body:
@@ -413,6 +451,9 @@ def main():
     today_utc = now.date().isoformat()
     note = ""
     highs = observed_highs()
+    nows = latest_readings()   # city -> (freshest reading, age) --
+                               # same pass/source as the highs, so the
+                               # two can never disagree on a card
     print(f"observed highs for {len(highs)} cities")
 
     try:
@@ -510,8 +551,10 @@ def main():
         # OVERSHOOT RISK outranks everything below: a warning beats an
         # invitation. Fetch price = the YES bid (what selling would
         # actually get, honestly quoted -- overshoot only fires on YES).
+        now_t = nows.get(city, (None,))[0]
         oflag, onote = overshoot_check(status, side, hi, obs, age,
-                                       local_hour(city, now), yes_bid)
+                                       local_hour(city, now), yes_bid,
+                                       now_t)
         if onote is not None:
             flag = oflag
             gnote += " " + onote
@@ -544,7 +587,8 @@ def main():
         bracket = (m.get("yes_sub_title") or m.get("subtitle")
                    or f"{lo}-{hi}").strip()
         cards.append({"city": city, "side": side, "bracket": bracket,
-                      "obs": obs, "age": age, "flag": flag, "note": gnote,
+                      "obs": obs, "age": age, "now": now_t,
+                      "flag": flag, "note": gnote,
                       "ask": f"{my_price:.0f}c" if my_price else "n/a"})
         rows.append({"checked_utc": stamp, "ticker": tick, "city": city,
                      "side": side, "bracket": bracket,

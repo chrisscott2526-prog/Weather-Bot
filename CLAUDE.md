@@ -632,8 +632,11 @@ settlements.py (12x daily, every  Kalshi settled result fields (unauth)
                                   AND (Aug 24 2026) the actuals that
                                   calibration and autopsy learn from
 swoop_alert.py (every 15 min      advisor board -> swoop.html, swoop_log.csv,
-              16:00-01:59 UTC,    swoop_pulse.json (its heartbeat)
-              2-hourly rest)      (polls its own fresh temps first;
+              13:00-01:59 UTC,    swoop_pulse.json (its heartbeat)
+              2-hourly rest --    (polls its own fresh temps first;
+              band start 16 -> 13
+              Sep 14 2026, the
+              sell-signal fixes)
                                   grades each position on its CITY'S
                                   local day, so West Coast evenings
                                   stay on the board)
@@ -1409,6 +1412,135 @@ The laws, agreed before it was built:
   hours, on the same cadence whales.yml's cron kept. whales.yml stays
   as a redundant backup starter and the owner's Run button — the
   swoop.yml pattern exactly.
+
+## THE HANDFUL MANDATE (Sep 14, 2026) — OWNER DECISION
+
+The owner's words, after reading the first per-model, per-city
+standings in `model_report.md`: "I'd rather have five awesome ones
+than 20 OK ones... I always knew it was gonna be down to just a
+handful." And on which cities survive: "I don't care which ones they
+are — I only wanna keep the ones the ensembles are accurate on."
+Recorded here so the review that executes it runs the way the owner
+decided, whichever session runs it:
+
+- **THE BIG CUT REVIEW runs when the tagged per-model records reach
+  ~30 graded nights per city** — the bar the Model Lab set. The owner
+  said "30 days" (~Oct 14); at the pace graded nights were actually
+  accruing when this was written (n=4–7 per model per city on Sep 14,
+  tags since Aug 31 — settlement lag plus the two hung forecast
+  nights, since fixed, cost real nights), the count more likely
+  arrives **mid-to-late October**. Run it when the COUNT arrives, not
+  the calendar — a cut made on n=15 is vibes wearing a spreadsheet.
+- **The cut is aggressive by mandate.** Slice `results.csv` per city
+  and `model_report.md` per model, and: bench every city where no
+  model is provably accurate (the owner is explicitly fine with
+  benching HALF the map or more — quality over coverage, no city has
+  a right to a daily bet); bench the bad MODEL per city where one
+  voter drags the pick (the Minneapolis-GFS pattern); and put
+  promoting `icon`/`nws` into the vote on the same table, same
+  evidence. Fewer, better bets is the point — the owner pre-accepted
+  the smaller daily card.
+- **The mechanism is the existing bench, nothing new**: a benched
+  city keeps being polled, forecast, scanned, and logged to
+  edges.csv, so its paper record keeps accruing and it can earn its
+  way back — exactly the OKC/Dallas machinery. Per-city model
+  benching needs a small scanner change when the review lands
+  (weight or drop one model's members per station in the vote);
+  build it AT the review, on the evidence, not before.
+- The final keep/cut list is the owner's call at the review, off the
+  settled record — the scoreboard promotes; conviction never does.
+  This section pre-authorizes the review's direction and appetite,
+  not a specific list.
+
+**PHASE 1 EXECUTED — THE HANDFUL CUT (Sep 14 2026, same day, owner
+order).** The owner didn't wait for the per-MODEL record to run the
+per-CITY half of the cut, because the per-city evidence already
+existed at twice the sample: the ensemble's DAY-OF PICK graded
+against official settlements over ~21–22 scanned days per city (433
+picks from edges.csv, bought or not — money gates played no part;
+blind chance among ~6 brackets ≈ 17%). The owner's framing,
+recorded: the city was never the problem, the "manager" (the
+ensemble in that city) is — so keep the 10 cities the manager is
+best at, bench the rest. `BENCHED_CITIES` grew from 2 to 11:
+the bottom 10 by pick accuracy (Washington DC 29%, Philadelphia
+29%, Phoenix 27%, Dallas 27%, Austin 27%, Boston 24%, Chicago 23%,
+Houston 18%, Seattle 14%, New Orleans 14% — the bottom three are
+all water cities, where global models are weakest) plus Oklahoma
+City, which ranked #5 on picks but keeps its own Aug 30 bench
+(0W–7L real money) until the owner lifts it by name. Active nine:
+San Antonio 55%, Minneapolis 45%, Atlanta 43%, NYC 38%, LA 36%,
+Las Vegas 36%, Miami 33%, Denver 33%, San Francisco 32% (SF's
+caveat, stated: only 32% land even NEXT DOOR — when its pick
+misses, it misses big; a October cut candidate). All benched
+cities keep full paper records, as the bench law requires. The
+October review (phase 2) still does the per-model work — benching
+a model inside a city, promoting icon/nws — and re-judges this
+city list with the thicker record, both directions.
+
+## THE MORNING THERMOSTAT — TESTED AND REJECTED (Sep 14, 2026)
+
+The near-miss autopsy of the pick report card found a real-looking
+cold lean: at ten cities the morning pick's one-bracket misses fell
+overwhelmingly on the cold side (NYC and Atlanta: 8 of 8 cold; OKC
+6 of 6; Seattle 10 of 11) — while the calibration, trained on NIGHT
+forecast errors and bolted onto the morning lane, was already
+pushing warm at most of them. The proposed fix was a morning-lane
+thermostat: a second per-station bias learned from morning rows vs
+settlements, applied only to `--today` forecasts.
+
+**The walk-forward backtest said NO, and it was not shipped.** Over
+468 stored morning city-days (every shift learned only from days
+before it, both arms re-voted identically): full strength 150 → 145
+hits; every gentler variant (half-shift, strong-evidence-only,
+21-day window) gained at most +6 of 468 overall while LOSING ground
+on the active nine cities (81 → 79/80), where the money is. The
+lean is real in the misses but a trailing shift chases day-to-day
+noise as hard as it corrects lean — the existing calibration plus
+the day-of reality floor already eat what is eatable. The scoreboard
+refused the promotion; conviction did not override it. Do not
+re-ship this idea on the same hunch — re-test it only when the
+per-model corrections or a genuinely different estimator (e.g. HRRR
+same-day guidance, the Model Lab's deferred item) change the
+picture. The backtest lives in the session record of Sep 14 2026;
+the method (walk-forward on stored morning members, re-voted over
+edges.csv bracket sets, graded by settlements) is the required
+standard for any future forecast-correction proposal.
+
+## THE SELL-SIGNAL FIXES (Sep 14, 2026) — OWNER INCIDENT
+
+Context every future session must know: **the owner mirrors the
+bot's picks with their own much larger money, and uses the swoop
+board as the sell trigger.** The bot's $1 ledger understates what a
+board defect costs by an order of magnitude — the owner reported
+roughly $4,000 of personal losses mirroring seven months of picks.
+Treat every advisory-board latency or wording bug as a money bug.
+
+The incident (Sep 14): Philadelphia's 76–77° bracket was bought at
+9:10 AM ET. The day's high — 77.0° — had been BANKED at 2:15 AM
+ahead of a cold front; by mid-morning the station read 71.6° and
+falling. The overshoot card still wore the heating-afternoon words
+("heat of the day, one more push blows past this bracket"), and the
+owner, reading it through a stale home-screen copy two hours after
+the buy, sold into a 33¢ market. Two defects, both fixed in one
+commit:
+
+1. **The morning blind spot.** The swoop board's dense 15-minute
+   band started at 16:00 UTC — two-plus hours after the first 13:00
+   UTC buys (Philadelphia that day: bought 13:10, first graded
+   15:04). The band now starts at **13:00 UTC** (poll.yml relay
+   condition + swoop.yml backup crons, moved together).
+2. **The banked-high fix.** `highs.latest_readings()` (new, same
+   pass and raw source as `highs_today` so the two can never
+   disagree) gives every card the station's freshest reading, shown
+   as "Now: X°". When that reading sits `BANKED_DROP_F` (1.5°F) or
+   more under the day's high, the overshoot card says the true shape
+   of the day — "that high is BANKED... this wins if the heat stays
+   away; it dies only if the afternoon climbs back past the cap" —
+   instead of the live-climb words. The tag itself stays OVERSHOOT
+   RISK (a second warm-up is a real risk); only the story changed.
+   The freshness laws are untouched. Note the iPad gotcha, told to
+   the owner: a home-screen bookmark serves a frozen copy — the
+   "built X m ago" label turning red is the tell; refresh in Safari.
 
 ## ROADMAP — how this grows
 
