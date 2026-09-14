@@ -229,8 +229,16 @@ translated one-to-one:
   consensus (`MIN_BOOKS = 3`); recheck by probe, since book coverage
   can improve near game time. CFB and NBA player props are staged in
   the probe (odds keys + KXNCAAF*/KXNBA* inventory, `inventory_
-  prefix`) — NBA verifies when the late-October slate's prop markets
-  OPEN (run the probe then); each joins only after live two-sided
+  prefix`) — verdicts recorded from probe run 122, Sep 14 2026:
+  **CFB player props do not exist on either side** (Kalshi has no
+  KXNCAAF player-prop series — only team-level ones, all 0 open —
+  and the odds feed returned zero CFB player markets), off until
+  BOTH appear; **NBA is fully staged** — Kalshi already lists
+  KXNBAPTS / KXNBAREB / KXNBAAST / KXNBA3PT plus the combo stats
+  (all 0 open, season not started) and the odds feed already prices
+  the Oct 20 opener's props (2 books, thickening expected near
+  tip-off) — run the probe when October's markets OPEN and the
+  shelves join same-day; each joins only after live two-sided
   verification, per the whitelist law. ADVISORY ONLY — the permanent
   rule covers it word for word.
 - **The combo board (owner request, Sep 10 2026)** is the parlay
