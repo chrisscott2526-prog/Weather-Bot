@@ -1,5 +1,27 @@
 # CHANGELOG
 
+- 2026-09-14 (later): THE LEG LAB (owner question -> evidence-first
+  build, the Model Lab pattern). The owner's question: "you can't
+  tell who wins just from the market's percent -- an 80%er can lose
+  and a 60%er can win. What else could we look at, and in what
+  scenario would a 60% team still belong?" Nobody can call WHICH
+  favorite loses, but the QUALITY of a favorite's number might be
+  measurable -- so every parlay-shelf favorite from 55% up (below
+  the 70 board floor on purpose, so the banned bands keep building
+  a paper record) now logs the signals already in hand at scan
+  time: the sharp books' own low/high numbers for the pick (do the
+  experts agree with each other), the live Kalshi YES bid (the
+  weather legs' dual-expert pattern applied to sports, logged not
+  gated), and hours-to-start (freshness -- the day-of lesson,
+  measured for sports). Graded per leg by Kalshi settlement into
+  leg_research_results.csv, WIN/LOSS/VOID, no pnl. No new feeds, no
+  extra API calls, ZERO change to any board or card. RESEARCH ONLY
+  (Model Lab law): nothing that boards or trades may ever read it.
+  Promoting any signal into a gate -- including re-admitting a 60%er
+  that passes every signal -- is an owner decision made on ~100+
+  graded legs. sports_scanner.py + CLAUDE.md + .gitattributes, one
+  commit.
+
 - 2026-09-14: THE QUALITY TIGHTENING (owner decision). Nothing under
   a 70% win chance boards on the parlay or combo ladders anymore:
   PARLAY_LEG_MIN_PROB 60 -> 70 and PARLAY_BOOST_FLOOR 65 -> 70, one

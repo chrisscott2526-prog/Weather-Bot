@@ -274,6 +274,47 @@ COMBO_RESULTS_FIELDS = ["graded_utc", "combo_id", "n_legs", "sectors",
                         "legs", "tickers", "combined_pct", "legs_won",
                         "legs_lost", "legs_void", "result"]
 
+# THE LEG LAB (owner question, Sep 14 2026): "you can't tell who wins
+# just from the market's percent -- an 80%er can lose and a 60%er can
+# win. What else could we look at, and in what scenario would a 60%
+# team still belong on the board?" The honest answer is: nobody can
+# call WHICH favorite loses -- but the QUALITY of a favorite's number
+# might be measurable, and that is a scoreboard question, not a
+# conviction question. So every parlay-shelf favorite from 55% up
+# (deliberately BELOW the board floor, so the banned bands keep
+# building a record) logs the signals we already hold at scan time --
+# no new feeds, no invented stats, no behavior change to any board:
+#   - books_low/high_pct: the SPREAD of the sharp books' own de-vigged
+#     numbers for the pick. Tight agreement vs one book way off --
+#     "do the experts even agree with each other?"
+#   - kalshi_bid_cents: the live Kalshi YES bid for the pick at scan
+#     time -- the same second expert the weather legs already use
+#     (dual-expert rule). Blank when unquoted, never guessed.
+#   - hours_to_start: how fresh the number is. The weather lane
+#     already proved day-of beats night-before with money; this
+#     measures whether the same holds for sports legs.
+# Graded per leg by Kalshi settlement into LEG_LAB_RESULTS_CSV
+# (WIN/LOSS/VOID, no pnl -- no bet was placed). Once there are ~100+
+# graded legs, slice the record: do tight-agreement 60%ers beat
+# loose-agreement 80%ers? Does Kalshi-confirms beat Kalshi-doubts?
+# Promotion of ANY of these into a board gate is an owner decision
+# made on that record -- the scoreboard promotes; conviction never
+# does. RESEARCH LOG ONLY, same law as the Model Lab: nothing that
+# boards, trades, scans for money, or calibrates may ever read these
+# files.
+LEG_LAB_MIN_PROB = 55.0
+LEG_LAB_CSV = "leg_research.csv"
+LEG_LAB_RESULTS_CSV = "leg_research_results.csv"
+LEG_LAB_FIELDS = ["scanned_utc", "sport", "game", "pick", "ticker",
+                  "commence_utc", "hours_to_start", "books_pct",
+                  "n_books", "books_low_pct", "books_high_pct",
+                  "kalshi_bid_cents", "boarded"]
+LEG_LAB_RESULTS_FIELDS = ["graded_utc", "sport", "ticker", "pick",
+                          "books_pct", "books_low_pct", "books_high_pct",
+                          "kalshi_bid_cents", "hours_to_start",
+                          "boarded", "market_result", "result"]
+LEG_LAB = []                # rows collected by scan_winner this run
+
 # THE SHELVES. Each maps ONE hand-verified Kalshi series to ONE Odds API
 # market key. kind decides the matching logic. Verified against live
 # markets via sports_probe.py, Aug 19 2026 -- to add a shelf, run the
@@ -540,8 +581,12 @@ def devig_pair(over_probs, under_probs):
 
 def consensus_h2h(ev, market_key):
     """De-vigged win probs for one event's h2h-style market.
-    Returns ({outcome_name: prob}, n_books) or (None, 0). Handles 2-way
-    and 3-way (Draw) books identically: all quoted outcomes normalized."""
+    Returns ({outcome_name: prob}, n_books, {outcome_name: (lo, hi)})
+    or (None, 0, None). The third value is the LEG LAB's book-agreement
+    span: each book's own de-vigged prob for that outcome, min and max
+    across books -- measured from the same per-book numbers the median
+    already uses, so it invents nothing. Handles 2-way and 3-way (Draw)
+    books identically: all quoted outcomes normalized."""
     per_book = []
     for bk in ev.get("bookmakers", []):
         for mkt in bk.get("markets", []):
@@ -562,7 +607,7 @@ def consensus_h2h(ev, market_key):
             if ok and len(probs) >= 2:
                 per_book.append(probs)
     if len(per_book) < MIN_BOOKS:
-        return None, len(per_book)
+        return None, len(per_book), None
     names = set(per_book[0])
     if any(set(b) != names for b in per_book):
         # books disagree on the outcome set (2-way vs 3-way) -- use only
@@ -573,10 +618,17 @@ def consensus_h2h(ev, market_key):
         per_book = max(shapes.values(), key=len)
         names = set(per_book[0])
         if len(per_book) < MIN_BOOKS:
-            return None, len(per_book)
+            return None, len(per_book), None
     med = {n: median(b[n] for b in per_book) for n in names}
     tot = sum(med.values())
-    return {n: p / tot for n, p in med.items()}, len(per_book)
+    # per-book de-vigged prob for each outcome (each book normalized on
+    # its own quotes), min/max across books -- the Leg Lab's agreement span
+    span = {}
+    for n in names:
+        per = [b[n] / sum(b.values()) for b in per_book if sum(b.values()) > 0]
+        if per:
+            span[n] = (min(per), max(per))
+    return {n: p / tot for n, p in med.items()}, len(per_book), span
 
 
 def consensus_lines(ev, market_key):
@@ -907,7 +959,7 @@ def evaluate(shelf, game, fair_pct, n_books, market, side, pick_text,
 
 
 def scan_winner(shelf, game, kalshi_events, rows):
-    fair, n = consensus_h2h(game["raw"], shelf["odds_market"])
+    fair, n, span = consensus_h2h(game["raw"], shelf["odds_market"])
     if not fair:
         return
     assign = None
@@ -964,6 +1016,37 @@ def scan_winner(shelf, game, kalshi_events, rows):
             "ticker": market.get("ticker", ""),
             "commence": game["commence"],
             "label": shelf["label"].split(" ·")[0]})
+    if (shelf.get("parlay")
+            and fair_pct >= LEG_LAB_MIN_PROB
+            and market.get("ticker")):
+        # THE LEG LAB (research passenger, see the config block): log
+        # the quality signals around this favorite -- including the
+        # 55-69% ones the board itself no longer shows -- so the
+        # scoreboard can grade which signals actually separate the
+        # favorites that win from the favorites that lose. Every
+        # number here is already in hand this scan: no extra calls,
+        # no invented data, no effect on any board.
+        bid = dollars_to_cents(market, "yes_bid_dollars")
+        if bid is None:
+            no_ask = dollars_to_cents(market, "no_ask_dollars")
+            if no_ask is not None:
+                bid = 100 - no_ask   # same number, quoted from the
+                                     # other side of the book
+        lo, hi = (span or {}).get(pick_team, (None, None))
+        hrs = (game["commence"]
+               - datetime.now(timezone.utc)).total_seconds() / 3600
+        LEG_LAB.append({
+            "scanned_utc": SCAN_STAMP,
+            "sport": shelf["label"].split(" ·")[0],
+            "game": game["game"], "pick": f"{pick_team} wins",
+            "ticker": market.get("ticker", ""),
+            "commence_utc": game["commence"].isoformat(),
+            "hours_to_start": round(hrs, 1),
+            "books_pct": round(fair_pct, 1), "n_books": n,
+            "books_low_pct": round(lo * 100, 1) if lo is not None else "",
+            "books_high_pct": round(hi * 100, 1) if hi is not None else "",
+            "kalshi_bid_cents": round(bid, 1) if bid is not None else "",
+            "boarded": "1" if fair_pct >= PARLAY_LEG_MIN_PROB else "0"})
     what = ("wins the first 5 innings" if shelf["key"] == "MLB_F5"
             else "wins")
     evaluate(shelf, game, fair_pct, n, market, "yes",
@@ -1450,6 +1533,65 @@ def grade_combos():
                         carry=("sectors",), what="combo")
 
 
+def grade_leg_lab():
+    """Grade the Leg Lab's individual legs by Kalshi settlement --
+    WIN/LOSS/VOID per leg, no pnl (no bet was placed; a dollar figure
+    would be invented data). One graded row per ticker, taken from the
+    LATEST scan row (the freshest number is the one the signals
+    describe). Runs after the stack graders so _SETTLE_CACHE is
+    already warm for every ticker that rode a board. RESEARCH ONLY."""
+    if not os.path.exists(LEG_LAB_CSV):
+        return []
+    already = set()
+    if os.path.exists(LEG_LAB_RESULTS_CSV):
+        with open(LEG_LAB_RESULTS_CSV) as f:
+            for r in csv.DictReader(f):
+                already.add(r["ticker"])
+    pending = {}                       # ticker -> latest scan row
+    with open(LEG_LAB_CSV) as f:
+        for r in csv.DictReader(f):
+            t = r.get("ticker", "")
+            if not t or t in already:
+                continue
+            start = iso(r.get("commence_utc", ""))
+            if not start or start > (datetime.now(timezone.utc)
+                                     - timedelta(hours=3)):
+                continue               # too recent to be settled
+            if t not in pending or r["scanned_utc"] > pending[t]["scanned_utc"]:
+                pending[t] = r
+    graded = []
+    for t, r in list(pending.items())[:25]:
+        if t not in _SETTLE_CACHE:
+            data, err = kget(f"/markets/{t}", t)
+            _SETTLE_CACHE[t] = (data or {}).get("market", {}) \
+                if not err else None
+            time.sleep(0.3)
+        m = _SETTLE_CACHE[t]
+        if m is None:
+            continue                   # next run
+        status = (m.get("status") or "").lower()
+        result = (m.get("result") or "").lower()
+        if status not in ("settled", "finalized"):
+            continue                   # not settled yet
+        verdict = {"yes": "WIN", "no": "LOSS"}.get(result, "VOID")
+        graded.append({
+            "graded_utc": datetime.now(timezone.utc)
+            .isoformat(timespec="seconds"),
+            "sport": r["sport"], "ticker": t, "pick": r["pick"],
+            "books_pct": r["books_pct"],
+            "books_low_pct": r["books_low_pct"],
+            "books_high_pct": r["books_high_pct"],
+            "kalshi_bid_cents": r["kalshi_bid_cents"],
+            "hours_to_start": r["hours_to_start"],
+            "boarded": r["boarded"],
+            "market_result": result, "result": verdict})
+    if graded:
+        with appender(LEG_LAB_RESULTS_CSV, LEG_LAB_RESULTS_FIELDS) as w:
+            for g in graded:
+                w.writerow(g)
+    return graded
+
+
 # ------------------------------------------------------------- the card
 CSS = """
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1897,6 +2039,15 @@ def main():
     print(f"parlay board: {len(parlay_legs)} qualifying favorites, "
           f"{len(parlays)} stacked combos")
 
+    # THE LEG LAB: research rows only, nothing reads them back into
+    # any board (see the config block for the law)
+    if LEG_LAB:
+        with appender(LEG_LAB_CSV, LEG_LAB_FIELDS) as w:
+            for r in LEG_LAB:
+                w.writerow(r)
+    print(f"leg lab: logged {len(LEG_LAB)} favorites 55%+ "
+          f"(research only)")
+
     # THE COMBO BOARD: the parlay pool plus the weather sector's
     # dual-expert legs. Weather legs need no odds key, so a dead odds
     # feed leaves the weather side of the board standing (and the red
@@ -1918,6 +2069,8 @@ def main():
     print(f"graded {len(pgraded)} settled parlays")
     cgraded = grade_combos()
     print(f"graded {len(cgraded)} settled combos")
+    lgraded = grade_leg_lab()
+    print(f"leg lab: graded {len(lgraded)} settled legs (research only)")
     results = list(csv.DictReader(open(RESULTS_CSV))) \
         if os.path.exists(RESULTS_CSV) else []
     presults = list(csv.DictReader(open(PARLAY_RESULTS_CSV))) \
