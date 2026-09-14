@@ -23,8 +23,15 @@ name: Same-day model lab (research only, no trading)
 
 on:
   schedule:
+    # Two slots per window: GitHub's cron is best-effort and drops
+    # runs (the poller once fired 9 of 96) -- a dropped slot here is
+    # a lost half-day of same-day record, so each window gets a
+    # backup. Both firing just logs a second row 40 minutes later
+    # with its own honest fetched_utc; the review bins by hour.
     - cron: "12 14 * * *"
+    - cron: "52 14 * * *"
     - cron: "42 19 * * *"
+    - cron: "22 20 * * *"
   workflow_dispatch:
 
 permissions:
