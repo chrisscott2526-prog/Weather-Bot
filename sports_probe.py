@@ -289,9 +289,13 @@ def probe_kalshi():
     # app's prop slips (receptions, receiving/rushing/passing yards)
     # can be hand-read: ticker anatomy, strike fields, subtitles.
     # Reading aid only; nothing is whitelisted automatically.
-    print("\nKXNFL* LIVE INVENTORY (every series, open markets + one "
-          "sample each):")
-    nfl_series = [t for t in sorted(catalogue) if t.startswith("KXNFL")]
+    print("\nKXNFL* LIVE INVENTORY (player-prop series first -- the "
+          "props-ladder question -- then the rest, one sample each):")
+    props_first = ["KXNFLPASSYDS", "KXNFLREC", "KXNFLRECYDS",
+                   "KXNFLRSHYDS", "KXNFLRRYDS"]
+    rest = [t for t in sorted(catalogue)
+            if t.startswith("KXNFL") and t not in props_first]
+    nfl_series = [t for t in props_first if t in catalogue] + rest
     for t in nfl_series[:30]:
         data, err = kalshi_get(
             f"/trade-api/v2/markets?series_ticker={t}&status=open&limit=200",
