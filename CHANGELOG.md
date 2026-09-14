@@ -1,5 +1,26 @@
 # CHANGELOG
 
+- 2026-09-14 (night): THE PROPS LADDER (owner request). A player-prop
+  version of the parlay board: four NFL prop shelves verified live
+  the same day via three probe runs (KXNFLPASSYDS / KXNFLREC /
+  KXNFLRECYDS / KXNFLRSHYDS -- anatomy identical to KXMLBKS -- and
+  the odds plan's base + _alternate player markets, 6 sharp books,
+  alternate points landing exactly on Kalshi's strikes). The sharps
+  price every leg (never a homemade stats model); over-only
+  alternate ladders are de-vigged by each book's own measured
+  main-line overround, never a guessed haircut; the ladder takes ONE
+  prop leg per game, strongest only, because same-game props move
+  together and stacking them (like the app's own slips do) wears a
+  multiplied number that isn't real. Floor 70 (the quality
+  tightening), rungs 2-4, OVER legs only, ids <day>-PROPS<n>, rows
+  in parlay_picks.csv, graded by Kalshi settlement via grade_stacks
+  unchanged. Prop shelves also feed the gap card through the normal
+  gates -- props were always the constitution's priority shelf.
+  Cost stated: ~2,000-2,500 odds credits/month worst case on the
+  20K plan. ADVISORY ONLY, permanent rule unchanged.
+  sports_scanner.py + sports_probe.py + CLAUDE.md, three commits
+  (probe evidence first, then the build).
+
 - 2026-09-14 (later): THE LEG LAB (owner question -> evidence-first
   build, the Model Lab pattern). The owner's question: "you can't
   tell who wins just from the market's percent -- an 80%er can lose

@@ -339,6 +339,44 @@ SHELVES = [
     dict(key="NFL_TOTAL", sport="americanfootball_nfl",
          label="NFL · TOTAL POINTS", kind="total", series="KXNFLTOTAL",
          odds_market="totals", featured=True),
+    # -- THE NFL PLAYER-PROP SHELVES (owner request, Sep 14 2026 -- the
+    # -- props ladder). Hand-verified live via the probe, Sep 14 2026
+    # -- (runs 117-119 on sports.yml, log evidence recorded):
+    # --   KXNFLPASSYDS "Pro Football Passing Yards", 37 open;
+    # --   KXNFLREC "Pro Football Player Receptions", 156 open;
+    # --   KXNFLRECYDS "Pro Football Receiving Yards", 195 open;
+    # --   KXNFLRSHYDS "Pro Football Rushing Yards", 84 open.
+    # -- Anatomy identical to KXMLBKS: yes_sub 'Bo Nix: 160+',
+    # -- floor_strike 159.5; event tickers date+codes, no game time
+    # -- (match_event's NFL dated path). Odds plan verified same day:
+    # -- base keys carry each player's two-sided MAIN line (6 books),
+    # -- alt_market keys carry the OVER-only alternate ladders (6
+    # -- books, points landing exactly on Kalshi's strikes -- DK Bo Nix
+    # -- Over 159.5 <-> Kalshi 160+). Cost, said plainly: 8 prop keys x
+    # -- up to PROP_EVENT_CAP NFL events x 2 scans/day on slate days --
+    # -- roughly 2,000-2,500 credits/month worst case against the 20K
+    # -- plan. The sharps price every line; we never price a prop from
+    # -- raw stats (pick-first law, unchanged).
+    dict(key="NFL_PASS_YDS", sport="americanfootball_nfl",
+         label="NFL · PASSING YARDS", kind="player_prop",
+         series="KXNFLPASSYDS", odds_market="player_pass_yds",
+         alt_market="player_pass_yds_alternate", featured=False,
+         what="passing yards"),
+    dict(key="NFL_RECEPTIONS", sport="americanfootball_nfl",
+         label="NFL · RECEPTIONS", kind="player_prop",
+         series="KXNFLREC", odds_market="player_receptions",
+         alt_market="player_receptions_alternate", featured=False,
+         what="receptions"),
+    dict(key="NFL_REC_YDS", sport="americanfootball_nfl",
+         label="NFL · RECEIVING YARDS", kind="player_prop",
+         series="KXNFLRECYDS", odds_market="player_reception_yds",
+         alt_market="player_reception_yds_alternate", featured=False,
+         what="receiving yards"),
+    dict(key="NFL_RUSH_YDS", sport="americanfootball_nfl",
+         label="NFL · RUSHING YARDS", kind="player_prop",
+         series="KXNFLRSHYDS", odds_market="player_rush_yds",
+         alt_market="player_rush_yds_alternate", featured=False,
+         what="rushing yards"),
     # -- the side dish: full-game moneylines -----------------------------
     dict(key="MLB_GAME", sport="baseball_mlb", label="MLB · MONEYLINE",
          kind="winner", series="KXMLBGAME", odds_market="h2h",
@@ -662,6 +700,69 @@ def consensus_lines(ev, market_key):
         pair = devig_pair(ov, un)
         if pair:
             out[k] = (pair[0], pair[1], n)
+    return out
+
+
+def consensus_player_points(ev, market_key, alt_key):
+    """De-vigged OVER probability per (player, point) for one player-
+    prop market, main + alternate lines pooled.
+
+    Main lines are quoted two-sided (Over AND Under), so the normal
+    pair de-vig applies. Alternate ladders are quoted OVER-ONLY by the
+    books, so their vig is removed with each book's own MEASURED
+    overround: that same book's two-sided quotes for the same player
+    sum to 1 + its vig, and the alternate's implied probability is
+    divided by that sum. Measured per book per player, never a guessed
+    haircut; a book with no two-sided line for the player contributes
+    nothing to their alternates (silence, not a made-up number). The
+    props scoreboard (stated % vs settled hit rate) is the permanent
+    monitor on this correction.
+    Returns {(norm_player, point): (p_over, n_books)}."""
+    per_book = []                    # (two-sided pairs, over-only rows)
+    for bk in ev.get("bookmakers", []):
+        pairs, overs = {}, {}
+        for mkt in bk.get("markets", []):
+            if mkt.get("key") not in (market_key, alt_key):
+                continue
+            sides = defaultdict(dict)
+            for oc in mkt.get("outcomes", []):
+                try:
+                    price = float(oc["price"])
+                    point = float(oc["point"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if price <= 1:
+                    continue
+                who = norm(oc.get("description", ""))
+                if not who:
+                    continue
+                sides[(who, point)][oc.get("name", "").lower()] = 1 / price
+            for k, s in sides.items():
+                if "over" in s and "under" in s:
+                    pairs[k] = (s["over"], s["under"])
+                elif "over" in s:
+                    overs.setdefault(k, s["over"])
+        if pairs or overs:
+            per_book.append((pairs, overs))
+    raw = defaultdict(list)          # (player, point) -> fair over probs
+    for pairs, overs in per_book:
+        rounds = defaultdict(list)   # player -> this book's overrounds
+        for (who, _pt), (io, iu) in pairs.items():
+            rounds[who].append(io + iu)
+        for k, (io, iu) in pairs.items():
+            raw[k].append(io / (io + iu))
+        for k, io in overs.items():
+            if k in pairs:
+                continue             # two-sided quote already counted
+            r = rounds.get(k[0])
+            if not r:
+                continue             # this book's vig is unmeasured for
+                                     # this player -- contribute nothing
+            raw[k].append(min(1.0, io / median(r)))
+    out = {}
+    for k, probs in raw.items():
+        if len(probs) >= MIN_BOOKS:
+            out[k] = (median(probs), len(probs))
     return out
 
 
@@ -1121,6 +1222,57 @@ def scan_pitcher_prop(shelf, game, kalshi_events, rows):
                  f"{name} K line {strike}", rows)
 
 
+def scan_player_prop(shelf, game, kalshi_events, rows):
+    """THE NFL PLAYER-PROP SHELVES (owner request, Sep 14 2026): match
+    each market on Kalshi's strike ladder ('Bo Nix: 160+', floor
+    159.5) to the sharps' quote for the same player at the same line
+    -- main lines two-sided, alternate ladders vig-corrected by each
+    book's own measured overround (consensus_player_points). Two jobs:
+    gap-card candidates through the same evaluate() gates as every
+    shelf (YES side only -- the ladder is over-strikes), and PROPS
+    LADDER candidates: the sharps' PARLAY_LEG_MIN_PROB%+ OVER
+    favorites, collected for build_props_ladder."""
+    points = consensus_player_points(game["raw"], shelf["odds_market"],
+                                     shelf.get("alt_market"))
+    if not points:
+        return
+    et, mkts = match_event(kalshi_events, shelf["series"],
+                           shelf["sport"], game)
+    if not mkts:
+        return
+    for m in mkts:
+        strike = m.get("floor_strike")
+        sub = m.get("yes_sub_title") or ""       # 'Bo Nix: 160+'
+        player = norm(sub.split(":")[0]) if ":" in sub else ""
+        if strike is None or not player:
+            continue
+        try:
+            strike = float(strike)
+        except (TypeError, ValueError):
+            continue
+        if strike != strike // 1 + 0.5:
+            continue                 # not a half-point over line
+        hit = points.get((player, strike))
+        if not hit:
+            continue                 # books don't quote this exact line
+        p_over, n = hit
+        fair_pct = p_over * 100
+        name = sub.split(":")[0].strip()
+        bar = sub.split(":", 1)[1].strip()
+        pick = f"{name} {bar} {shelf['what']}"
+        if fair_pct >= PARLAY_LEG_MIN_PROB and m.get("ticker"):
+            PROPS_POOL.append({
+                "pick": pick, "game": game["game"],
+                "fair_pct": fair_pct, "n_books": n,
+                "ticker": m.get("ticker", ""),
+                "commence": game["commence"],
+                "label": shelf["label"].split(" ·")[0]})
+        if fair_pct < MIN_PICK_PROB:
+            continue
+        evaluate(shelf, game, fair_pct, n, m, "yes", pick,
+                 f"{name} {shelf['what']} line {strike}", rows)
+
+
 # ------------------------------------------------------------- grading
 def grade():
     """Grade shown picks against Kalshi's own settlement. Nothing else
@@ -1371,6 +1523,7 @@ def build_combos(pool):
 
 # --------------------------------------------------------- parlay board
 PARLAY_POOL = []            # candidates collected by scan_winner this run
+PROPS_POOL = []             # player-prop candidates from scan_player_prop
 
 
 def stack_row(stack, pid):
@@ -1436,6 +1589,31 @@ def build_parlays(pool):
         seen_stacks.add(row["tickers"])
         parlays.append(row)
     return legs, parlays
+
+
+def build_props_ladder(pool):
+    """THE PROPS LADDER (owner request, Sep 14 2026): stack the sharps'
+    strongest player-prop OVER favorites -- and take ONE LEG PER GAME,
+    strongest only. Same-game props rise and fall together (a QB's
+    passing yards and his receiver's catches are the same drives), so
+    multiplying them as if independent would overstate the combined
+    chance -- Kalshi's own app slips stack ten legs from one game and
+    wear a number that isn't real; this board refuses to. One leg per
+    game keeps the plain product honest, the same law that lets the
+    moneyline ladders multiply. Floor PARLAY_LEG_MIN_PROB, rungs
+    2..PARLAY_MAX_LEGS, ids <day>-PROPS<n>; rows ride parlay_picks.csv
+    and grade through grade_stacks by Kalshi settlement, unchanged.
+    ADVISORY ONLY -- the permanent rule covers it word for word."""
+    best = {}
+    for c in sorted(pool, key=lambda c: -c["fair_pct"]):
+        if c["ticker"] and c["game"] not in best:
+            best[c["game"]] = c
+    legs = sorted(best.values(), key=lambda c: -c["fair_pct"])
+    stacks = []
+    day = SCAN_STAMP[:10]
+    for n in range(2, min(len(legs), PARLAY_MAX_LEGS) + 1):
+        stacks.append(stack_row(legs[:n], f"{day}-PROPS{n}"))
+    return legs, stacks
 
 
 _SETTLE_CACHE = {}          # ticker -> market object, shared by both
@@ -1666,10 +1844,10 @@ def side_words(p):
 def build_parlay_html(legs, parlays, presults):
     """The parlay board section: ranked most-likely winners, then the
     stacked combos with honest combined numbers."""
-    if not legs and not presults:
+    if not legs and not parlays and not presults:
         return ""
     out = "<h2>The parlay board &mdash; today's most likely winners</h2>"
-    if not legs:
+    if not legs and not parlays:
         out += ("<div class='empty'><b>No parlay board today.</b><br>"
                 "No game on the slate has a favorite the sharps make "
                 f"{PARLAY_LEG_MIN_PROB:.0f}%+ likely (or its Kalshi "
@@ -1686,19 +1864,29 @@ def build_parlay_html(legs, parlays, presults):
                      f"{html.escape(c['game'])} · {when}</span></td>"
                      f"<td><b>{c['fair_pct']:.0f}%</b></td>"
                      f"<td>{c['n_books']}</td></tr>")
-        out += (f"<table><tr><th></th><th>The sharps' favorite</th>"
-                f"<th>Win chance</th><th>Books</th></tr>{rows}</table>")
+        if rows:
+            out += (f"<table><tr><th></th><th>The sharps' favorite</th>"
+                    f"<th>Win chance</th><th>Books</th></tr>{rows}</table>")
         for p in parlays:
             combined = float(p["combined_pct"])
             boost = "BOOST" in p["parlay_id"]
-            tag = "BOOSTER" if boost else "LOCKS"
-            sub = ("payout builder: the strongest lock + the best "
-                   f"{PARLAY_BOOST_FLOOR:.0f}&ndash;"
-                   f"{PARLAY_LOCK_PROB:.0f}% favorites &mdash; every "
-                   "leg still a clear favorite, no long shots"
-                   if boost else
-                   f"the safe stack &mdash; top {p['n_legs']} "
-                   "favorites")
+            props = "PROPS" in p["parlay_id"]
+            tag = "PROPS" if props else ("BOOSTER" if boost else "LOCKS")
+            if props:
+                sub = ("player-prop ladder: the sharps' "
+                       f"{PARLAY_LEG_MIN_PROB:.0f}%+ prop favorites, "
+                       "ONE leg per game &mdash; same-game props move "
+                       "together, so this board never stacks two from "
+                       "one game (app slips that do overstate their "
+                       "combined number)")
+            elif boost:
+                sub = ("payout builder: the strongest lock + the best "
+                       f"{PARLAY_BOOST_FLOOR:.0f}&ndash;"
+                       f"{PARLAY_LOCK_PROB:.0f}% favorites &mdash; every "
+                       "leg still a clear favorite, no long shots")
+            else:
+                sub = (f"the safe stack &mdash; top {p['n_legs']} "
+                       "favorites")
             out += f"""
 <div class="slip"><div class="punch"></div>
 <div class="stamp gap">{p['n_legs']} LEGS</div>
@@ -1971,8 +2159,10 @@ def main():
         for sport, shelves in shelves_by_sport.items():
             featured = sorted({s["odds_market"] for s in shelves
                                if s["featured"]})
-            prop_keys = sorted({s["odds_market"] for s in shelves
-                                if not s["featured"]})
+            prop_keys = sorted({k for s in shelves if not s["featured"]
+                                for k in (s["odds_market"],
+                                          s.get("alt_market"))
+                                if k})
             games = fetch_sharp_games(sport, featured)
             if games is None:
                 continue            # printed loudly inside; featured
@@ -2015,7 +2205,8 @@ def main():
                     if not s["featured"] and s["odds_market"] in dead_keys:
                         continue
                     scanner = {"winner": scan_winner, "total": scan_total,
-                               "pitcher_prop": scan_pitcher_prop}[s["kind"]]
+                               "pitcher_prop": scan_pitcher_prop,
+                               "player_prop": scan_player_prop}[s["kind"]]
                     scanner(s, game, kalshi[s["key"]], rows)
 
     if not feed_dead and sports_ok == 0:
@@ -2038,6 +2229,18 @@ def main():
                 w.writerow(p)
     print(f"parlay board: {len(parlay_legs)} qualifying favorites, "
           f"{len(parlays)} stacked combos")
+
+    # THE PROPS LADDER: one leg per game, floor PARLAY_LEG_MIN_PROB;
+    # rows ride parlay_picks.csv (PROPS ids) and grade via grade_stacks
+    prop_legs, prop_stacks = build_props_ladder(PROPS_POOL)
+    if prop_stacks:
+        with appender(PARLAY_CSV, PARLAY_FIELDS) as w:
+            for p in prop_stacks:
+                w.writerow(p)
+    parlays = parlays + prop_stacks   # one slip section on the card
+    print(f"props ladder: {len(prop_legs)} qualifying prop favorites "
+          f"(one per game, from {len(PROPS_POOL)} candidates), "
+          f"{len(prop_stacks)} stacks")
 
     # THE LEG LAB: research rows only, nothing reads them back into
     # any board (see the config block for the law)

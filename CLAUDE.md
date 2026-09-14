@@ -119,8 +119,11 @@ translated one-to-one:
   sharps' strongest **full-game/full-match moneyline favorites only**,
   from any league on the card — the shelves marked `parlay=True`
   (`PARLAY_LEG_MIN_PROB = 70`%+ de-vigged since Sep 14 2026, the
-  quality tightening below; 60 from Sep 8–14 — F5/totals/props stay
-  off; legs must be simple enough to stack honestly); **Kalshi's price
+  quality tightening below; 60 from Sep 8–14 — F5/totals stay off,
+  and props stay off the MONEYLINE ladders; the separate PROPS
+  ladder, Sep 14 2026 below, carries player props under its own
+  one-leg-per-game law; legs must be simple enough to stack
+  honestly); **Kalshi's price
   plays no part in choosing a leg**, but every leg must match a
   hand-verified Kalshi market so the board is graded by Kalshi's own
   `result` (a favorite that can't be graded never makes the board);
@@ -170,6 +173,41 @@ translated one-to-one:
   (vs 20W–2L on 22 legs at 60/60) — far fewer legs, each stronger.
   Both results CSVs keep grading stated % vs hit rate; reviewing the
   70 floor against that record is an owner decision, like every gate.
+  **THE PROPS LADDER (owner request, Sep 14 2026).** The owner saw
+  Kalshi's own app promoting pre-built player-prop slips (Herbert
+  150+ passing yards, Kelce 3+ receptions...) and asked for a props
+  version of the parlay board — betting on players, whose records
+  exist, instead of only team moneylines. Built the same day, fully
+  inside the constitution, after live probe verification (sports.yml
+  runs 117–119, log evidence in the shelf comments): four NFL
+  player-prop shelves — `KXNFLPASSYDS` (37 open), `KXNFLREC` (156),
+  `KXNFLRECYDS` (195), `KXNFLRSHYDS` (84), anatomy identical to
+  KXMLBKS (`'Bo Nix: 160+'`, floor_strike 159.5) — matched to the
+  Odds API player markets the paid plan verifiably carries (base
+  keys = each player's two-sided main line, `_alternate` keys = the
+  over-only ladders whose points land exactly on Kalshi's strikes;
+  6 sharp books each). The laws: **the sharps price every leg** — we
+  never build a probability from a player's raw stats (the books
+  already price Tom Brady's whole history plus this week's injury
+  report; a homemade stats model is the edge-first disease with
+  extra steps); alternate-ladder vig is removed with each book's own
+  MEASURED main-line overround (`consensus_player_points` — never a
+  guessed haircut, and a book with no two-sided line for the player
+  contributes nothing); **ONE prop leg per game, strongest only** —
+  same-game props rise and fall together (a QB's yards and his
+  receiver's catches are the same drives), so the app-style
+  ten-legs-one-game slip wears a multiplied number that isn't real,
+  and this board refuses to stack two legs from one game — that is
+  what keeps the plain product honest; floor `PARLAY_LEG_MIN_PROB`
+  (70, the quality tightening), rungs 2–4, OVER legs only, ids
+  `<day>-PROPS<n>`; rows ride `parlay_picks.csv` and grade through
+  `grade_stacks` by Kalshi settlement, unchanged. The prop shelves
+  also feed the gap card through the standard `evaluate()` gates
+  (props were always the constitution's priority shelf — the NFL
+  finally has verified series for them). Cost, stated plainly: 8
+  prop keys × up to 12 NFL events × 2 scans/day on slate days ≈
+  2,000–2,500 credits/month worst case against the 20K plan.
+  ADVISORY ONLY — the permanent rule covers it word for word.
 - **The combo board (owner request, Sep 10 2026)** is the parlay
   board with every sector invited: one cross-sector stack ladder on
   the same card, mixing the sharps' full-game favorites (the parlay
