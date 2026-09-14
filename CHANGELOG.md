@@ -1,5 +1,23 @@
 # CHANGELOG
 
+- 2026-09-14 (late night): THE EVERY-SPORT PROPS WIDENING + THE DIAL
+  (owner requests). Four pieces, one commit: (1) THE DIAL -- the
+  props menu now shows a SAFE column beside each player's strong
+  bar: the deepest bar he's a 90%+ favorite to clear
+  (PROPS_SAFE_PROB), the owner's dial-it-back-for-safety habit
+  printed as a measured number. (2) Pitcher strikeouts join the
+  props pool/menu under the same OVER-only 70 floor (the shelf was
+  already scanned; only the pool append is new). (3) Player props
+  join the COMBO board, with the one-leg-per-game law made explicit
+  across pools (combo_sports_legs: a team's moneyline and its own
+  QB's yards never share a stack). (4) CFB + NBA prop verification
+  staged in the probe (odds keys + KXNCAAF*/KXNBA* live inventory);
+  NBA verifies when October's prop markets open. MLB BATTER props
+  stay OFF on recorded evidence: Kalshi's series are rich but the
+  odds feed returned 1 book for batter markets (run 117) and one
+  book is not a consensus -- recheck by probe near game time.
+  Advisory-only law unchanged everywhere.
+
 - 2026-09-14 (night, follow-up): THE PROPS MENU (owner request). The
   card now lists EVERY qualifying player prop, grouped by game --
   the player's name, the DEEPEST bar he's still a 70%+ favorite to

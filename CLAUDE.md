@@ -215,14 +215,35 @@ translated one-to-one:
   one-leg-per-game law governs only the card's own STACKS (their
   multiplied number must stay honest); it was never a limit on what
   the owner may bet, and the menu prints the same-game caveat once,
-  plainly. ADVISORY ONLY — the permanent rule covers it word for
-  word.
+  plainly. **The dial (owner request, same night):** each menu line
+  also shows a SAFE column — the deepest bar the player is a
+  `PROPS_SAFE_PROB` (90%)+ favorite to clear — the owner's own habit
+  of dialing a Kalshi prop ladder down a few rungs for safety,
+  printed as a measured number. Display only; no gate changed.
+  **The every-sport widening (owner request, same night):** pitcher
+  strikeouts (the original prop shelf) now join the props pool/menu
+  under the same OVER-only 70 floor; MLB **batter** props stay OFF
+  on recorded evidence — Kalshi's series are rich (KXMLBHIT 85 open,
+  KXMLBHRR 125) but the odds feed returned only **1 book** for
+  batter hits/total-bases/RBIs (probe run 117) and one book is not a
+  consensus (`MIN_BOOKS = 3`); recheck by probe, since book coverage
+  can improve near game time. CFB and NBA player props are staged in
+  the probe (odds keys + KXNCAAF*/KXNBA* inventory, `inventory_
+  prefix`) — NBA verifies when the late-October slate's prop markets
+  OPEN (run the probe then); each joins only after live two-sided
+  verification, per the whitelist law. ADVISORY ONLY — the permanent
+  rule covers it word for word.
 - **The combo board (owner request, Sep 10 2026)** is the parlay
   board with every sector invited: one cross-sector stack ladder on
-  the same card, mixing the sharps' full-game favorites (the parlay
-  pool — 70%+ since the Sep 14 2026 quality tightening, 60%+ before)
-  with **weather legs** — the money lane's own morning bracket
-  picks. Its laws: a weather leg must pass the **dual-expert rule**
+  the same card, mixing the sharps' favorites — full-game moneylines
+  AND, since Sep 14 2026 (owner request), player props, with **ONE
+  sports leg per game chosen across both pools**
+  (`combo_sports_legs`: a team's moneyline and its own QB's yards
+  are the same game's fortunes and never share a stack — the
+  explicit form of the independence law that held by construction
+  when the pool was moneylines only; 70%+ since the quality
+  tightening, 60%+ before) — with **weather legs** — the money
+  lane's own morning bracket picks. Its laws: a weather leg must pass the **dual-expert rule**
   — the ensemble puts ≥`PARLAY_LEG_MIN_PROB`% of members on the
   picked bracket AND Kalshi's **live** market bids at least the same
   number in cents (70/70 since Sep 14 2026; 60/60 before) — and

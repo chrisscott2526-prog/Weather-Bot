@@ -302,6 +302,14 @@ COMBO_RESULTS_FIELDS = ["graded_utc", "combo_id", "n_legs", "sectors",
 # does. RESEARCH LOG ONLY, same law as the Model Lab: nothing that
 # boards, trades, scans for money, or calibrates may ever read these
 # files.
+# PROPS_SAFE_PROB (owner request, Sep 14 2026 -- "moving the dial"):
+# the props menu shows, next to each player's strong bar, the deepest
+# bar the sharps make him a 90%+ favorite to clear -- the owner's own
+# habit of dialing a Kalshi prop DOWN a few rungs for safety, printed
+# as a number instead of a guess. Display only; the ladder's legs and
+# the floor are unchanged.
+PROPS_SAFE_PROB = 90.0
+
 LEG_LAB_MIN_PROB = 55.0
 LEG_LAB_CSV = "leg_research.csv"
 LEG_LAB_RESULTS_CSV = "leg_research_results.csv"
@@ -1216,6 +1224,18 @@ def scan_pitcher_prop(shelf, game, kalshi_events, rows):
         else:
             side, fair_pct = "no", p_under * 100
             pick = f"{name} stays under {need} strikeouts"
+        if (side == "yes" and fair_pct >= PARLAY_LEG_MIN_PROB
+                and m.get("ticker")):
+            # pitcher strikeouts join the props pool (owner request,
+            # Sep 14 2026 -- "every prop we can get in there"): same
+            # OVER-only, floor-clearing law as the NFL prop shelves
+            PROPS_POOL.append({
+                "pick": pick, "game": game["game"],
+                "player": name, "what": "strikeouts", "bar": need,
+                "fair_pct": fair_pct, "n_books": n,
+                "ticker": m.get("ticker", ""),
+                "commence": game["commence"],
+                "label": shelf["label"].split(" ·")[0]})
         if fair_pct < MIN_PICK_PROB:
             continue
         evaluate(shelf, game, fair_pct, n, m, side, pick,
@@ -1591,6 +1611,26 @@ def build_parlays(pool):
         seen_stacks.add(row["tickers"])
         parlays.append(row)
     return legs, parlays
+
+
+def combo_sports_legs():
+    """ONE sports leg per game for the combo board, chosen across BOTH
+    pools -- moneyline favorites AND player props (owner request,
+    Sep 14 2026: every sector's props invited to the cross-sector
+    stacks). The strongest leg from each game wins the seat; a team's
+    moneyline and its own QB's passing yards are the SAME game's
+    fortunes, so they never share a stack -- the explicit form of the
+    one-leg-per-game law that used to hold by construction when the
+    pool was moneylines only."""
+    tagged = ([dict(c, src=f"{c['n_books']} sharp books")
+               for c in PARLAY_POOL]
+              + [dict(c, src=f"{c['n_books']} sharp books · player prop")
+                 for c in PROPS_POOL])
+    best = {}
+    for c in sorted(tagged, key=lambda c: -c["fair_pct"]):
+        if c["ticker"] and c["game"] not in best:
+            best[c["game"]] = c
+    return list(best.values())
 
 
 def build_props_ladder(pool):
@@ -2020,45 +2060,56 @@ def build_props_menu_html(pool):
     card's own stacks never multiply two legs from one game."""
     if not pool:
         return ""
-    best = {}                        # (game, player, market) -> deepest bar
+    best, safe = {}, {}              # (game, player, market) -> deepest bar
     for c in pool:
         k = (c["game"], c.get("player") or c["pick"], c.get("what", ""))
         cur = best.get(k)
         if cur is None or (c.get("bar") or 0) > (cur.get("bar") or 0):
             best[k] = c
+        if c["fair_pct"] >= PROPS_SAFE_PROB:
+            cur = safe.get(k)
+            if cur is None or (c.get("bar") or 0) > (cur.get("bar") or 0):
+                safe[k] = c
     games = defaultdict(list)
     starts = {}
-    for c in best.values():
-        games[c["game"]].append(c)
+    for k, c in best.items():
+        games[c["game"]].append((c, safe.get(k)))
         if c["game"] not in starts or c["commence"] < starts[c["game"]]:
             starts[c["game"]] = c["commence"]
     out = (f"<h2>The props menu &mdash; every "
            f"{PARLAY_LEG_MIN_PROB:.0f}%+ player prop, game by game</h2>"
-           "<div class='why'>Each line is the DEEPEST bar the sharp "
-           "books still make that player a "
-           f"{PARLAY_LEG_MIN_PROB:.0f}%+ favorite to clear &mdash; his "
-           "strongest honest number, not a coin flip. Pick any of them "
-           "at your book, several from one game if you like. One "
-           "warning, said once: if you PARLAY two props from the SAME "
-           "game, your book multiplies them like separate coin tosses, "
-           "but same-game props rise and fall together &mdash; the real "
+           "<div class='why'>STRONG is the deepest bar the sharp books "
+           f"still make that player a {PARLAY_LEG_MIN_PROB:.0f}%+ "
+           "favorite to clear. SAFE is the dial moved back &mdash; the "
+           f"deepest bar he's a {PROPS_SAFE_PROB:.0f}%+ favorite to "
+           "clear: smaller payout, much harder to lose. Pick either at "
+           "your book, several from one game if you like. One warning, "
+           "said once: if you PARLAY two props from the SAME game, your "
+           "book multiplies them like separate coin tosses, but "
+           "same-game props rise and fall together &mdash; the real "
            "combined chance is lower than the slip implies. The PROPS "
            "stacks above cross games so their multiplied number stays "
            "honest.</div>")
     for g in sorted(games, key=lambda g: starts[g]):
         when = starts[g].strftime("%a %H:%M UTC")
         rows = ""
-        for c in sorted(games[g], key=lambda c: -c["fair_pct"]):
+        for c, s in sorted(games[g], key=lambda x: -x[0]["fair_pct"]):
+            safe_cell = (f"{s.get('bar', '?')}+ "
+                         f"<span class='when'>{s['fair_pct']:.0f}%</span>"
+                         if s else "&mdash;")
             rows += (f"<tr><td><b>{html.escape(c.get('player') or '')}"
-                     f"</b></td>"
+                     f"</b><br><span class='when'>"
+                     f"{html.escape(c.get('what') or '')}</span></td>"
                      f"<td>{c.get('bar', '?')}+ "
-                     f"{html.escape(c.get('what') or '')}</td>"
-                     f"<td><b>{c['fair_pct']:.0f}%</b></td>"
+                     f"<span class='when'>{c['fair_pct']:.0f}%</span></td>"
+                     f"<td>{safe_cell}</td>"
                      f"<td>{c['n_books']}</td></tr>")
         out += (f"<div class='match'>{html.escape(g)} "
                 f"<span class='when'>{when}</span></div>"
-                f"<table><tr><th>Player</th><th>The prop</th>"
-                f"<th>Sharps say</th><th>Books</th></tr>{rows}</table>")
+                f"<table><tr><th>Player</th>"
+                f"<th>Strong ({PARLAY_LEG_MIN_PROB:.0f}%+)</th>"
+                f"<th>Safe ({PROPS_SAFE_PROB:.0f}%+)</th>"
+                f"<th>Books</th></tr>{rows}</table>")
     return out
 
 
@@ -2312,8 +2363,7 @@ def main():
     # feed leaves the weather side of the board standing (and the red
     # dead-feed banner still flies).
     wx_legs = weather_legs()
-    combo_pool = ([dict(c, src=f"{c['n_books']} sharp books")
-                   for c in PARLAY_POOL] + wx_legs)
+    combo_pool = combo_sports_legs() + wx_legs
     combo_legs, combos = build_combos(combo_pool)
     if combos:
         with appender(COMBO_CSV, COMBO_FIELDS) as w:
