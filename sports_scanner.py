@@ -130,11 +130,19 @@ CREDIT_RESERVE = 150
 # a favorite we could not grade never makes the board.
 #
 # PARLAY_LEG_MIN_PROB: a parlay leg must be a real favorite, not a
-# lean. 60% is the floor -- stacking anything weaker builds a lottery
-# ticket, and the whole point is "most likely winners". (The gap
-# card's 55% is a minimum LEAN for a single pick; a parlay multiplies
-# its legs, so the bar is higher.)
-PARLAY_LEG_MIN_PROB = 60.0
+# lean. 70% is the floor -- OWNER DECISION, Sep 14 2026 ("I don't
+# care if it's 100% chance of winning or 70... it's not about
+# quantity it's about quality"), raised from the original 60 after
+# the Sep 13-14 weekend card: one lost leg (the Chargers, stated
+# 80%) sank every rung it rode, and the owner wants fewer, stronger
+# legs. Evidence at the time of the change, stated honestly: the
+# 60-64% band's graded record was 5W-2L and the Chargers leg itself
+# was ABOVE the new bar -- this floor buys concentration on locks,
+# not protection from upsets; combo/parlay_results.csv keep grading
+# it. (The gap card's 55% is a minimum LEAN for a single pick; a
+# parlay multiplies its legs, so the bar is higher. Floor history:
+# 60 from Sep 8 2026, 70 from Sep 14 2026.)
+PARLAY_LEG_MIN_PROB = 70.0
 # Full-game/match moneylines ONLY (the shelves marked parlay=True):
 # clean win/lose markets the books and Kalshi define identically. F5
 # winners (tie risk), totals and props stay off the board -- legs must
@@ -149,23 +157,27 @@ PARLAY_LEGS_SHOWN = 6      # the ranked leg list on the card
 # payout barely move: two 95% legs multiply to ~90% -- $1.09 fair, "no
 # money in them" -- while the graded record showed the 2-leg locks
 # hitting like crazy and the 4-leg rungs barely ever. The payout lives
-# in the 65-89% favorites: one 95% lock plus three ~70-75% favorites
-# multiplies to ~33% and pays ~$3 fair. So the board builds TWO
-# ladders from the same sharps pool, criteria-gated exactly like the
-# weather bot's money gates:
+# in the below-lock favorites: one 95% lock plus three ~70-75%
+# favorites multiplies to ~33% and pays ~$3 fair. So the board builds
+# TWO ladders from the same sharps pool, criteria-gated exactly like
+# the weather bot's money gates:
 #   - the LOCKS ladder (unchanged): the top favorites stacked
 #     top-down, 2..PARLAY_MAX_LEGS legs. The safe stack.
 #   - the BOOSTER stacks: the strongest lock (>= PARLAY_LOCK_PROB) as
-#     anchor plus the strongest 65-89% favorites, up to
-#     PARLAY_BOOST_MAX_LEGS legs. The payout builders.
+#     anchor plus the strongest PARLAY_BOOST_FLOOR-to-89% favorites,
+#     up to PARLAY_BOOST_MAX_LEGS legs. The payout builders.
 # PARLAY_BOOST_FLOOR is the owner's boundary on the caliber of shots:
 # every booster is still the sharps' CLEAR FAVORITE to win its game.
 # A leg the sharps call an underdog never boards, at any payout --
 # that is the edge-first disease (9-21) wearing a parlay slip. Same
 # law as the weather lane, in the owner's words: it doesn't matter
 # what the edge is, it's gotta be teams that are gonna win.
-PARLAY_BOOST_FLOOR = 65.0   # owner's call, Sep 12 2026 (options 60/65/70
-                            # were on the table with the math for each)
+PARLAY_BOOST_FLOOR = 70.0   # 65 was the owner's call Sep 12 2026 (from
+                            # options 60/65/70); raised to 70 with the
+                            # pool floor on Sep 14 2026 -- the owner's
+                            # "nothing under 70" covers boosters word
+                            # for word, so the booster range is now
+                            # 70-89% and the two floors coincide
 PARLAY_LOCK_PROB = 90.0     # a "lock" for anchoring a booster stack
 PARLAY_BOOST_MAX_LEGS = 6   # 95 x 75^4 ~ 30% / ~$3.3 fair at 5 legs,
                             # ~23% / ~$4.4 at 6; deeper than 6 even
@@ -174,8 +186,8 @@ PARLAY_BOOST_MAX_LEGS = 6   # 95 x 75^4 ~ 30% / ~$3.3 fair at 5 legs,
 # THE COMBO BOARD (owner request, Sep 10 2026): "build high paying
 # combos from the Kalshi market, combining any sector." Same
 # constitution as the parlay board, one shelf wider: the stack may mix
-# SPORTS legs (the sharps' 60%+ full-game moneyline favorites -- the
-# exact parlay-board pool, unchanged) with WEATHER legs (the money
+# SPORTS legs (the sharps' PARLAY_LEG_MIN_PROB%+ full-game moneyline
+# favorites -- the exact parlay-board pool) with WEATHER legs (the money
 # lane's own morning bracket picks). More qualifying favorites means
 # taller stacks, and a taller stack of real favorites is the ONLY
 # honest road to a high payout -- a payout is bought with combined
@@ -187,16 +199,20 @@ PARLAY_BOOST_MAX_LEGS = 6   # 95 x 75^4 ~ 30% / ~$3.3 fair at 5 legs,
 # ensemble's claimed probability alone is NOT calibrated enough to
 # stack -- autopsy §4: claims of 55%+ delivered ~35% across 51 settled
 # bets, and even post-rebuild morning 60%+ claims ran ~50%. So a
-# weather leg must be called a 60%+ favorite by BOTH experts at once:
-# the ensemble (>= PARLAY_LEG_MIN_PROB % of members on the picked
+# weather leg must be called a favorite by BOTH experts at once: the
+# ensemble (>= PARLAY_LEG_MIN_PROB % of members on the picked
 # bracket) AND the market itself (a live Kalshi YES bid of >= the same
 # number, in cents). The leg's stated probability is the LOWER of the
 # two -- the board understates, never overstates (the Phoenix law's
 # direction). Backtest on every morning-lane pick in edges.csv,
-# graded against settlements.csv (Aug 21 - Sep 8 2026): legs passing
-# both bars went 14W-2L (88%) while stating ~66% on average. Sixteen
-# legs is a thin sample -- combo_results.csv exists to keep grading
-# that rule for real, stated % vs hit rate, same as the parlay board.
+# graded against settlements.csv (Aug 21 - Sep 8 2026), at the 60/60
+# bar in force then: legs passing both bars went 14W-2L (88%) while
+# stating ~66% on average. Sixteen legs is a thin sample --
+# combo_results.csv exists to keep grading that rule for real, stated
+# % vs hit rate, same as the parlay board. (The bar rides
+# PARLAY_LEG_MIN_PROB, so the Sep 14 2026 owner decision raised it to
+# 70/70 with the rest of the boards -- expect weather legs to be
+# rarer and stronger.)
 #
 # The laws carried over word for word: ADVISORY ONLY FOREVER (nothing
 # here places, sizes, or sells a bet, and nothing that trades may ever
@@ -258,6 +274,55 @@ COMBO_RESULTS_FIELDS = ["graded_utc", "combo_id", "n_legs", "sectors",
                         "legs", "tickers", "combined_pct", "legs_won",
                         "legs_lost", "legs_void", "result"]
 
+# THE LEG LAB (owner question, Sep 14 2026): "you can't tell who wins
+# just from the market's percent -- an 80%er can lose and a 60%er can
+# win. What else could we look at, and in what scenario would a 60%
+# team still belong on the board?" The honest answer is: nobody can
+# call WHICH favorite loses -- but the QUALITY of a favorite's number
+# might be measurable, and that is a scoreboard question, not a
+# conviction question. So every parlay-shelf favorite from 55% up
+# (deliberately BELOW the board floor, so the banned bands keep
+# building a record) logs the signals we already hold at scan time --
+# no new feeds, no invented stats, no behavior change to any board:
+#   - books_low/high_pct: the SPREAD of the sharp books' own de-vigged
+#     numbers for the pick. Tight agreement vs one book way off --
+#     "do the experts even agree with each other?"
+#   - kalshi_bid_cents: the live Kalshi YES bid for the pick at scan
+#     time -- the same second expert the weather legs already use
+#     (dual-expert rule). Blank when unquoted, never guessed.
+#   - hours_to_start: how fresh the number is. The weather lane
+#     already proved day-of beats night-before with money; this
+#     measures whether the same holds for sports legs.
+# Graded per leg by Kalshi settlement into LEG_LAB_RESULTS_CSV
+# (WIN/LOSS/VOID, no pnl -- no bet was placed). Once there are ~100+
+# graded legs, slice the record: do tight-agreement 60%ers beat
+# loose-agreement 80%ers? Does Kalshi-confirms beat Kalshi-doubts?
+# Promotion of ANY of these into a board gate is an owner decision
+# made on that record -- the scoreboard promotes; conviction never
+# does. RESEARCH LOG ONLY, same law as the Model Lab: nothing that
+# boards, trades, scans for money, or calibrates may ever read these
+# files.
+# PROPS_SAFE_PROB (owner request, Sep 14 2026 -- "moving the dial"):
+# the props menu shows, next to each player's strong bar, the deepest
+# bar the sharps make him a 90%+ favorite to clear -- the owner's own
+# habit of dialing a Kalshi prop DOWN a few rungs for safety, printed
+# as a number instead of a guess. Display only; the ladder's legs and
+# the floor are unchanged.
+PROPS_SAFE_PROB = 90.0
+
+LEG_LAB_MIN_PROB = 55.0
+LEG_LAB_CSV = "leg_research.csv"
+LEG_LAB_RESULTS_CSV = "leg_research_results.csv"
+LEG_LAB_FIELDS = ["scanned_utc", "sport", "game", "pick", "ticker",
+                  "commence_utc", "hours_to_start", "books_pct",
+                  "n_books", "books_low_pct", "books_high_pct",
+                  "kalshi_bid_cents", "boarded"]
+LEG_LAB_RESULTS_FIELDS = ["graded_utc", "sport", "ticker", "pick",
+                          "books_pct", "books_low_pct", "books_high_pct",
+                          "kalshi_bid_cents", "hours_to_start",
+                          "boarded", "market_result", "result"]
+LEG_LAB = []                # rows collected by scan_winner this run
+
 # THE SHELVES. Each maps ONE hand-verified Kalshi series to ONE Odds API
 # market key. kind decides the matching logic. Verified against live
 # markets via sports_probe.py, Aug 19 2026 -- to add a shelf, run the
@@ -282,6 +347,44 @@ SHELVES = [
     dict(key="NFL_TOTAL", sport="americanfootball_nfl",
          label="NFL · TOTAL POINTS", kind="total", series="KXNFLTOTAL",
          odds_market="totals", featured=True),
+    # -- THE NFL PLAYER-PROP SHELVES (owner request, Sep 14 2026 -- the
+    # -- props ladder). Hand-verified live via the probe, Sep 14 2026
+    # -- (runs 117-119 on sports.yml, log evidence recorded):
+    # --   KXNFLPASSYDS "Pro Football Passing Yards", 37 open;
+    # --   KXNFLREC "Pro Football Player Receptions", 156 open;
+    # --   KXNFLRECYDS "Pro Football Receiving Yards", 195 open;
+    # --   KXNFLRSHYDS "Pro Football Rushing Yards", 84 open.
+    # -- Anatomy identical to KXMLBKS: yes_sub 'Bo Nix: 160+',
+    # -- floor_strike 159.5; event tickers date+codes, no game time
+    # -- (match_event's NFL dated path). Odds plan verified same day:
+    # -- base keys carry each player's two-sided MAIN line (6 books),
+    # -- alt_market keys carry the OVER-only alternate ladders (6
+    # -- books, points landing exactly on Kalshi's strikes -- DK Bo Nix
+    # -- Over 159.5 <-> Kalshi 160+). Cost, said plainly: 8 prop keys x
+    # -- up to PROP_EVENT_CAP NFL events x 2 scans/day on slate days --
+    # -- roughly 2,000-2,500 credits/month worst case against the 20K
+    # -- plan. The sharps price every line; we never price a prop from
+    # -- raw stats (pick-first law, unchanged).
+    dict(key="NFL_PASS_YDS", sport="americanfootball_nfl",
+         label="NFL · PASSING YARDS", kind="player_prop",
+         series="KXNFLPASSYDS", odds_market="player_pass_yds",
+         alt_market="player_pass_yds_alternate", featured=False,
+         what="passing yards"),
+    dict(key="NFL_RECEPTIONS", sport="americanfootball_nfl",
+         label="NFL · RECEPTIONS", kind="player_prop",
+         series="KXNFLREC", odds_market="player_receptions",
+         alt_market="player_receptions_alternate", featured=False,
+         what="receptions"),
+    dict(key="NFL_REC_YDS", sport="americanfootball_nfl",
+         label="NFL · RECEIVING YARDS", kind="player_prop",
+         series="KXNFLRECYDS", odds_market="player_reception_yds",
+         alt_market="player_reception_yds_alternate", featured=False,
+         what="receiving yards"),
+    dict(key="NFL_RUSH_YDS", sport="americanfootball_nfl",
+         label="NFL · RUSHING YARDS", kind="player_prop",
+         series="KXNFLRSHYDS", odds_market="player_rush_yds",
+         alt_market="player_rush_yds_alternate", featured=False,
+         what="rushing yards"),
     # -- the side dish: full-game moneylines -----------------------------
     dict(key="MLB_GAME", sport="baseball_mlb", label="MLB · MONEYLINE",
          kind="winner", series="KXMLBGAME", odds_market="h2h",
@@ -524,8 +627,12 @@ def devig_pair(over_probs, under_probs):
 
 def consensus_h2h(ev, market_key):
     """De-vigged win probs for one event's h2h-style market.
-    Returns ({outcome_name: prob}, n_books) or (None, 0). Handles 2-way
-    and 3-way (Draw) books identically: all quoted outcomes normalized."""
+    Returns ({outcome_name: prob}, n_books, {outcome_name: (lo, hi)})
+    or (None, 0, None). The third value is the LEG LAB's book-agreement
+    span: each book's own de-vigged prob for that outcome, min and max
+    across books -- measured from the same per-book numbers the median
+    already uses, so it invents nothing. Handles 2-way and 3-way (Draw)
+    books identically: all quoted outcomes normalized."""
     per_book = []
     for bk in ev.get("bookmakers", []):
         for mkt in bk.get("markets", []):
@@ -546,7 +653,7 @@ def consensus_h2h(ev, market_key):
             if ok and len(probs) >= 2:
                 per_book.append(probs)
     if len(per_book) < MIN_BOOKS:
-        return None, len(per_book)
+        return None, len(per_book), None
     names = set(per_book[0])
     if any(set(b) != names for b in per_book):
         # books disagree on the outcome set (2-way vs 3-way) -- use only
@@ -557,10 +664,17 @@ def consensus_h2h(ev, market_key):
         per_book = max(shapes.values(), key=len)
         names = set(per_book[0])
         if len(per_book) < MIN_BOOKS:
-            return None, len(per_book)
+            return None, len(per_book), None
     med = {n: median(b[n] for b in per_book) for n in names}
     tot = sum(med.values())
-    return {n: p / tot for n, p in med.items()}, len(per_book)
+    # per-book de-vigged prob for each outcome (each book normalized on
+    # its own quotes), min/max across books -- the Leg Lab's agreement span
+    span = {}
+    for n in names:
+        per = [b[n] / sum(b.values()) for b in per_book if sum(b.values()) > 0]
+        if per:
+            span[n] = (min(per), max(per))
+    return {n: p / tot for n, p in med.items()}, len(per_book), span
 
 
 def consensus_lines(ev, market_key):
@@ -594,6 +708,69 @@ def consensus_lines(ev, market_key):
         pair = devig_pair(ov, un)
         if pair:
             out[k] = (pair[0], pair[1], n)
+    return out
+
+
+def consensus_player_points(ev, market_key, alt_key):
+    """De-vigged OVER probability per (player, point) for one player-
+    prop market, main + alternate lines pooled.
+
+    Main lines are quoted two-sided (Over AND Under), so the normal
+    pair de-vig applies. Alternate ladders are quoted OVER-ONLY by the
+    books, so their vig is removed with each book's own MEASURED
+    overround: that same book's two-sided quotes for the same player
+    sum to 1 + its vig, and the alternate's implied probability is
+    divided by that sum. Measured per book per player, never a guessed
+    haircut; a book with no two-sided line for the player contributes
+    nothing to their alternates (silence, not a made-up number). The
+    props scoreboard (stated % vs settled hit rate) is the permanent
+    monitor on this correction.
+    Returns {(norm_player, point): (p_over, n_books)}."""
+    per_book = []                    # (two-sided pairs, over-only rows)
+    for bk in ev.get("bookmakers", []):
+        pairs, overs = {}, {}
+        for mkt in bk.get("markets", []):
+            if mkt.get("key") not in (market_key, alt_key):
+                continue
+            sides = defaultdict(dict)
+            for oc in mkt.get("outcomes", []):
+                try:
+                    price = float(oc["price"])
+                    point = float(oc["point"])
+                except (KeyError, TypeError, ValueError):
+                    continue
+                if price <= 1:
+                    continue
+                who = norm(oc.get("description", ""))
+                if not who:
+                    continue
+                sides[(who, point)][oc.get("name", "").lower()] = 1 / price
+            for k, s in sides.items():
+                if "over" in s and "under" in s:
+                    pairs[k] = (s["over"], s["under"])
+                elif "over" in s:
+                    overs.setdefault(k, s["over"])
+        if pairs or overs:
+            per_book.append((pairs, overs))
+    raw = defaultdict(list)          # (player, point) -> fair over probs
+    for pairs, overs in per_book:
+        rounds = defaultdict(list)   # player -> this book's overrounds
+        for (who, _pt), (io, iu) in pairs.items():
+            rounds[who].append(io + iu)
+        for k, (io, iu) in pairs.items():
+            raw[k].append(io / (io + iu))
+        for k, io in overs.items():
+            if k in pairs:
+                continue             # two-sided quote already counted
+            r = rounds.get(k[0])
+            if not r:
+                continue             # this book's vig is unmeasured for
+                                     # this player -- contribute nothing
+            raw[k].append(min(1.0, io / median(r)))
+    out = {}
+    for k, probs in raw.items():
+        if len(probs) >= MIN_BOOKS:
+            out[k] = (median(probs), len(probs))
     return out
 
 
@@ -891,7 +1068,7 @@ def evaluate(shelf, game, fair_pct, n_books, market, side, pick_text,
 
 
 def scan_winner(shelf, game, kalshi_events, rows):
-    fair, n = consensus_h2h(game["raw"], shelf["odds_market"])
+    fair, n, span = consensus_h2h(game["raw"], shelf["odds_market"])
     if not fair:
         return
     assign = None
@@ -948,6 +1125,37 @@ def scan_winner(shelf, game, kalshi_events, rows):
             "ticker": market.get("ticker", ""),
             "commence": game["commence"],
             "label": shelf["label"].split(" ·")[0]})
+    if (shelf.get("parlay")
+            and fair_pct >= LEG_LAB_MIN_PROB
+            and market.get("ticker")):
+        # THE LEG LAB (research passenger, see the config block): log
+        # the quality signals around this favorite -- including the
+        # 55-69% ones the board itself no longer shows -- so the
+        # scoreboard can grade which signals actually separate the
+        # favorites that win from the favorites that lose. Every
+        # number here is already in hand this scan: no extra calls,
+        # no invented data, no effect on any board.
+        bid = dollars_to_cents(market, "yes_bid_dollars")
+        if bid is None:
+            no_ask = dollars_to_cents(market, "no_ask_dollars")
+            if no_ask is not None:
+                bid = 100 - no_ask   # same number, quoted from the
+                                     # other side of the book
+        lo, hi = (span or {}).get(pick_team, (None, None))
+        hrs = (game["commence"]
+               - datetime.now(timezone.utc)).total_seconds() / 3600
+        LEG_LAB.append({
+            "scanned_utc": SCAN_STAMP,
+            "sport": shelf["label"].split(" ·")[0],
+            "game": game["game"], "pick": f"{pick_team} wins",
+            "ticker": market.get("ticker", ""),
+            "commence_utc": game["commence"].isoformat(),
+            "hours_to_start": round(hrs, 1),
+            "books_pct": round(fair_pct, 1), "n_books": n,
+            "books_low_pct": round(lo * 100, 1) if lo is not None else "",
+            "books_high_pct": round(hi * 100, 1) if hi is not None else "",
+            "kalshi_bid_cents": round(bid, 1) if bid is not None else "",
+            "boarded": "1" if fair_pct >= PARLAY_LEG_MIN_PROB else "0"})
     what = ("wins the first 5 innings" if shelf["key"] == "MLB_F5"
             else "wins")
     evaluate(shelf, game, fair_pct, n, market, "yes",
@@ -1016,10 +1224,75 @@ def scan_pitcher_prop(shelf, game, kalshi_events, rows):
         else:
             side, fair_pct = "no", p_under * 100
             pick = f"{name} stays under {need} strikeouts"
+        if (side == "yes" and fair_pct >= PARLAY_LEG_MIN_PROB
+                and m.get("ticker")):
+            # pitcher strikeouts join the props pool (owner request,
+            # Sep 14 2026 -- "every prop we can get in there"): same
+            # OVER-only, floor-clearing law as the NFL prop shelves
+            PROPS_POOL.append({
+                "pick": pick, "game": game["game"],
+                "player": name, "what": "strikeouts", "bar": need,
+                "fair_pct": fair_pct, "n_books": n,
+                "ticker": m.get("ticker", ""),
+                "commence": game["commence"],
+                "label": shelf["label"].split(" ·")[0]})
         if fair_pct < MIN_PICK_PROB:
             continue
         evaluate(shelf, game, fair_pct, n, m, side, pick,
                  f"{name} K line {strike}", rows)
+
+
+def scan_player_prop(shelf, game, kalshi_events, rows):
+    """THE NFL PLAYER-PROP SHELVES (owner request, Sep 14 2026): match
+    each market on Kalshi's strike ladder ('Bo Nix: 160+', floor
+    159.5) to the sharps' quote for the same player at the same line
+    -- main lines two-sided, alternate ladders vig-corrected by each
+    book's own measured overround (consensus_player_points). Two jobs:
+    gap-card candidates through the same evaluate() gates as every
+    shelf (YES side only -- the ladder is over-strikes), and PROPS
+    LADDER candidates: the sharps' PARLAY_LEG_MIN_PROB%+ OVER
+    favorites, collected for build_props_ladder."""
+    points = consensus_player_points(game["raw"], shelf["odds_market"],
+                                     shelf.get("alt_market"))
+    if not points:
+        return
+    et, mkts = match_event(kalshi_events, shelf["series"],
+                           shelf["sport"], game)
+    if not mkts:
+        return
+    for m in mkts:
+        strike = m.get("floor_strike")
+        sub = m.get("yes_sub_title") or ""       # 'Bo Nix: 160+'
+        player = norm(sub.split(":")[0]) if ":" in sub else ""
+        if strike is None or not player:
+            continue
+        try:
+            strike = float(strike)
+        except (TypeError, ValueError):
+            continue
+        if strike != strike // 1 + 0.5:
+            continue                 # not a half-point over line
+        hit = points.get((player, strike))
+        if not hit:
+            continue                 # books don't quote this exact line
+        p_over, n = hit
+        fair_pct = p_over * 100
+        name = sub.split(":")[0].strip()
+        bar = sub.split(":", 1)[1].strip()
+        pick = f"{name} {bar} {shelf['what']}"
+        if fair_pct >= PARLAY_LEG_MIN_PROB and m.get("ticker"):
+            PROPS_POOL.append({
+                "pick": pick, "game": game["game"],
+                "player": name, "what": shelf["what"],
+                "bar": int(strike + 0.5),
+                "fair_pct": fair_pct, "n_books": n,
+                "ticker": m.get("ticker", ""),
+                "commence": game["commence"],
+                "label": shelf["label"].split(" ·")[0]})
+        if fair_pct < MIN_PICK_PROB:
+            continue
+        evaluate(shelf, game, fair_pct, n, m, "yes", pick,
+                 f"{name} {shelf['what']} line {strike}", rows)
 
 
 # ------------------------------------------------------------- grading
@@ -1185,8 +1458,8 @@ def weather_legs():
         except ValueError:
             continue
         if model < PARLAY_LEG_MIN_PROB:
-            continue                 # the ensemble itself has no 60%+
-                                     # opinion -- silence, not a near-miss
+            continue                 # the ensemble itself clears no bar
+                                     # -- silence, not a near-miss
         if city in bench:
             print(f"  combo: {city} pick qualifies on numbers but the "
                   f"city is BENCHED by the scoreboard -- no leg")
@@ -1272,6 +1545,7 @@ def build_combos(pool):
 
 # --------------------------------------------------------- parlay board
 PARLAY_POOL = []            # candidates collected by scan_winner this run
+PROPS_POOL = []             # player-prop candidates from scan_player_prop
 
 
 def stack_row(stack, pid):
@@ -1300,7 +1574,8 @@ def build_parlays(pool):
     booster criteria, owner decision Sep 12 2026 -- see the config
     block): the LOCKS ladder stacks the top favorites top-down, the
     BOOSTER stacks anchor on the strongest lock and add the best
-    65-89% favorites so the fair payout reaches real money. Every leg
+    below-lock favorites (PARLAY_BOOST_FLOOR to 89%) so the fair
+    payout reaches real money. Every leg
     on either ladder is the sharps' clear favorite; grading is
     unchanged (grade_stacks keys on the tickers set, so each distinct
     stack is graded once by Kalshi settlement)."""
@@ -1329,13 +1604,58 @@ def build_parlays(pool):
     for n in range(3, PARLAY_BOOST_MAX_LEGS + 1):
         stack = anchor + boosters[:n - len(anchor)]
         if len(stack) < n:
-            break                    # ran out of 65%+ favorites
+            break                    # ran out of floor-clearing favorites
         row = stack_row(stack, f"{day}-BOOST{n}")
         if row["tickers"] in seen_stacks:
             continue
         seen_stacks.add(row["tickers"])
         parlays.append(row)
     return legs, parlays
+
+
+def combo_sports_legs():
+    """ONE sports leg per game for the combo board, chosen across BOTH
+    pools -- moneyline favorites AND player props (owner request,
+    Sep 14 2026: every sector's props invited to the cross-sector
+    stacks). The strongest leg from each game wins the seat; a team's
+    moneyline and its own QB's passing yards are the SAME game's
+    fortunes, so they never share a stack -- the explicit form of the
+    one-leg-per-game law that used to hold by construction when the
+    pool was moneylines only."""
+    tagged = ([dict(c, src=f"{c['n_books']} sharp books")
+               for c in PARLAY_POOL]
+              + [dict(c, src=f"{c['n_books']} sharp books · player prop")
+                 for c in PROPS_POOL])
+    best = {}
+    for c in sorted(tagged, key=lambda c: -c["fair_pct"]):
+        if c["ticker"] and c["game"] not in best:
+            best[c["game"]] = c
+    return list(best.values())
+
+
+def build_props_ladder(pool):
+    """THE PROPS LADDER (owner request, Sep 14 2026): stack the sharps'
+    strongest player-prop OVER favorites -- and take ONE LEG PER GAME,
+    strongest only. Same-game props rise and fall together (a QB's
+    passing yards and his receiver's catches are the same drives), so
+    multiplying them as if independent would overstate the combined
+    chance -- Kalshi's own app slips stack ten legs from one game and
+    wear a number that isn't real; this board refuses to. One leg per
+    game keeps the plain product honest, the same law that lets the
+    moneyline ladders multiply. Floor PARLAY_LEG_MIN_PROB, rungs
+    2..PARLAY_MAX_LEGS, ids <day>-PROPS<n>; rows ride parlay_picks.csv
+    and grade through grade_stacks by Kalshi settlement, unchanged.
+    ADVISORY ONLY -- the permanent rule covers it word for word."""
+    best = {}
+    for c in sorted(pool, key=lambda c: -c["fair_pct"]):
+        if c["ticker"] and c["game"] not in best:
+            best[c["game"]] = c
+    legs = sorted(best.values(), key=lambda c: -c["fair_pct"])
+    stacks = []
+    day = SCAN_STAMP[:10]
+    for n in range(2, min(len(legs), PARLAY_MAX_LEGS) + 1):
+        stacks.append(stack_row(legs[:n], f"{day}-PROPS{n}"))
+    return legs, stacks
 
 
 _SETTLE_CACHE = {}          # ticker -> market object, shared by both
@@ -1433,6 +1753,65 @@ def grade_combos():
                         carry=("sectors",), what="combo")
 
 
+def grade_leg_lab():
+    """Grade the Leg Lab's individual legs by Kalshi settlement --
+    WIN/LOSS/VOID per leg, no pnl (no bet was placed; a dollar figure
+    would be invented data). One graded row per ticker, taken from the
+    LATEST scan row (the freshest number is the one the signals
+    describe). Runs after the stack graders so _SETTLE_CACHE is
+    already warm for every ticker that rode a board. RESEARCH ONLY."""
+    if not os.path.exists(LEG_LAB_CSV):
+        return []
+    already = set()
+    if os.path.exists(LEG_LAB_RESULTS_CSV):
+        with open(LEG_LAB_RESULTS_CSV) as f:
+            for r in csv.DictReader(f):
+                already.add(r["ticker"])
+    pending = {}                       # ticker -> latest scan row
+    with open(LEG_LAB_CSV) as f:
+        for r in csv.DictReader(f):
+            t = r.get("ticker", "")
+            if not t or t in already:
+                continue
+            start = iso(r.get("commence_utc", ""))
+            if not start or start > (datetime.now(timezone.utc)
+                                     - timedelta(hours=3)):
+                continue               # too recent to be settled
+            if t not in pending or r["scanned_utc"] > pending[t]["scanned_utc"]:
+                pending[t] = r
+    graded = []
+    for t, r in list(pending.items())[:25]:
+        if t not in _SETTLE_CACHE:
+            data, err = kget(f"/markets/{t}", t)
+            _SETTLE_CACHE[t] = (data or {}).get("market", {}) \
+                if not err else None
+            time.sleep(0.3)
+        m = _SETTLE_CACHE[t]
+        if m is None:
+            continue                   # next run
+        status = (m.get("status") or "").lower()
+        result = (m.get("result") or "").lower()
+        if status not in ("settled", "finalized"):
+            continue                   # not settled yet
+        verdict = {"yes": "WIN", "no": "LOSS"}.get(result, "VOID")
+        graded.append({
+            "graded_utc": datetime.now(timezone.utc)
+            .isoformat(timespec="seconds"),
+            "sport": r["sport"], "ticker": t, "pick": r["pick"],
+            "books_pct": r["books_pct"],
+            "books_low_pct": r["books_low_pct"],
+            "books_high_pct": r["books_high_pct"],
+            "kalshi_bid_cents": r["kalshi_bid_cents"],
+            "hours_to_start": r["hours_to_start"],
+            "boarded": r["boarded"],
+            "market_result": result, "result": verdict})
+    if graded:
+        with appender(LEG_LAB_RESULTS_CSV, LEG_LAB_RESULTS_FIELDS) as w:
+            for g in graded:
+                w.writerow(g)
+    return graded
+
+
 # ------------------------------------------------------------- the card
 CSS = """
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1507,10 +1886,10 @@ def side_words(p):
 def build_parlay_html(legs, parlays, presults):
     """The parlay board section: ranked most-likely winners, then the
     stacked combos with honest combined numbers."""
-    if not legs and not presults:
+    if not legs and not parlays and not presults:
         return ""
     out = "<h2>The parlay board &mdash; today's most likely winners</h2>"
-    if not legs:
+    if not legs and not parlays:
         out += ("<div class='empty'><b>No parlay board today.</b><br>"
                 "No game on the slate has a favorite the sharps make "
                 f"{PARLAY_LEG_MIN_PROB:.0f}%+ likely (or its Kalshi "
@@ -1527,19 +1906,29 @@ def build_parlay_html(legs, parlays, presults):
                      f"{html.escape(c['game'])} · {when}</span></td>"
                      f"<td><b>{c['fair_pct']:.0f}%</b></td>"
                      f"<td>{c['n_books']}</td></tr>")
-        out += (f"<table><tr><th></th><th>The sharps' favorite</th>"
-                f"<th>Win chance</th><th>Books</th></tr>{rows}</table>")
+        if rows:
+            out += (f"<table><tr><th></th><th>The sharps' favorite</th>"
+                    f"<th>Win chance</th><th>Books</th></tr>{rows}</table>")
         for p in parlays:
             combined = float(p["combined_pct"])
             boost = "BOOST" in p["parlay_id"]
-            tag = "BOOSTER" if boost else "LOCKS"
-            sub = ("payout builder: the strongest lock + the best "
-                   f"{PARLAY_BOOST_FLOOR:.0f}&ndash;"
-                   f"{PARLAY_LOCK_PROB:.0f}% favorites &mdash; every "
-                   "leg still a clear favorite, no long shots"
-                   if boost else
-                   f"the safe stack &mdash; top {p['n_legs']} "
-                   "favorites")
+            props = "PROPS" in p["parlay_id"]
+            tag = "PROPS" if props else ("BOOSTER" if boost else "LOCKS")
+            if props:
+                sub = ("player-prop ladder: the sharps' "
+                       f"{PARLAY_LEG_MIN_PROB:.0f}%+ prop favorites, "
+                       "ONE leg per game &mdash; same-game props move "
+                       "together, so this board never stacks two from "
+                       "one game (app slips that do overstate their "
+                       "combined number)")
+            elif boost:
+                sub = ("payout builder: the strongest lock + the best "
+                       f"{PARLAY_BOOST_FLOOR:.0f}&ndash;"
+                       f"{PARLAY_LOCK_PROB:.0f}% favorites &mdash; every "
+                       "leg still a clear favorite, no long shots")
+            else:
+                sub = (f"the safe stack &mdash; top {p['n_legs']} "
+                       "favorites")
             out += f"""
 <div class="slip"><div class="punch"></div>
 <div class="stamp gap">{p['n_legs']} LEGS</div>
@@ -1660,6 +2049,70 @@ there pays each leg on its own, never this multiplied number.</div>
     return out
 
 
+def build_props_menu_html(pool):
+    """THE PROPS MENU (owner request, Sep 14 2026): the pick-list the
+    ladder's one-leg-per-game law deliberately does NOT put on a slip.
+    Every qualifying prop (the sharps' PARLAY_LEG_MIN_PROB%+ OVER
+    favorites), grouped by game: the player's name, the DEEPEST bar he
+    is still a floor-clearing favorite to beat, and the sharps' own
+    number. The owner picks freely at their own book -- several from
+    one game if they like; the printed caveat says plainly why the
+    card's own stacks never multiply two legs from one game."""
+    if not pool:
+        return ""
+    best, safe = {}, {}              # (game, player, market) -> deepest bar
+    for c in pool:
+        k = (c["game"], c.get("player") or c["pick"], c.get("what", ""))
+        cur = best.get(k)
+        if cur is None or (c.get("bar") or 0) > (cur.get("bar") or 0):
+            best[k] = c
+        if c["fair_pct"] >= PROPS_SAFE_PROB:
+            cur = safe.get(k)
+            if cur is None or (c.get("bar") or 0) > (cur.get("bar") or 0):
+                safe[k] = c
+    games = defaultdict(list)
+    starts = {}
+    for k, c in best.items():
+        games[c["game"]].append((c, safe.get(k)))
+        if c["game"] not in starts or c["commence"] < starts[c["game"]]:
+            starts[c["game"]] = c["commence"]
+    out = (f"<h2>The props menu &mdash; every "
+           f"{PARLAY_LEG_MIN_PROB:.0f}%+ player prop, game by game</h2>"
+           "<div class='why'>STRONG is the deepest bar the sharp books "
+           f"still make that player a {PARLAY_LEG_MIN_PROB:.0f}%+ "
+           "favorite to clear. SAFE is the dial moved back &mdash; the "
+           f"deepest bar he's a {PROPS_SAFE_PROB:.0f}%+ favorite to "
+           "clear: smaller payout, much harder to lose. Pick either at "
+           "your book, several from one game if you like. One warning, "
+           "said once: if you PARLAY two props from the SAME game, your "
+           "book multiplies them like separate coin tosses, but "
+           "same-game props rise and fall together &mdash; the real "
+           "combined chance is lower than the slip implies. The PROPS "
+           "stacks above cross games so their multiplied number stays "
+           "honest.</div>")
+    for g in sorted(games, key=lambda g: starts[g]):
+        when = starts[g].strftime("%a %H:%M UTC")
+        rows = ""
+        for c, s in sorted(games[g], key=lambda x: -x[0]["fair_pct"]):
+            safe_cell = (f"{s.get('bar', '?')}+ "
+                         f"<span class='when'>{s['fair_pct']:.0f}%</span>"
+                         if s else "&mdash;")
+            rows += (f"<tr><td><b>{html.escape(c.get('player') or '')}"
+                     f"</b><br><span class='when'>"
+                     f"{html.escape(c.get('what') or '')}</span></td>"
+                     f"<td>{c.get('bar', '?')}+ "
+                     f"<span class='when'>{c['fair_pct']:.0f}%</span></td>"
+                     f"<td>{safe_cell}</td>"
+                     f"<td>{c['n_books']}</td></tr>")
+        out += (f"<div class='match'>{html.escape(g)} "
+                f"<span class='when'>{when}</span></div>"
+                f"<table><tr><th>Player</th>"
+                f"<th>Strong ({PARLAY_LEG_MIN_PROB:.0f}%+)</th>"
+                f"<th>Safe ({PROPS_SAFE_PROB:.0f}%+)</th>"
+                f"<th>Books</th></tr>{rows}</table>")
+    return out
+
+
 def build_page(shown, results, feed_dead, parlay_legs, parlays, presults,
                combo_legs, combos, cresults):
     now = datetime.now(timezone.utc).strftime("%a %b %d, %H:%M UTC")
@@ -1734,6 +2187,7 @@ robot with your wallet -- it never bets. You do (or don't).</div>
 <h2>Today's picks, biggest gap first</h2>
 {slips}
 {build_parlay_html(parlay_legs, parlays, presults)}
+{build_props_menu_html(PROPS_POOL)}
 {build_combo_html(combo_legs, combos, cresults)}
 {hist}
 <div class="foot"><b>How this card works, in one breath:</b> the sharpest
@@ -1812,8 +2266,10 @@ def main():
         for sport, shelves in shelves_by_sport.items():
             featured = sorted({s["odds_market"] for s in shelves
                                if s["featured"]})
-            prop_keys = sorted({s["odds_market"] for s in shelves
-                                if not s["featured"]})
+            prop_keys = sorted({k for s in shelves if not s["featured"]
+                                for k in (s["odds_market"],
+                                          s.get("alt_market"))
+                                if k})
             games = fetch_sharp_games(sport, featured)
             if games is None:
                 continue            # printed loudly inside; featured
@@ -1856,7 +2312,8 @@ def main():
                     if not s["featured"] and s["odds_market"] in dead_keys:
                         continue
                     scanner = {"winner": scan_winner, "total": scan_total,
-                               "pitcher_prop": scan_pitcher_prop}[s["kind"]]
+                               "pitcher_prop": scan_pitcher_prop,
+                               "player_prop": scan_player_prop}[s["kind"]]
                     scanner(s, game, kalshi[s["key"]], rows)
 
     if not feed_dead and sports_ok == 0:
@@ -1880,13 +2337,33 @@ def main():
     print(f"parlay board: {len(parlay_legs)} qualifying favorites, "
           f"{len(parlays)} stacked combos")
 
+    # THE PROPS LADDER: one leg per game, floor PARLAY_LEG_MIN_PROB;
+    # rows ride parlay_picks.csv (PROPS ids) and grade via grade_stacks
+    prop_legs, prop_stacks = build_props_ladder(PROPS_POOL)
+    if prop_stacks:
+        with appender(PARLAY_CSV, PARLAY_FIELDS) as w:
+            for p in prop_stacks:
+                w.writerow(p)
+    parlays = parlays + prop_stacks   # one slip section on the card
+    print(f"props ladder: {len(prop_legs)} qualifying prop favorites "
+          f"(one per game, from {len(PROPS_POOL)} candidates), "
+          f"{len(prop_stacks)} stacks")
+
+    # THE LEG LAB: research rows only, nothing reads them back into
+    # any board (see the config block for the law)
+    if LEG_LAB:
+        with appender(LEG_LAB_CSV, LEG_LAB_FIELDS) as w:
+            for r in LEG_LAB:
+                w.writerow(r)
+    print(f"leg lab: logged {len(LEG_LAB)} favorites 55%+ "
+          f"(research only)")
+
     # THE COMBO BOARD: the parlay pool plus the weather sector's
     # dual-expert legs. Weather legs need no odds key, so a dead odds
     # feed leaves the weather side of the board standing (and the red
     # dead-feed banner still flies).
     wx_legs = weather_legs()
-    combo_pool = ([dict(c, src=f"{c['n_books']} sharp books")
-                   for c in PARLAY_POOL] + wx_legs)
+    combo_pool = combo_sports_legs() + wx_legs
     combo_legs, combos = build_combos(combo_pool)
     if combos:
         with appender(COMBO_CSV, COMBO_FIELDS) as w:
@@ -1901,6 +2378,8 @@ def main():
     print(f"graded {len(pgraded)} settled parlays")
     cgraded = grade_combos()
     print(f"graded {len(cgraded)} settled combos")
+    lgraded = grade_leg_lab()
+    print(f"leg lab: graded {len(lgraded)} settled legs (research only)")
     results = list(csv.DictReader(open(RESULTS_CSV))) \
         if os.path.exists(RESULTS_CSV) else []
     presults = list(csv.DictReader(open(PARLAY_RESULTS_CSV))) \

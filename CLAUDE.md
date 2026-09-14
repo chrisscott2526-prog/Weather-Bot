@@ -118,8 +118,12 @@ translated one-to-one:
   can stack them at their own sportsbook". Its laws: legs are the
   sharps' strongest **full-game/full-match moneyline favorites only**,
   from any league on the card — the shelves marked `parlay=True`
-  (`PARLAY_LEG_MIN_PROB = 60`%+ de-vigged — F5/totals/props stay off;
-  legs must be simple enough to stack honestly); **Kalshi's price
+  (`PARLAY_LEG_MIN_PROB = 70`%+ de-vigged since Sep 14 2026, the
+  quality tightening below; 60 from Sep 8–14 — F5/totals stay off,
+  and props stay off the MONEYLINE ladders; the separate PROPS
+  ladder, Sep 14 2026 below, carries player props under its own
+  one-leg-per-game law; legs must be simple enough to stack
+  honestly); **Kalshi's price
   plays no part in choosing a leg**, but every leg must match a
   hand-verified Kalshi market so the board is graded by Kalshi's own
   `result` (a favorite that can't be graded never makes the board);
@@ -138,30 +142,124 @@ translated one-to-one:
   4-leg rungs barely ever. So the board builds TWO ladders from the
   same sharps pool: the **LOCKS ladder** (top favorites top-down,
   unchanged) and the **BOOSTER stacks** — the strongest 90%+ lock as
-  anchor plus the strongest **65–89%** favorites, up to 6 legs
-  (`PARLAY_BOOST_FLOOR = 65`, the owner's boundary on the caliber of
-  shots, chosen from the 60/65/70 options with the math stated).
+  anchor plus the strongest **70–89%** favorites, up to 6 legs
+  (`PARLAY_BOOST_FLOOR = 70` since Sep 14 2026; 65 was the owner's
+  Sep 12 call from the 60/65/70 options — the quality tightening
+  raised it with the pool floor, so the two floors now coincide).
   Every booster is still the sharps' CLEAR FAVORITE to win its game
   — a leg the sharps call an underdog never boards, at any payout
   (the 9–21 edge-first disease wearing a parlay slip). A rung short
-  of qualifying legs doesn't exist; never pad with a weaker leg. The
-  pool floor stays 60 (the combo board's documented bars are
-  unchanged), so a 60–64% leg can still appear on a deep LOCKS rung
-  on a thin slate — only the booster stacks carry the 65 floor.
+  of qualifying legs doesn't exist; never pad with a weaker leg.
   Grading is unchanged: same CSVs, same HIT/MISS-by-settlement, ids
   `<day>-BOOST<n>`, and the calibration question (stated % vs hit
   rate) now judges both ladders.
+  **THE QUALITY TIGHTENING (owner decision, Sep 14 2026).** The
+  owner's words after the Sep 13–14 weekend card: the boards are
+  "full of 60%ers", one lost leg (the Chargers) sat on every stack
+  and sank them all, and "it's not about quantity it's about
+  quality" — nothing under 70% boards anymore, anywhere.
+  `PARLAY_LEG_MIN_PROB` 60 → 70 and `PARLAY_BOOST_FLOOR` 65 → 70,
+  one commit. The evidence at decision time, stated honestly both
+  ways: leg-level grading (outcomes pinned from the graded stacks)
+  had the 60–64% band at 5W–2L and 65–69% at 6W–1L — the bands being
+  banned were not the proven killers, and the Chargers leg itself
+  was stated at 80%, above the new bar (an 80% favorite loses one
+  time in five; no floor stops that). What the record DID convict is
+  depth: 5+ leg parlay rungs went 0W–5L and 4-leg rungs 6W–8L, and a
+  70 floor thins the pool so deep rungs mostly stop existing — the
+  concentration the owner asked for. The dual-expert weather bar
+  rides the same constant, so it moved to 70/70: rerunning the
+  backtest through Sep 14 at 70/70 gave 6W–1L on 7 qualifying legs
+  (vs 20W–2L on 22 legs at 60/60) — far fewer legs, each stronger.
+  Both results CSVs keep grading stated % vs hit rate; reviewing the
+  70 floor against that record is an owner decision, like every gate.
+  **THE PROPS LADDER (owner request, Sep 14 2026).** The owner saw
+  Kalshi's own app promoting pre-built player-prop slips (Herbert
+  150+ passing yards, Kelce 3+ receptions...) and asked for a props
+  version of the parlay board — betting on players, whose records
+  exist, instead of only team moneylines. Built the same day, fully
+  inside the constitution, after live probe verification (sports.yml
+  runs 117–119, log evidence in the shelf comments): four NFL
+  player-prop shelves — `KXNFLPASSYDS` (37 open), `KXNFLREC` (156),
+  `KXNFLRECYDS` (195), `KXNFLRSHYDS` (84), anatomy identical to
+  KXMLBKS (`'Bo Nix: 160+'`, floor_strike 159.5) — matched to the
+  Odds API player markets the paid plan verifiably carries (base
+  keys = each player's two-sided main line, `_alternate` keys = the
+  over-only ladders whose points land exactly on Kalshi's strikes;
+  6 sharp books each). The laws: **the sharps price every leg** — we
+  never build a probability from a player's raw stats (the books
+  already price Tom Brady's whole history plus this week's injury
+  report; a homemade stats model is the edge-first disease with
+  extra steps); alternate-ladder vig is removed with each book's own
+  MEASURED main-line overround (`consensus_player_points` — never a
+  guessed haircut, and a book with no two-sided line for the player
+  contributes nothing); **ONE prop leg per game, strongest only** —
+  same-game props rise and fall together (a QB's yards and his
+  receiver's catches are the same drives), so the app-style
+  ten-legs-one-game slip wears a multiplied number that isn't real,
+  and this board refuses to stack two legs from one game — that is
+  what keeps the plain product honest; floor `PARLAY_LEG_MIN_PROB`
+  (70, the quality tightening), rungs 2–4, OVER legs only, ids
+  `<day>-PROPS<n>`; rows ride `parlay_picks.csv` and grade through
+  `grade_stacks` by Kalshi settlement, unchanged. The prop shelves
+  also feed the gap card through the standard `evaluate()` gates
+  (props were always the constitution's priority shelf — the NFL
+  finally has verified series for them). Cost, stated plainly: 8
+  prop keys × up to 12 NFL events × 2 scans/day on slate days ≈
+  2,000–2,500 credits/month worst case against the 20K plan.
+  **The props menu (owner request, same day):** the card also lists
+  EVERY qualifying prop, grouped by game — player's name, the
+  deepest bar he's still a floor-clearing favorite to beat, the
+  sharps' % — so the owner can pick freely at their own book,
+  several from one game included (`build_props_menu_html`). The
+  one-leg-per-game law governs only the card's own STACKS (their
+  multiplied number must stay honest); it was never a limit on what
+  the owner may bet, and the menu prints the same-game caveat once,
+  plainly. **The dial (owner request, same night):** each menu line
+  also shows a SAFE column — the deepest bar the player is a
+  `PROPS_SAFE_PROB` (90%)+ favorite to clear — the owner's own habit
+  of dialing a Kalshi prop ladder down a few rungs for safety,
+  printed as a measured number. Display only; no gate changed.
+  **The every-sport widening (owner request, same night):** pitcher
+  strikeouts (the original prop shelf) now join the props pool/menu
+  under the same OVER-only 70 floor; MLB **batter** props stay OFF
+  on recorded evidence — Kalshi's series are rich (KXMLBHIT 85 open,
+  KXMLBHRR 125) but the odds feed returned only **1 book** for
+  batter hits/total-bases/RBIs (probe run 117) and one book is not a
+  consensus (`MIN_BOOKS = 3`); recheck by probe, since book coverage
+  can improve near game time. CFB and NBA player props are staged in
+  the probe (odds keys + KXNCAAF*/KXNBA* inventory, `inventory_
+  prefix`) — verdicts recorded from probe run 122, Sep 14 2026:
+  **CFB player props do not exist on either side** (Kalshi has no
+  KXNCAAF player-prop series — only team-level ones, all 0 open —
+  and the odds feed returned zero CFB player markets), off until
+  BOTH appear; **NBA is fully staged** — Kalshi already lists
+  KXNBAPTS / KXNBAREB / KXNBAAST / KXNBA3PT plus the combo stats
+  (all 0 open, season not started) and the odds feed already prices
+  the Oct 20 opener's props (2 books, thickening expected near
+  tip-off) — run the probe when October's markets OPEN and the
+  shelves join same-day; each joins only after live two-sided
+  verification, per the whitelist law. ADVISORY ONLY — the permanent
+  rule covers it word for word.
 - **The combo board (owner request, Sep 10 2026)** is the parlay
   board with every sector invited: one cross-sector stack ladder on
-  the same card, mixing the sharps' 60%+ full-game favorites (the
-  parlay pool, unchanged) with **weather legs** — the money lane's
-  own morning bracket picks. Its laws: a weather leg must pass the
-  **dual-expert rule** — the ensemble puts ≥60% of members on the
-  picked bracket AND Kalshi's **live** market bids ≥60¢ for it — and
+  the same card, mixing the sharps' favorites — full-game moneylines
+  AND, since Sep 14 2026 (owner request), player props, with **ONE
+  sports leg per game chosen across both pools**
+  (`combo_sports_legs`: a team's moneyline and its own QB's yards
+  are the same game's fortunes and never share a stack — the
+  explicit form of the independence law that held by construction
+  when the pool was moneylines only; 70%+ since the quality
+  tightening, 60%+ before) — with **weather legs** — the money
+  lane's own morning bracket picks. Its laws: a weather leg must pass the **dual-expert rule**
+  — the ensemble puts ≥`PARLAY_LEG_MIN_PROB`% of members on the
+  picked bracket AND Kalshi's **live** market bids at least the same
+  number in cents (70/70 since Sep 14 2026; 60/60 before) — and
   states the **lower** of the two numbers (the ensemble's claim alone
   is proven overconfident: autopsy §4 had 55%+ claims delivering
-  ~35%; the dual-bar backtest over Aug 21–Sep 8 went **14W–2L (88%)
-  while stating ~66%** — understate, never overstate). The bracket is
+  ~35%; the dual-bar backtest over Aug 21–Sep 8 at the original
+  60/60 bar went **14W–2L (88%) while stating ~66%** — understate,
+  never overstate). The bracket is
   always the ensemble's pick (pick-first law — never a bracket chosen
   for its price); benched cities never supply a leg (`BENCHED_CITIES`
   parsed from `scanner.py`'s source at run time, watchdog-style,
@@ -602,6 +700,8 @@ check that line first when a feed dies.
 | `model_research.csv` | `model_lab.py` (forecast.yml, nightly after the money forecast) | `forecast_date,station,city,model,forecast_high_f,n_members,members,fetched_utc` (THE MODEL LAB, Aug 31 2026 — candidate models riding as research passengers: `icon` = the German global ensemble, `nws` = the NWS public point forecast, raw and uncalibrated. RESEARCH LOG ONLY, same law as afternoon_forecasts.csv: **no trading or calibration code may ever read it**; union-merged append-only) |
 | `whale_trades.csv` | `whale_watcher.py` (whales.yml, every 2h at :37) | `seen_utc,sector,series,ticker,event,bet_on,bet_type,side,contracts,avg_price_cents,dollars,n_fills,first_trade_utc,last_trade_utc,close_time_utc,hours_before_close,expert_pct,agrees` (THE WHALE WATCHER, Sep 11 2026 — big executed bets from Kalshi's public tape on hand-verified series only; a row is a fill-burst, never a person; sector ∈ CFB/NFL/NBA/MLB/WEATHER/TENNIS; expert_pct = ensemble % (weather, from edges.csv) or sharps' de-vigged % (sports, from sports_picks.csv) for the whale's side, blank when no fresh row; bet_type added Sep 12 2026 = MONEYLINE / SPREAD n / TOTAL n / PROP, parsed structured-first (series ticker + Kalshi's floor_strike, then title text; a PROP's bet_on carries the full market question) — blank on rows older than the column, which readers treat as MONEYLINE for sports (only winner/match series were ever watched) and as blank-on-purpose for weather (a bracket is not a sports bet type); the board shows one line per team+side+bet type, summing same-window bursts, while the CSV keeps every burst; append-only, union-merged; **RESEARCH ONLY — nothing that trades, scans, or calibrates may ever read it**) |
 | `whale_results.csv` | `whale_watcher.py` | `graded_utc,sector,ticker,bet_on,side,dollars,market_result,result` (HIT/MISS by Kalshi's own settled result; **no pnl column on purpose** — no bet was placed, a dollar figure would be invented data; the scoreboard question is "does big money actually know?", per sector and per timing; append-only, union-merged; same research-only law) |
+| `leg_research.csv` | `sports_scanner.py` | `scanned_utc,sport,game,pick,ticker,commence_utc,hours_to_start,books_pct,n_books,books_low_pct,books_high_pct,kalshi_bid_cents,boarded` (THE LEG LAB, Sep 14 2026 — born from the owner's question "an 80%er can lose and a 60%er can win; what else could we look at?": every parlay-shelf sharps favorite from 55% up (deliberately below the 70 board floor, so the banned bands keep building a paper record) logs the quality signals already in hand at scan time — books_low/high = each sharp book's own de-vigged number for the pick, min/max, "do the experts agree with each other"; kalshi_bid_cents = the live Kalshi YES bid, the same second expert the weather dual-expert rule uses, blank when unquoted, never guessed; hours_to_start = number freshness; boarded = whether it cleared the board floor. No new feeds, no extra API calls, no effect on any board. RESEARCH LOG ONLY, same law as the Model Lab: **nothing that boards, trades, scans for money, or calibrates may ever read it**; append-only, union-merged) |
+| `leg_research_results.csv` | `sports_scanner.py` | `graded_utc,sport,ticker,pick,books_pct,books_low_pct,books_high_pct,kalshi_bid_cents,hours_to_start,boarded,market_result,result` (WIN/LOSS/VOID per leg by Kalshi's own settled result, one row per ticker from its latest scan row; **no pnl column on purpose** — no bet was placed. The scoreboard question, verbatim from the owner: in what scenario does a 60% team still belong on the board? Slice at ~100+ graded legs: tight-books-agreement vs loose, Kalshi-confirms vs Kalshi-doubts, fresh number vs stale. Promoting any signal into a board gate is an owner decision made on this record — the scoreboard promotes; conviction never does; append-only, union-merged; same research-only law) |
 | `model_report.md` | `model_report.py` (autopsy.yml, full rewrite each run) | per-city, per-model median miss vs the settled number: `pool`/`gfs`/`ecmwf` from forecasts.csv (calibrated; member_models splits the voters) and the research passengers from model_research.csv. Derived human-readable output ONLY — no code reads it, NEVER union-merge it. Promotion of a model into the vote is an owner decision made on this evidence |
 
 Calibration is applied **exactly once**, at forecast time

@@ -1,5 +1,93 @@
 # CHANGELOG
 
+- 2026-09-14 (late night): THE EVERY-SPORT PROPS WIDENING + THE DIAL
+  (owner requests). Four pieces, one commit: (1) THE DIAL -- the
+  props menu now shows a SAFE column beside each player's strong
+  bar: the deepest bar he's a 90%+ favorite to clear
+  (PROPS_SAFE_PROB), the owner's dial-it-back-for-safety habit
+  printed as a measured number. (2) Pitcher strikeouts join the
+  props pool/menu under the same OVER-only 70 floor (the shelf was
+  already scanned; only the pool append is new). (3) Player props
+  join the COMBO board, with the one-leg-per-game law made explicit
+  across pools (combo_sports_legs: a team's moneyline and its own
+  QB's yards never share a stack). (4) CFB + NBA prop verification
+  staged in the probe (odds keys + KXNCAAF*/KXNBA* live inventory);
+  NBA verifies when October's prop markets open. MLB BATTER props
+  stay OFF on recorded evidence: Kalshi's series are rich but the
+  odds feed returned 1 book for batter markets (run 117) and one
+  book is not a consensus -- recheck by probe near game time.
+  Advisory-only law unchanged everywhere.
+
+- 2026-09-14 (night, follow-up): THE PROPS MENU (owner request). The
+  card now lists EVERY qualifying player prop, grouped by game --
+  the player's name, the DEEPEST bar he's still a 70%+ favorite to
+  clear, and the sharps' % -- so the owner can pick freely at their
+  own book, including several props from one game. The
+  one-leg-per-game law was only ever about the card's own stacks
+  (their multiplied number must stay honest); the menu says the
+  same-game-parlay caveat once, plainly. Display only: no new data,
+  no new files, no gate changes. sports_scanner.py + CLAUDE.md.
+
+- 2026-09-14 (night): THE PROPS LADDER (owner request). A player-prop
+  version of the parlay board: four NFL prop shelves verified live
+  the same day via three probe runs (KXNFLPASSYDS / KXNFLREC /
+  KXNFLRECYDS / KXNFLRSHYDS -- anatomy identical to KXMLBKS -- and
+  the odds plan's base + _alternate player markets, 6 sharp books,
+  alternate points landing exactly on Kalshi's strikes). The sharps
+  price every leg (never a homemade stats model); over-only
+  alternate ladders are de-vigged by each book's own measured
+  main-line overround, never a guessed haircut; the ladder takes ONE
+  prop leg per game, strongest only, because same-game props move
+  together and stacking them (like the app's own slips do) wears a
+  multiplied number that isn't real. Floor 70 (the quality
+  tightening), rungs 2-4, OVER legs only, ids <day>-PROPS<n>, rows
+  in parlay_picks.csv, graded by Kalshi settlement via grade_stacks
+  unchanged. Prop shelves also feed the gap card through the normal
+  gates -- props were always the constitution's priority shelf.
+  Cost stated: ~2,000-2,500 odds credits/month worst case on the
+  20K plan. ADVISORY ONLY, permanent rule unchanged.
+  sports_scanner.py + sports_probe.py + CLAUDE.md, three commits
+  (probe evidence first, then the build).
+
+- 2026-09-14 (later): THE LEG LAB (owner question -> evidence-first
+  build, the Model Lab pattern). The owner's question: "you can't
+  tell who wins just from the market's percent -- an 80%er can lose
+  and a 60%er can win. What else could we look at, and in what
+  scenario would a 60% team still belong?" Nobody can call WHICH
+  favorite loses, but the QUALITY of a favorite's number might be
+  measurable -- so every parlay-shelf favorite from 55% up (below
+  the 70 board floor on purpose, so the banned bands keep building
+  a paper record) now logs the signals already in hand at scan
+  time: the sharp books' own low/high numbers for the pick (do the
+  experts agree with each other), the live Kalshi YES bid (the
+  weather legs' dual-expert pattern applied to sports, logged not
+  gated), and hours-to-start (freshness -- the day-of lesson,
+  measured for sports). Graded per leg by Kalshi settlement into
+  leg_research_results.csv, WIN/LOSS/VOID, no pnl. No new feeds, no
+  extra API calls, ZERO change to any board or card. RESEARCH ONLY
+  (Model Lab law): nothing that boards or trades may ever read it.
+  Promoting any signal into a gate -- including re-admitting a 60%er
+  that passes every signal -- is an owner decision made on ~100+
+  graded legs. sports_scanner.py + CLAUDE.md + .gitattributes, one
+  commit.
+
+- 2026-09-14: THE QUALITY TIGHTENING (owner decision). Nothing under
+  a 70% win chance boards on the parlay or combo ladders anymore:
+  PARLAY_LEG_MIN_PROB 60 -> 70 and PARLAY_BOOST_FLOOR 65 -> 70, one
+  commit (sports_scanner.py + CLAUDE.md; the card text reads the
+  constants so it updates itself). The owner's words after the
+  Chargers weekend: the boards are "full of 60%ers... it's not about
+  quantity it's about quality." Evidence recorded honestly both
+  ways in CLAUDE.md: the banned 60-69% bands were 11W-3L at leg
+  level and the Chargers leg that sank the weekend was stated at
+  80% -- the floor buys concentration, not upset protection; what
+  the record did convict is stack depth (5+ leg rungs 0W-5L), which
+  a 70 floor thins naturally. The weather dual-expert bar rides the
+  same constant and is now 70/70 (backtest through Sep 14: 6W-1L on
+  7 legs, vs 20W-2L on 22 legs at 60/60). Both results CSVs keep
+  grading stated % vs hit rate; reviewing the floor is an owner
+  decision on that record.
+
 - 2026-09-13: BOOSTER STACKS on the parlay board (owner decision).
   The owner typed the whole locks ladder into their book and watched
   the payout barely move -- two 95% legs multiply to 90%, $1.09

@@ -54,6 +54,36 @@ MLB_PROP_MARKETS = [
 NFL_PROP_MARKETS = [
     "h2h_h1", "spreads_h1", "totals_h1",
     "player_pass_tds", "player_anytime_td", "player_pass_yds",
+    # The props ladder question (owner request, Sep 14 2026): Kalshi's
+    # app builds prop slips from receptions / receiving yards / rushing
+    # yards markets -- verify the odds plan carries the matching player
+    # markets so the SHARPS can price every leg (we never price props
+    # from raw stats ourselves).
+    "player_receptions", "player_reception_yds", "player_rush_yds",
+    # The base keys carry only each player's MAIN line -- a deliberate
+    # ~50/50 coin flip, useless for a 70%+ ladder. Kalshi's low-bar
+    # strikes ("150+ passing yards" at ~90%) correspond to ALTERNATE
+    # lines, which the Odds API serves under separate keys. Verify the
+    # plan carries them and that their points land on Kalshi's strikes.
+    "player_pass_yds_alternate", "player_receptions_alternate",
+    "player_reception_yds_alternate", "player_rush_yds_alternate",
+]
+# The expansion staging (owner request, Sep 14 2026 -- "every prop we
+# can possibly get in there"): the same verification, pre-written for
+# college football (Saturday slates) and the NBA (season opens late
+# October -- run this probe again then; until Kalshi's NBA prop
+# markets are OPEN, its side cannot be hand-read and no shelf joins).
+NCAAF_PROP_MARKETS = [
+    "player_pass_yds", "player_receptions", "player_reception_yds",
+    "player_rush_yds",
+    "player_pass_yds_alternate", "player_receptions_alternate",
+    "player_reception_yds_alternate", "player_rush_yds_alternate",
+]
+NBA_PROP_MARKETS = [
+    "player_points", "player_rebounds", "player_assists",
+    "player_threes",
+    "player_points_alternate", "player_rebounds_alternate",
+    "player_assists_alternate", "player_threes_alternate",
 ]
 
 
@@ -98,6 +128,20 @@ def summarize_event_odds(ev, requested):
         else:
             print(f"    none {mk:<24} no book returned it (not offered on "
                   f"this game, or not on this plan -- see per-key test)")
+    # For alternate-line keys, dump sample outcome rows so the points
+    # can be checked against Kalshi's strikes (349.5, 129.5, ...).
+    for bk in ev.get("bookmakers", []):
+        for m in bk.get("markets", []):
+            mk = m.get("key", "")
+            if mk in requested and "alternate" in mk:
+                print(f"    sample rows for {mk} ({bk.get('key')}):")
+                for oc in m.get("outcomes", [])[:12]:
+                    print(f"      {oc.get('name', '')!r:<8} "
+                          f"{oc.get('description', '')!r:<28} "
+                          f"point={oc.get('point')!r} "
+                          f"price={oc.get('price')!r}")
+                requested = [k for k in requested if k != mk]
+                break
 
 
 def probe_event_markets(sport_key, markets):
@@ -223,6 +267,13 @@ def probe_odds_api():
     print("\n-- Per-event NFL prop/period markets (preseason) --")
     probe_event_markets("americanfootball_nfl", NFL_PROP_MARKETS)
 
+    print("\n-- Per-event NCAAF player-prop markets --")
+    probe_event_markets("americanfootball_ncaaf", NCAAF_PROP_MARKETS)
+
+    print("\n-- Per-event NBA player-prop markets (verifiable once the "
+          "October slate's props post) --")
+    probe_event_markets("basketball_nba", NBA_PROP_MARKETS)
+
 
 def kalshi_get(path, label, tries=4):
     req = urllib.request.Request(KBASE + path,
@@ -276,6 +327,53 @@ def probe_kalshi():
     for t in sorted(catalogue):
         if t.startswith("KXNFL"):
             print(f"  {t:<28} {catalogue[t][:70]}")
+
+    # The props ladder question (owner request, Sep 14 2026, widened
+    # the same day to CFB and NBA): inventory each league's series
+    # live -- open-market counts, volume, and one raw sample market
+    # each -- player-prop-looking series FIRST (by title keyword), so
+    # ticker anatomy, strike fields, and subtitles can be hand-read.
+    # Reading aid only; nothing is whitelisted automatically.
+    def inventory_prefix(prefix, keywords, cap=30):
+        names = [t for t in sorted(catalogue) if t.startswith(prefix)]
+        names.sort(key=lambda t: 0 if any(
+            k in catalogue.get(t, "").lower() for k in keywords) else 1)
+        print(f"\n{prefix}* LIVE INVENTORY (prop-looking series first, "
+              f"one sample each, first {cap}):")
+        for t in names[:cap]:
+            data, err = kalshi_get(
+                f"/trade-api/v2/markets?series_ticker={t}"
+                f"&status=open&limit=200", t)
+            if err:
+                print(f"  {t}: {err}")
+                continue
+            mkts = data.get("markets", [])
+            vol24 = sum(m.get("volume_24h") or 0 for m in mkts)
+            vol = sum(m.get("volume") or 0 for m in mkts)
+            oi = sum(m.get("open_interest") or 0 for m in mkts)
+            print(f"  {t:<28}{len(mkts):>5} open  vol24h={vol24:<10,} "
+                  f"vol={vol:<12,} oi={oi:<10,} "
+                  f"{catalogue.get(t, '')[:50]}")
+            if mkts:
+                m = mkts[0]
+                print(f"      sample: ticker={m.get('ticker', '')!r} "
+                      f"yes_sub={m.get('yes_sub_title', '')!r} "
+                      f"floor_strike={m.get('floor_strike')!r} "
+                      f"cap_strike={m.get('cap_strike')!r} "
+                      f"title={m.get('title', '')!r}")
+                for x in mkts[1:4]:
+                    print(f"      also: {x.get('ticker', '')}  "
+                          f"yes_sub={x.get('yes_sub_title', '')!r} "
+                          f"floor={x.get('floor_strike')!r}")
+            time.sleep(0.7)
+
+    inventory_prefix("KXNFL", ("passing yards", "player receptions",
+                               "receiving yards", "rushing yards",
+                               "rush and receiving"))
+    inventory_prefix("KXNCAAF", ("passing yards", "receptions",
+                                 "receiving yards", "rushing yards"))
+    inventory_prefix("KXNBA", ("points", "rebounds", "assists",
+                               "threes", "three point"), cap=20)
 
     rows, samples = [], {}
     for t in PRIORITY_SERIES:
