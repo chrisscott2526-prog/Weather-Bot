@@ -990,6 +990,14 @@ async function load(){
 document.getElementById("refreshBtn").addEventListener("click", load);
 load();
 setInterval(load, 120000);
+// THE HOME-SCREEN WAKE (Sep 14 2026). An iPad home-screen bookmark
+// restores a frozen snapshot when reopened; the 2-minute timer could
+// leave the owner staring at stale numbers for up to 2 more minutes
+// at exactly the moment they opened the app to decide something.
+// Reload the data the INSTANT the page comes back to the foreground.
+document.addEventListener("visibilitychange",
+  () => { if(!document.hidden) load(); });
+window.addEventListener("pageshow", e => { if(e.persisted) load(); });
 </script>
 </body>
 </html>

@@ -705,6 +705,7 @@ check that line first when a feed dies.
 | `whale_results.csv` | `whale_watcher.py` | `graded_utc,sector,ticker,bet_on,side,dollars,market_result,result` (HIT/MISS by Kalshi's own settled result; **no pnl column on purpose** — no bet was placed, a dollar figure would be invented data; the scoreboard question is "does big money actually know?", per sector and per timing; append-only, union-merged; same research-only law) |
 | `leg_research.csv` | `sports_scanner.py` | `scanned_utc,sport,game,pick,ticker,commence_utc,hours_to_start,books_pct,n_books,books_low_pct,books_high_pct,kalshi_bid_cents,boarded` (THE LEG LAB, Sep 14 2026 — born from the owner's question "an 80%er can lose and a 60%er can win; what else could we look at?": every parlay-shelf sharps favorite from 55% up (deliberately below the 70 board floor, so the banned bands keep building a paper record) logs the quality signals already in hand at scan time — books_low/high = each sharp book's own de-vigged number for the pick, min/max, "do the experts agree with each other"; kalshi_bid_cents = the live Kalshi YES bid, the same second expert the weather dual-expert rule uses, blank when unquoted, never guessed; hours_to_start = number freshness; boarded = whether it cleared the board floor. No new feeds, no extra API calls, no effect on any board. RESEARCH LOG ONLY, same law as the Model Lab: **nothing that boards, trades, scans for money, or calibrates may ever read it**; append-only, union-merged) |
 | `leg_research_results.csv` | `sports_scanner.py` | `graded_utc,sport,ticker,pick,books_pct,books_low_pct,books_high_pct,kalshi_bid_cents,hours_to_start,boarded,market_result,result` (WIN/LOSS/VOID per leg by Kalshi's own settled result, one row per ticker from its latest scan row; **no pnl column on purpose** — no bet was placed. The scoreboard question, verbatim from the owner: in what scenario does a 60% team still belong on the board? Slice at ~100+ graded legs: tight-books-agreement vs loose, Kalshi-confirms vs Kalshi-doubts, fresh number vs stale. Promoting any signal into a board gate is an owner decision made on this record — the scoreboard promotes; conviction never does; append-only, union-merged; same research-only law) |
+| `sixhr_max_log.csv` | `poller.py` | `utc_time,station,city,max6_f,obs_time_utc` (THE OVERNIGHT PEAK LOG, Sep 14 2026 — the station's OFFICIAL 6-hour maximum temperature from the 00/06/12/18 UTC synoptic observations, read from the same API payload the poller already fetches (no extra call), floored like every temperature, deduped by (station, obs_time). Born from the Philadelphia $10: the deciding overnight peak happened BETWEEN hourly readings, this field knew it, and nothing read it. **RESEARCH LOG ONLY — nothing that trades, scans for money, or calibrates may read it** until a walk-forward backtest (the morning-thermostat standard) proves that flooring the vote at the official 6-hour max flips misses to wins, and an owner decision promotes it; append-only, union-merged) |
 | `model_report.md` | `model_report.py` (autopsy.yml, full rewrite each run) | per-city, per-model median miss vs the settled number: `pool`/`gfs`/`ecmwf` from forecasts.csv (calibrated; member_models splits the voters) and the research passengers from model_research.csv. Derived human-readable output ONLY — no code reads it, NEVER union-merge it. Promotion of a model into the vote is an owner decision made on this evidence |
 
 Calibration is applied **exactly once**, at forecast time
@@ -1542,6 +1543,33 @@ commit:
    the owner: a home-screen bookmark serves a frozen copy — the
    "built X m ago" label turning red is the tell; refresh in Safari.
 
+3. **THE HOME-SCREEN SELF-HEAL (same day, second incident).**
+   "Refresh in Safari" was an explanation, not a fix, and the same
+   frozen home-screen copy cost the owner again within hours: the
+   cached swoop page didn't even list the city being sold, and the
+   sell signal reached them two hours late through Safari. The
+   frozen copy is Apple's cache, not a bot failure — but the boards
+   are the owner's money surfaces, so the pages now heal themselves:
+   - `swoop.html` (fully pre-built, so a frozen copy can only heal
+     by replacing itself): on open, on every return to the
+     foreground, and every 2 minutes, it fetches
+     `swoop_pulse.json?t=<now>` with `cache:'no-store'` (unique
+     query + no-store beats every cache layer including the CDN
+     edge); if the live board is 3+ minutes newer than the loaded
+     copy's embedded `BUILD_MS`, it jumps to
+     `swoop.html?fresh=<now>` — a cache-busting URL of itself. The
+     pulse and the page ship in the same commit, so after healing
+     the two agree and the check goes quiet — no reload loop.
+   - `index.html` was already safe on data (all fetches are
+     `?t=`-busted no-store on a 2-minute timer) but could sit up to
+     2 minutes stale at the exact moment of reopening; it now
+     reloads its data the INSTANT the page returns to the
+     foreground (visibilitychange + pageshow).
+   The same self-heal pattern is the template for sports.html and
+   whales.html if their staleness ever bites (they rebuild 2x daily
+   / 2-hourly, so the window is smaller); rolling it out there is a
+   display-only change any session may make.
+
 ## THE CARD EXPLAINS THE FLOOR (Sep 14, 2026) — OWNER CATCH
 
 The owner cross-checked three Station Board cards' pick brackets
@@ -1588,3 +1616,16 @@ sliced **per-city and per-strategy**, decides everything:
   truth of what the code really did.
 - Explain your findings to the owner in plain English, and deliver
   complete files.
+- **The owner does not press buttons (Sep 14 2026, owner decree).**
+  The owner's words: "when me and you talk it's me venting a problem
+  to you... I want you to just go do it. When I have a problem I'll
+  tell it to you and we just fix it if it's fixable." Two rules came
+  out of it. (1) A conversation with the owner is often venting, not
+  a work order — fix what is plainly broken, but do not treat every
+  musing as a mandate, and NEVER end a fix by handing the owner
+  homework. (2) Sessions merge their own pull requests after
+  verifying them — the owner is never asked to tap Merge. The one
+  thing that still needs the owner's explicit yes IN CONVERSATION is
+  a money-path decision (gates, sizing, benches, model promotions —
+  the laws above are unchanged); once the owner has said yes, build
+  it, verify it, and merge it yourself.
