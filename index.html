@@ -661,27 +661,62 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
     // plain English instead of leaving the card looking broken.
     // Uses the same member_models tags the Model Lab logs; blank on
     // old rows, in which case nothing is added (never guess).
-    if(fc && fc.members && fc.member_models){
-      const vals = fc.members.split("|").map(Number);
-      const tags = fc.member_models.split("|");
-      if(vals.length === tags.length && vals.every(v => !isNaN(v))){
-        const gm = medianOf(vals.filter((v, i) => tags[i] === "gfs"));
-        const em = medianOf(vals.filter((v, i) => tags[i] === "ecmwf"));
-        const bk = parseBracketSub(p.subtitle);
-        const medIn = !isNaN(med)
-          && (bk[0] === null || med >= bk[0] - 0.5)
-          && (bk[1] === null || med < bk[1] + 0.5);
-        if(!isNaN(gm) && !isNaN(em) && Math.abs(gm - em) >= 3){
-          // one line, not a lecture (owner request Sep 13 2026:
-          // every card the same compact shape)
-          why += ` <b>The forecast is split today:</b> GFS near `
-            + `<b>${gm.toFixed(0)}&deg;</b>, ECMWF near `
-            + `<b>${em.toFixed(0)}&deg;</b> &mdash; a split like `
-            + `that scatters the vote.`;
-        }else if(!medIn && !isNaN(med)){
-          why += ` The members are spread out today, which is why `
-            + `the vote looks weak.`;
+    // THE FLOOR + OVERTAKEN NOTES (Sep 14 2026). The owner compared
+    // three cards' pick brackets against their own forecast medians
+    // and rightly asked how they could disagree. They can, for two
+    // more honest reasons the card now states instead of looking
+    // broken: (1) the vote runs AFTER the day-of reality floor --
+    // members below a fresh observed high are raised to it, stacking
+    // the vote in the bracket the thermometer already reached, while
+    // the median shown is the raw forecast (Philadelphia Sep 14: 77.0
+    // banked overnight, vote 76-77, median 77.6); (2) a pick from an
+    // earlier scan can be OVERTAKEN when the station later climbs
+    // past its cap (DC Sep 14: 57.3% on 78-79 at 10:40, 80.6 read by
+    // 12:40). Explanation priority: overtaken > floor > model split
+    // > generic spread -- one line fires, never a lecture.
+    {
+      const bk = parseBracketSub(p.subtitle);
+      const medIn = !isNaN(med)
+        && (bk[0] === null || med >= bk[0] - 0.5)
+        && (bk[1] === null || med < bk[1] + 0.5);
+      const byT = hiByDay[sid] || {};
+      const tHigh = byT[stationDay(sid, now.getTime())];
+      const haveHigh = typeof tHigh === "number" && !isNaN(tHigh);
+      const obsPast = haveHigh && bk[1] !== null && tHigh > bk[1] + 0.5;
+      const obsInPick = haveHigh && !obsPast
+        && (bk[0] === null || tHigh >= bk[0] - 0.5)
+        && (bk[1] === null || tHigh < bk[1] + 0.5);
+      let gm = NaN, em = NaN;
+      if(fc && fc.members && fc.member_models){
+        const vals = fc.members.split("|").map(Number);
+        const tags = fc.member_models.split("|");
+        if(vals.length === tags.length && vals.every(v => !isNaN(v))){
+          gm = medianOf(vals.filter((v, i) => tags[i] === "gfs"));
+          em = medianOf(vals.filter((v, i) => tags[i] === "ecmwf"));
         }
+      }
+      if(obsPast){
+        why += ` <b>Overtaken by the thermometer:</b> the station has `
+          + `since read <b>${tHigh.toFixed(1)}&deg;</b>, past this `
+          + `bracket's cap &mdash; this pick came from an earlier scan `
+          + `and the day has already outrun it.`;
+      }else if(obsInPick && !medIn && !isNaN(med)){
+        why += ` <b>Why the pick sits off the median:</b> the station `
+          + `has already read <b>${tHigh.toFixed(1)}&deg;</b> today, `
+          + `and an observed reading is a hard floor on the vote `
+          + `&mdash; forecasts below it are raised to it, stacking the `
+          + `vote in the bracket the thermometer has already reached. `
+          + `The median shown is the raw forecast, before that floor.`;
+      }else if(!isNaN(gm) && !isNaN(em) && Math.abs(gm - em) >= 3){
+        // one line, not a lecture (owner request Sep 13 2026:
+        // every card the same compact shape)
+        why += ` <b>The forecast is split today:</b> GFS near `
+          + `<b>${gm.toFixed(0)}&deg;</b>, ECMWF near `
+          + `<b>${em.toFixed(0)}&deg;</b> &mdash; a split like `
+          + `that scatters the vote.`;
+      }else if(!medIn && !isNaN(med)){
+        why += ` The members are spread out today, which is why `
+          + `the vote looks weak.`;
       }
     }
   }
