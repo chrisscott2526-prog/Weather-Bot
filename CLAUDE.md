@@ -1542,6 +1542,27 @@ commit:
    the owner: a home-screen bookmark serves a frozen copy — the
    "built X m ago" label turning red is the tell; refresh in Safari.
 
+## THE CARD EXPLAINS THE FLOOR (Sep 14, 2026) — OWNER CATCH
+
+The owner cross-checked three Station Board cards' pick brackets
+against their own forecast medians and asked how they could disagree
+(Philadelphia: vote 76–77, median 77.6; DC: 57.3% on 78–79, median
+79.5; LA: 29.3% on "83 or above", median 81.1). All three are honest
+mechanics, verified against the raw rows that day, and the card now
+states them instead of looking broken — the split-note lineage
+continued. Explanation priority in the WHY line (one line fires,
+never a lecture): **overtaken** (the station has since read past the
+pick's cap — the pick is from an earlier scan and the day outran it;
+DC's exact shape) > **the floor** (the vote runs AFTER the day-of
+reality floor, so members below a fresh observed high are raised to
+it and stack the vote in the thermometer's own bracket, while the
+displayed median is the raw pre-floor forecast; Philadelphia's exact
+shape — the banked 77.0 pulled the vote to 76–77) > **the model
+split** (Sep 12, unchanged) > generic spread. Display only; no gate
+or vote changed. The deeper lesson, recorded: when two numbers on
+one card come from different pipeline stages, the card must say so
+— that gap is exactly where the owner loses trust.
+
 ## ROADMAP — how this grows
 
 Flat $1 stakes are **temporary tuition**. The record in `results.csv`,
