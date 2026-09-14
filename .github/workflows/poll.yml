@@ -101,11 +101,14 @@ jobs:
             python poller.py || { echo "::warning::poller.py failed this pass -- boards keep their last reading until the next pass"; ANY_ERROR=1; }
             # The swoop board rides the relay too (Aug 30 2026: its
             # own cron starved it 3 hours during Pacific risk hours).
-            # Same rhythm as swoop.yml's old schedule: every pass in
-            # the 16:00-01:59 UTC heat-of-day band, 2-hourly otherwise.
+            # Dense band starts 13:00 UTC since Sep 14 2026 (owner
+            # sells on this board: the old 16:00 start left a 2-hour
+            # blind spot right after the 9-11 AM buys -- Philadelphia
+            # was bought 13:10 and first graded 15:04 that day).
+            # Every pass 13:00-01:59 UTC, 2-hourly otherwise.
             # swoop.yml stays as a manual backup button.
             H=$((10#$(date -u +%H))); M=$((10#$(date -u +%M)))
-            if [ "$H" -ge 16 ] || [ "$H" -lt 2 ] || { [ $((H % 2)) -eq 1 ] && [ "$M" -lt 15 ]; }; then
+            if [ "$H" -ge 13 ] || [ "$H" -lt 2 ] || { [ $((H % 2)) -eq 1 ] && [ "$M" -lt 15 ]; }; then
               python swoop_alert.py || { echo "::warning::swoop_alert.py failed this pass -- board keeps its last grade until the next pass"; ANY_ERROR=1; }
             fi
             # The whale watcher rides the relay too (Sep 11 2026, owner

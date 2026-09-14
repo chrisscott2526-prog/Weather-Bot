@@ -632,8 +632,11 @@ settlements.py (12x daily, every  Kalshi settled result fields (unauth)
                                   AND (Aug 24 2026) the actuals that
                                   calibration and autopsy learn from
 swoop_alert.py (every 15 min      advisor board -> swoop.html, swoop_log.csv,
-              16:00-01:59 UTC,    swoop_pulse.json (its heartbeat)
-              2-hourly rest)      (polls its own fresh temps first;
+              13:00-01:59 UTC,    swoop_pulse.json (its heartbeat)
+              2-hourly rest --    (polls its own fresh temps first;
+              band start 16 -> 13
+              Sep 14 2026, the
+              sell-signal fixes)
                                   grades each position on its CITY'S
                                   local day, so West Coast evenings
                                   stay on the board)
@@ -1473,6 +1476,71 @@ cities keep full paper records, as the bench law requires. The
 October review (phase 2) still does the per-model work — benching
 a model inside a city, promoting icon/nws — and re-judges this
 city list with the thicker record, both directions.
+
+## THE MORNING THERMOSTAT — TESTED AND REJECTED (Sep 14, 2026)
+
+The near-miss autopsy of the pick report card found a real-looking
+cold lean: at ten cities the morning pick's one-bracket misses fell
+overwhelmingly on the cold side (NYC and Atlanta: 8 of 8 cold; OKC
+6 of 6; Seattle 10 of 11) — while the calibration, trained on NIGHT
+forecast errors and bolted onto the morning lane, was already
+pushing warm at most of them. The proposed fix was a morning-lane
+thermostat: a second per-station bias learned from morning rows vs
+settlements, applied only to `--today` forecasts.
+
+**The walk-forward backtest said NO, and it was not shipped.** Over
+468 stored morning city-days (every shift learned only from days
+before it, both arms re-voted identically): full strength 150 → 145
+hits; every gentler variant (half-shift, strong-evidence-only,
+21-day window) gained at most +6 of 468 overall while LOSING ground
+on the active nine cities (81 → 79/80), where the money is. The
+lean is real in the misses but a trailing shift chases day-to-day
+noise as hard as it corrects lean — the existing calibration plus
+the day-of reality floor already eat what is eatable. The scoreboard
+refused the promotion; conviction did not override it. Do not
+re-ship this idea on the same hunch — re-test it only when the
+per-model corrections or a genuinely different estimator (e.g. HRRR
+same-day guidance, the Model Lab's deferred item) change the
+picture. The backtest lives in the session record of Sep 14 2026;
+the method (walk-forward on stored morning members, re-voted over
+edges.csv bracket sets, graded by settlements) is the required
+standard for any future forecast-correction proposal.
+
+## THE SELL-SIGNAL FIXES (Sep 14, 2026) — OWNER INCIDENT
+
+Context every future session must know: **the owner mirrors the
+bot's picks with their own much larger money, and uses the swoop
+board as the sell trigger.** The bot's $1 ledger understates what a
+board defect costs by an order of magnitude — the owner reported
+roughly $4,000 of personal losses mirroring seven months of picks.
+Treat every advisory-board latency or wording bug as a money bug.
+
+The incident (Sep 14): Philadelphia's 76–77° bracket was bought at
+9:10 AM ET. The day's high — 77.0° — had been BANKED at 2:15 AM
+ahead of a cold front; by mid-morning the station read 71.6° and
+falling. The overshoot card still wore the heating-afternoon words
+("heat of the day, one more push blows past this bracket"), and the
+owner, reading it through a stale home-screen copy two hours after
+the buy, sold into a 33¢ market. Two defects, both fixed in one
+commit:
+
+1. **The morning blind spot.** The swoop board's dense 15-minute
+   band started at 16:00 UTC — two-plus hours after the first 13:00
+   UTC buys (Philadelphia that day: bought 13:10, first graded
+   15:04). The band now starts at **13:00 UTC** (poll.yml relay
+   condition + swoop.yml backup crons, moved together).
+2. **The banked-high fix.** `highs.latest_readings()` (new, same
+   pass and raw source as `highs_today` so the two can never
+   disagree) gives every card the station's freshest reading, shown
+   as "Now: X°". When that reading sits `BANKED_DROP_F` (1.5°F) or
+   more under the day's high, the overshoot card says the true shape
+   of the day — "that high is BANKED... this wins if the heat stays
+   away; it dies only if the afternoon climbs back past the cap" —
+   instead of the live-climb words. The tag itself stays OVERSHOOT
+   RISK (a second warm-up is a real risk); only the story changed.
+   The freshness laws are untouched. Note the iPad gotcha, told to
+   the owner: a home-screen bookmark serves a frozen copy — the
+   "built X m ago" label turning red is the tell; refresh in Safari.
 
 ## ROADMAP — how this grows
 
