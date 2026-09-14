@@ -701,6 +701,7 @@ check that line first when a feed dies.
 | `balance.json` | `trader.py` (every trading pass + end-of-day sweep: cash bucket) and `account_check.py` (Run button: all buckets) — full rewrite each write | JSON: `checked_utc, cash_cents, source, note` (+ `held_cents, riding_cents, n_resting, n_open` when written by account_check) (THE WALLET LINE, Sep 12 2026 — the Station Board's spendable-cash display, red under $1; display/alerting ONLY, no money code reads it, NEVER union-merge it; a dead balance call leaves the old file, whose own checked_utc shows the staleness) |
 | `settlements_pulse.json` | `settlements.py` (full rewrite each run) | JSON: `checked_utc, api_tried, api_ok, rows_written, rows_total, note` (added Sep 12 2026 — the settlements job’s heartbeat, written every run even when nothing new settled, so the watchdog can tell "job dead" from "Kalshi slow to finalize"; checked_utc in settlements.csv moves only when a settlement pins, and on Sep 11–12 2026 that false-alarmed SETTLEMENTS STALE for ~20 h at a healthy job — the swoop_pulse lesson applied. Display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `model_research.csv` | `model_lab.py` (forecast.yml, nightly after the money forecast) | `forecast_date,station,city,model,forecast_high_f,n_members,members,fetched_utc` (THE MODEL LAB, Aug 31 2026 — candidate models riding as research passengers: `icon` = the German global ensemble, `nws` = the NWS public point forecast, and since Sep 14 2026 (owner request) `hrrr` = NOAA's hourly-refreshed ~3 km US short-range model via Open-Meteo's free forecast API (models=gfs_hrrr, a single deterministic number like nws; its short horizon can honestly miss a nightly for-tomorrow row) — all raw and uncalibrated. RESEARCH LOG ONLY, same law as afternoon_forecasts.csv: **no trading or calibration code may ever read it**; union-merged append-only) |
+| `model_research_today.csv` | `model_lab.py --today --out model_research_today.csv` (samedaylab.yml, 14:12 + 19:42 UTC) | same header as `model_research.csv` (THE SAME-DAY LAB, Sep 14 2026 — the candidates' SAME-DAY numbers, one pull in the buy-window hours and one in the afternoon, so the October review can judge same-day skill (HRRR's whole reason for existing) on a real record instead of nightly-horizon rows; separate file on purpose so the nightly standings in model_report.md never mix horizons. RESEARCH LOG ONLY, same law as its parent: **nothing that trades, scans for money, or calibrates may ever read it**; union-merged append-only) |
 | `whale_trades.csv` | `whale_watcher.py` (whales.yml, every 2h at :37) | `seen_utc,sector,series,ticker,event,bet_on,bet_type,side,contracts,avg_price_cents,dollars,n_fills,first_trade_utc,last_trade_utc,close_time_utc,hours_before_close,expert_pct,agrees` (THE WHALE WATCHER, Sep 11 2026 — big executed bets from Kalshi's public tape on hand-verified series only; a row is a fill-burst, never a person; sector ∈ CFB/NFL/NBA/MLB/WEATHER/TENNIS; expert_pct = ensemble % (weather, from edges.csv) or sharps' de-vigged % (sports, from sports_picks.csv) for the whale's side, blank when no fresh row; bet_type added Sep 12 2026 = MONEYLINE / SPREAD n / TOTAL n / PROP, parsed structured-first (series ticker + Kalshi's floor_strike, then title text; a PROP's bet_on carries the full market question) — blank on rows older than the column, which readers treat as MONEYLINE for sports (only winner/match series were ever watched) and as blank-on-purpose for weather (a bracket is not a sports bet type); the board shows one line per team+side+bet type, summing same-window bursts, while the CSV keeps every burst; append-only, union-merged; **RESEARCH ONLY — nothing that trades, scans, or calibrates may ever read it**) |
 | `whale_results.csv` | `whale_watcher.py` | `graded_utc,sector,ticker,bet_on,side,dollars,market_result,result` (HIT/MISS by Kalshi's own settled result; **no pnl column on purpose** — no bet was placed, a dollar figure would be invented data; the scoreboard question is "does big money actually know?", per sector and per timing; append-only, union-merged; same research-only law) |
 | `leg_research.csv` | `sports_scanner.py` | `scanned_utc,sport,game,pick,ticker,commence_utc,hours_to_start,books_pct,n_books,books_low_pct,books_high_pct,kalshi_bid_cents,boarded` (THE LEG LAB, Sep 14 2026 — born from the owner's question "an 80%er can lose and a 60%er can win; what else could we look at?": every parlay-shelf sharps favorite from 55% up (deliberately below the 70 board floor, so the banned bands keep building a paper record) logs the quality signals already in hand at scan time — books_low/high = each sharp book's own de-vigged number for the pick, min/max, "do the experts agree with each other"; kalshi_bid_cents = the live Kalshi YES bid, the same second expert the weather dual-expert rule uses, blank when unquoted, never guessed; hours_to_start = number freshness; boarded = whether it cleared the board floor. No new feeds, no extra API calls, no effect on any board. RESEARCH LOG ONLY, same law as the Model Lab: **nothing that boards, trades, scans for money, or calibrates may ever read it**; append-only, union-merged) |
@@ -1618,6 +1619,42 @@ both halves stated:
   model, i.e. the `hrrr` passenger the Model Lab added Sep 14 — an
   un-widened hourly-refresh model is a different estimator, which
   is what the morning-thermostat rejection says re-tests need.
+
+## THE ENSEMBLE VERDICT AND THE SAME-DAY LAB (Sep 14, 2026, night) — OWNER DECISION
+
+The owner's words after the afternoon ensemble replay, recorded so
+future sessions know exactly where trust stands: the global
+ensembles have now been graded at night (29% wins, benched), in the
+morning (better, still modest), and late afternoon (picking 1¢ dead
+brackets half the time) — "they're absolutely worthless... you can
+never adjust them, you can never train them... nothing could happen
+that could make me trust them again," and HRRR "may be what we
+need." Two owner decisions came out of it, plus one honesty note:
+
+- **Nothing changes on the money path right now** — the owner's own
+  call ("we're not changing anything right now, that's too wild").
+  The morning lane keeps running exactly as configured on the active
+  nine. The counterpoint stays on the record, as honesty requires:
+  the morning lane on the active-nine cities stands 23W–9L, +53¢/$1
+  settled — the one slice of ensemble output that has ever made
+  money — and the ensembles beat blind chance in every window (47%
+  afternoon vs ~17% blind), so "bet against them" would lose worse,
+  and NO-betting stays banned regardless. Distrust is recorded;
+  the scoreboard, not the mood, decides the replacement.
+- **The October review is now also a REPLACEMENT review.** The owner
+  pre-declares the appetite: if a candidate (HRRR first) proves
+  materially better on the records, replacing the global ensembles
+  in the vote is on the table — same evidence bar as every
+  promotion, owner decides on the numbers.
+- **THE SAME-DAY LAB shipped the same night** (samedaylab.yml →
+  `model_research_today.csv`, contract in the table): the nightly
+  Model Lab only logs HRRR's for-TOMORROW guess, which is not the
+  question — so the lab now logs the candidates' TODAY numbers twice
+  a day (14:12 UTC, inside the buy-window hours, and 19:42 UTC,
+  afternoon), all 20 cities, benched included. By the October review
+  that is ~35+ same-day city-days per slot to grade against
+  settlements with the replay method. Research only, dead-feed law,
+  no secrets, nothing on the money path reads it.
 
 ## THE SELL-SIGNAL FIXES (Sep 14, 2026) — OWNER INCIDENT
 
