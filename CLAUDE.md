@@ -1552,6 +1552,32 @@ is real but unpayable, stated once: by 2:30 PM the market has read
 the same thermometer we poll — the information advantage is gone
 and only the fee remains.
 
+**THE OWNER'S REBUTTAL AND THE FORWARD TEST (same day, hours
+later).** The owner pushed back: skip the 90¢ers — the play is $50
+on every ~73¢ favorite as late in the day as possible. Deeper
+slicing found that pocket DID make paper money in the stored month:
+each city-day's LAST scan between 1:00–4:59 PM local, $50 on the
+favorite when it cost 65–80¢, went **64W–14L (82%), +$495 over 20
+days (+13¢/$1 after fees, +10¢ with 2¢ slippage)**. Stated honestly
+both ways: the result is FRAGILE — the same rule read one scan
+earlier drops to 73% wins and break-even, the 75–80¢ third of the
+band lost −7¢/$1 on its own, and the shiny 65–69¢ pocket (23W–2L,
++35¢/$1) is only 25 bets. Fragility under small shifts is the
+signature of a data-mined band, so **nothing ships on this slice**.
+Instead the rule is pre-registered here and judged OUT OF SAMPLE:
+edges.csv already logs everything needed for all 20 cities (the
+bench law), so no code was added. Rule, frozen Sep 14 2026: last
+scan 13:00–16:59 city-local on the market's own date → the bracket
+with the highest YES ask → paper $50 when that ask is 65–80¢
+inclusive → grade by settlements.csv, Kalshi fees in. Judge on
+data AFTER Sep 14 only (~4 qualifying city-days/day → ~100 by the
+October review). If the out-of-sample record holds ≥ +10¢/$1, an
+afternoon advisory lane is worth proposing; anything more is an
+owner money-path decision then, never before. And the honest scale,
+said plainly: even the friendly in-sample slice averaged ~$25/day
+at $50 stakes with a −$120 worst day — real if it survives, but not
+"a couple hundred every day."
+
 ## THE SELL-SIGNAL FIXES (Sep 14, 2026) — OWNER INCIDENT
 
 Context every future session must know: **the owner mirrors the
