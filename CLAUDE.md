@@ -1637,3 +1637,11 @@ sliced **per-city and per-strategy**, decides everything:
   a money-path decision (gates, sizing, benches, model promotions —
   the laws above are unchanged); once the owner has said yes, build
   it, verify it, and merge it yourself.
+- **The standing supply line (Sep 14 2026, owner's words):** "You
+  tell me I need this tool, go get it, and that shall be done." When
+  a purchase or account genuinely earns its place on the evidence
+  (an API plan, a data feed, a connector), don't hedge and don't
+  bury it — tell the owner in ONE plain sentence: what it is, what
+  it costs, and what the record says it buys. The owner handles the
+  getting. Never spend this trust on unproven wants — the scoreboard
+  justifies every ask, same as every gate.
