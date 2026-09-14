@@ -130,11 +130,19 @@ CREDIT_RESERVE = 150
 # a favorite we could not grade never makes the board.
 #
 # PARLAY_LEG_MIN_PROB: a parlay leg must be a real favorite, not a
-# lean. 60% is the floor -- stacking anything weaker builds a lottery
-# ticket, and the whole point is "most likely winners". (The gap
-# card's 55% is a minimum LEAN for a single pick; a parlay multiplies
-# its legs, so the bar is higher.)
-PARLAY_LEG_MIN_PROB = 60.0
+# lean. 70% is the floor -- OWNER DECISION, Sep 14 2026 ("I don't
+# care if it's 100% chance of winning or 70... it's not about
+# quantity it's about quality"), raised from the original 60 after
+# the Sep 13-14 weekend card: one lost leg (the Chargers, stated
+# 80%) sank every rung it rode, and the owner wants fewer, stronger
+# legs. Evidence at the time of the change, stated honestly: the
+# 60-64% band's graded record was 5W-2L and the Chargers leg itself
+# was ABOVE the new bar -- this floor buys concentration on locks,
+# not protection from upsets; combo/parlay_results.csv keep grading
+# it. (The gap card's 55% is a minimum LEAN for a single pick; a
+# parlay multiplies its legs, so the bar is higher. Floor history:
+# 60 from Sep 8 2026, 70 from Sep 14 2026.)
+PARLAY_LEG_MIN_PROB = 70.0
 # Full-game/match moneylines ONLY (the shelves marked parlay=True):
 # clean win/lose markets the books and Kalshi define identically. F5
 # winners (tie risk), totals and props stay off the board -- legs must
@@ -149,23 +157,27 @@ PARLAY_LEGS_SHOWN = 6      # the ranked leg list on the card
 # payout barely move: two 95% legs multiply to ~90% -- $1.09 fair, "no
 # money in them" -- while the graded record showed the 2-leg locks
 # hitting like crazy and the 4-leg rungs barely ever. The payout lives
-# in the 65-89% favorites: one 95% lock plus three ~70-75% favorites
-# multiplies to ~33% and pays ~$3 fair. So the board builds TWO
-# ladders from the same sharps pool, criteria-gated exactly like the
-# weather bot's money gates:
+# in the below-lock favorites: one 95% lock plus three ~70-75%
+# favorites multiplies to ~33% and pays ~$3 fair. So the board builds
+# TWO ladders from the same sharps pool, criteria-gated exactly like
+# the weather bot's money gates:
 #   - the LOCKS ladder (unchanged): the top favorites stacked
 #     top-down, 2..PARLAY_MAX_LEGS legs. The safe stack.
 #   - the BOOSTER stacks: the strongest lock (>= PARLAY_LOCK_PROB) as
-#     anchor plus the strongest 65-89% favorites, up to
-#     PARLAY_BOOST_MAX_LEGS legs. The payout builders.
+#     anchor plus the strongest PARLAY_BOOST_FLOOR-to-89% favorites,
+#     up to PARLAY_BOOST_MAX_LEGS legs. The payout builders.
 # PARLAY_BOOST_FLOOR is the owner's boundary on the caliber of shots:
 # every booster is still the sharps' CLEAR FAVORITE to win its game.
 # A leg the sharps call an underdog never boards, at any payout --
 # that is the edge-first disease (9-21) wearing a parlay slip. Same
 # law as the weather lane, in the owner's words: it doesn't matter
 # what the edge is, it's gotta be teams that are gonna win.
-PARLAY_BOOST_FLOOR = 65.0   # owner's call, Sep 12 2026 (options 60/65/70
-                            # were on the table with the math for each)
+PARLAY_BOOST_FLOOR = 70.0   # 65 was the owner's call Sep 12 2026 (from
+                            # options 60/65/70); raised to 70 with the
+                            # pool floor on Sep 14 2026 -- the owner's
+                            # "nothing under 70" covers boosters word
+                            # for word, so the booster range is now
+                            # 70-89% and the two floors coincide
 PARLAY_LOCK_PROB = 90.0     # a "lock" for anchoring a booster stack
 PARLAY_BOOST_MAX_LEGS = 6   # 95 x 75^4 ~ 30% / ~$3.3 fair at 5 legs,
                             # ~23% / ~$4.4 at 6; deeper than 6 even
@@ -174,8 +186,8 @@ PARLAY_BOOST_MAX_LEGS = 6   # 95 x 75^4 ~ 30% / ~$3.3 fair at 5 legs,
 # THE COMBO BOARD (owner request, Sep 10 2026): "build high paying
 # combos from the Kalshi market, combining any sector." Same
 # constitution as the parlay board, one shelf wider: the stack may mix
-# SPORTS legs (the sharps' 60%+ full-game moneyline favorites -- the
-# exact parlay-board pool, unchanged) with WEATHER legs (the money
+# SPORTS legs (the sharps' PARLAY_LEG_MIN_PROB%+ full-game moneyline
+# favorites -- the exact parlay-board pool) with WEATHER legs (the money
 # lane's own morning bracket picks). More qualifying favorites means
 # taller stacks, and a taller stack of real favorites is the ONLY
 # honest road to a high payout -- a payout is bought with combined
@@ -187,16 +199,20 @@ PARLAY_BOOST_MAX_LEGS = 6   # 95 x 75^4 ~ 30% / ~$3.3 fair at 5 legs,
 # ensemble's claimed probability alone is NOT calibrated enough to
 # stack -- autopsy §4: claims of 55%+ delivered ~35% across 51 settled
 # bets, and even post-rebuild morning 60%+ claims ran ~50%. So a
-# weather leg must be called a 60%+ favorite by BOTH experts at once:
-# the ensemble (>= PARLAY_LEG_MIN_PROB % of members on the picked
+# weather leg must be called a favorite by BOTH experts at once: the
+# ensemble (>= PARLAY_LEG_MIN_PROB % of members on the picked
 # bracket) AND the market itself (a live Kalshi YES bid of >= the same
 # number, in cents). The leg's stated probability is the LOWER of the
 # two -- the board understates, never overstates (the Phoenix law's
 # direction). Backtest on every morning-lane pick in edges.csv,
-# graded against settlements.csv (Aug 21 - Sep 8 2026): legs passing
-# both bars went 14W-2L (88%) while stating ~66% on average. Sixteen
-# legs is a thin sample -- combo_results.csv exists to keep grading
-# that rule for real, stated % vs hit rate, same as the parlay board.
+# graded against settlements.csv (Aug 21 - Sep 8 2026), at the 60/60
+# bar in force then: legs passing both bars went 14W-2L (88%) while
+# stating ~66% on average. Sixteen legs is a thin sample --
+# combo_results.csv exists to keep grading that rule for real, stated
+# % vs hit rate, same as the parlay board. (The bar rides
+# PARLAY_LEG_MIN_PROB, so the Sep 14 2026 owner decision raised it to
+# 70/70 with the rest of the boards -- expect weather legs to be
+# rarer and stronger.)
 #
 # The laws carried over word for word: ADVISORY ONLY FOREVER (nothing
 # here places, sizes, or sells a bet, and nothing that trades may ever
@@ -1185,8 +1201,8 @@ def weather_legs():
         except ValueError:
             continue
         if model < PARLAY_LEG_MIN_PROB:
-            continue                 # the ensemble itself has no 60%+
-                                     # opinion -- silence, not a near-miss
+            continue                 # the ensemble itself clears no bar
+                                     # -- silence, not a near-miss
         if city in bench:
             print(f"  combo: {city} pick qualifies on numbers but the "
                   f"city is BENCHED by the scoreboard -- no leg")
@@ -1300,7 +1316,8 @@ def build_parlays(pool):
     booster criteria, owner decision Sep 12 2026 -- see the config
     block): the LOCKS ladder stacks the top favorites top-down, the
     BOOSTER stacks anchor on the strongest lock and add the best
-    65-89% favorites so the fair payout reaches real money. Every leg
+    below-lock favorites (PARLAY_BOOST_FLOOR to 89%) so the fair
+    payout reaches real money. Every leg
     on either ladder is the sharps' clear favorite; grading is
     unchanged (grade_stacks keys on the tickers set, so each distinct
     stack is graded once by Kalshi settlement)."""
@@ -1329,7 +1346,7 @@ def build_parlays(pool):
     for n in range(3, PARLAY_BOOST_MAX_LEGS + 1):
         stack = anchor + boosters[:n - len(anchor)]
         if len(stack) < n:
-            break                    # ran out of 65%+ favorites
+            break                    # ran out of floor-clearing favorites
         row = stack_row(stack, f"{day}-BOOST{n}")
         if row["tickers"] in seen_stacks:
             continue

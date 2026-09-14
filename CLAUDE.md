@@ -118,8 +118,9 @@ translated one-to-one:
   can stack them at their own sportsbook". Its laws: legs are the
   sharps' strongest **full-game/full-match moneyline favorites only**,
   from any league on the card — the shelves marked `parlay=True`
-  (`PARLAY_LEG_MIN_PROB = 60`%+ de-vigged — F5/totals/props stay off;
-  legs must be simple enough to stack honestly); **Kalshi's price
+  (`PARLAY_LEG_MIN_PROB = 70`%+ de-vigged since Sep 14 2026, the
+  quality tightening below; 60 from Sep 8–14 — F5/totals/props stay
+  off; legs must be simple enough to stack honestly); **Kalshi's price
   plays no part in choosing a leg**, but every leg must match a
   hand-verified Kalshi market so the board is graded by Kalshi's own
   `result` (a favorite that can't be graded never makes the board);
@@ -138,30 +139,51 @@ translated one-to-one:
   4-leg rungs barely ever. So the board builds TWO ladders from the
   same sharps pool: the **LOCKS ladder** (top favorites top-down,
   unchanged) and the **BOOSTER stacks** — the strongest 90%+ lock as
-  anchor plus the strongest **65–89%** favorites, up to 6 legs
-  (`PARLAY_BOOST_FLOOR = 65`, the owner's boundary on the caliber of
-  shots, chosen from the 60/65/70 options with the math stated).
+  anchor plus the strongest **70–89%** favorites, up to 6 legs
+  (`PARLAY_BOOST_FLOOR = 70` since Sep 14 2026; 65 was the owner's
+  Sep 12 call from the 60/65/70 options — the quality tightening
+  raised it with the pool floor, so the two floors now coincide).
   Every booster is still the sharps' CLEAR FAVORITE to win its game
   — a leg the sharps call an underdog never boards, at any payout
   (the 9–21 edge-first disease wearing a parlay slip). A rung short
-  of qualifying legs doesn't exist; never pad with a weaker leg. The
-  pool floor stays 60 (the combo board's documented bars are
-  unchanged), so a 60–64% leg can still appear on a deep LOCKS rung
-  on a thin slate — only the booster stacks carry the 65 floor.
+  of qualifying legs doesn't exist; never pad with a weaker leg.
   Grading is unchanged: same CSVs, same HIT/MISS-by-settlement, ids
   `<day>-BOOST<n>`, and the calibration question (stated % vs hit
   rate) now judges both ladders.
+  **THE QUALITY TIGHTENING (owner decision, Sep 14 2026).** The
+  owner's words after the Sep 13–14 weekend card: the boards are
+  "full of 60%ers", one lost leg (the Chargers) sat on every stack
+  and sank them all, and "it's not about quantity it's about
+  quality" — nothing under 70% boards anymore, anywhere.
+  `PARLAY_LEG_MIN_PROB` 60 → 70 and `PARLAY_BOOST_FLOOR` 65 → 70,
+  one commit. The evidence at decision time, stated honestly both
+  ways: leg-level grading (outcomes pinned from the graded stacks)
+  had the 60–64% band at 5W–2L and 65–69% at 6W–1L — the bands being
+  banned were not the proven killers, and the Chargers leg itself
+  was stated at 80%, above the new bar (an 80% favorite loses one
+  time in five; no floor stops that). What the record DID convict is
+  depth: 5+ leg parlay rungs went 0W–5L and 4-leg rungs 6W–8L, and a
+  70 floor thins the pool so deep rungs mostly stop existing — the
+  concentration the owner asked for. The dual-expert weather bar
+  rides the same constant, so it moved to 70/70: rerunning the
+  backtest through Sep 14 at 70/70 gave 6W–1L on 7 qualifying legs
+  (vs 20W–2L on 22 legs at 60/60) — far fewer legs, each stronger.
+  Both results CSVs keep grading stated % vs hit rate; reviewing the
+  70 floor against that record is an owner decision, like every gate.
 - **The combo board (owner request, Sep 10 2026)** is the parlay
   board with every sector invited: one cross-sector stack ladder on
-  the same card, mixing the sharps' 60%+ full-game favorites (the
-  parlay pool, unchanged) with **weather legs** — the money lane's
-  own morning bracket picks. Its laws: a weather leg must pass the
-  **dual-expert rule** — the ensemble puts ≥60% of members on the
-  picked bracket AND Kalshi's **live** market bids ≥60¢ for it — and
+  the same card, mixing the sharps' full-game favorites (the parlay
+  pool — 70%+ since the Sep 14 2026 quality tightening, 60%+ before)
+  with **weather legs** — the money lane's own morning bracket
+  picks. Its laws: a weather leg must pass the **dual-expert rule**
+  — the ensemble puts ≥`PARLAY_LEG_MIN_PROB`% of members on the
+  picked bracket AND Kalshi's **live** market bids at least the same
+  number in cents (70/70 since Sep 14 2026; 60/60 before) — and
   states the **lower** of the two numbers (the ensemble's claim alone
   is proven overconfident: autopsy §4 had 55%+ claims delivering
-  ~35%; the dual-bar backtest over Aug 21–Sep 8 went **14W–2L (88%)
-  while stating ~66%** — understate, never overstate). The bracket is
+  ~35%; the dual-bar backtest over Aug 21–Sep 8 at the original
+  60/60 bar went **14W–2L (88%) while stating ~66%** — understate,
+  never overstate). The bracket is
   always the ensemble's pick (pick-first law — never a bracket chosen
   for its price); benched cities never supply a leg (`BENCHED_CITIES`
   parsed from `scanner.py`'s source at run time, watchdog-style,

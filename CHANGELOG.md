@@ -1,5 +1,22 @@
 # CHANGELOG
 
+- 2026-09-14: THE QUALITY TIGHTENING (owner decision). Nothing under
+  a 70% win chance boards on the parlay or combo ladders anymore:
+  PARLAY_LEG_MIN_PROB 60 -> 70 and PARLAY_BOOST_FLOOR 65 -> 70, one
+  commit (sports_scanner.py + CLAUDE.md; the card text reads the
+  constants so it updates itself). The owner's words after the
+  Chargers weekend: the boards are "full of 60%ers... it's not about
+  quantity it's about quality." Evidence recorded honestly both
+  ways in CLAUDE.md: the banned 60-69% bands were 11W-3L at leg
+  level and the Chargers leg that sank the weekend was stated at
+  80% -- the floor buys concentration, not upset protection; what
+  the record did convict is stack depth (5+ leg rungs 0W-5L), which
+  a 70 floor thins naturally. The weather dual-expert bar rides the
+  same constant and is now 70/70 (backtest through Sep 14: 6W-1L on
+  7 legs, vs 20W-2L on 22 legs at 60/60). Both results CSVs keep
+  grading stated % vs hit rate; reviewing the floor is an owner
+  decision on that record.
+
 - 2026-09-13: BOOSTER STACKS on the parlay board (owner decision).
   The owner typed the whole locks ladder into their book and watched
   the payout barely move -- two 95% legs multiply to 90%, $1.09
