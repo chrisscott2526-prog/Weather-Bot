@@ -1410,6 +1410,45 @@ The laws, agreed before it was built:
   as a redundant backup starter and the owner's Run button — the
   swoop.yml pattern exactly.
 
+## THE HANDFUL MANDATE (Sep 14, 2026) — OWNER DECISION
+
+The owner's words, after reading the first per-model, per-city
+standings in `model_report.md`: "I'd rather have five awesome ones
+than 20 OK ones... I always knew it was gonna be down to just a
+handful." And on which cities survive: "I don't care which ones they
+are — I only wanna keep the ones the ensembles are accurate on."
+Recorded here so the review that executes it runs the way the owner
+decided, whichever session runs it:
+
+- **THE BIG CUT REVIEW runs when the tagged per-model records reach
+  ~30 graded nights per city** — the bar the Model Lab set. The owner
+  said "30 days" (~Oct 14); at the pace graded nights were actually
+  accruing when this was written (n=4–7 per model per city on Sep 14,
+  tags since Aug 31 — settlement lag plus the two hung forecast
+  nights, since fixed, cost real nights), the count more likely
+  arrives **mid-to-late October**. Run it when the COUNT arrives, not
+  the calendar — a cut made on n=15 is vibes wearing a spreadsheet.
+- **The cut is aggressive by mandate.** Slice `results.csv` per city
+  and `model_report.md` per model, and: bench every city where no
+  model is provably accurate (the owner is explicitly fine with
+  benching HALF the map or more — quality over coverage, no city has
+  a right to a daily bet); bench the bad MODEL per city where one
+  voter drags the pick (the Minneapolis-GFS pattern); and put
+  promoting `icon`/`nws` into the vote on the same table, same
+  evidence. Fewer, better bets is the point — the owner pre-accepted
+  the smaller daily card.
+- **The mechanism is the existing bench, nothing new**: a benched
+  city keeps being polled, forecast, scanned, and logged to
+  edges.csv, so its paper record keeps accruing and it can earn its
+  way back — exactly the OKC/Dallas machinery. Per-city model
+  benching needs a small scanner change when the review lands
+  (weight or drop one model's members per station in the vote);
+  build it AT the review, on the evidence, not before.
+- The final keep/cut list is the owner's call at the review, off the
+  settled record — the scoreboard promotes; conviction never does.
+  This section pre-authorizes the review's direction and appetite,
+  not a specific list.
+
 ## ROADMAP — how this grows
 
 Flat $1 stakes are **temporary tuition**. The record in `results.csv`,
