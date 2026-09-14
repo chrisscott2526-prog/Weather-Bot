@@ -24,6 +24,18 @@ Candidates logged (add or drop in CANDIDATES / include_nws only):
            for the station (informed by NOAA's National Blend of
            Models), via api.weather.gov. A single number, not an
            ensemble -- logged as one expert opinion.
+- hrrr  -- NOAA's High-Resolution Rapid Refresh (owner request,
+           Sep 14 2026): the ~3 km US model rebuilt EVERY HOUR,
+           purpose-built for exactly the morning lane's question
+           ("what is TODAY's high"), via Open-Meteo's free forecast
+           API (models=gfs_hrrr -- same provider as the money
+           ensembles, zero cost). Logged here on the same nightly
+           for-tomorrow test as every candidate so its standing is
+           comparable; its short range means a night row can be
+           beyond its horizon -- a missing row is honest, per the
+           law below. Its real promotion question is SAME-DAY use
+           in the morning vote, judged at the October review on
+           this record.
 
 Honesty rules, inherited from forecast.py:
 - Failures print and SKIP; a missing row is honest, an invented one
@@ -54,6 +66,7 @@ UA = {"User-Agent": "weather-bot-personal (aquatechpower@gmail.com)"}
 # model column. Same API and parsing as forecast.py's MODELS.
 CANDIDATES = {"icon_seamless": "icon"}
 NWS_TAG = "nws"
+HRRR_TAG = "hrrr"
 
 
 def get(url, tries=3):
@@ -93,6 +106,30 @@ def ensemble_highs(lat, lon, model, day_index):
             if len(vals) > day_index and vals[day_index] is not None:
                 members.append(round(float(vals[day_index]), 1))
     return target, members
+
+
+def hrrr_high(lat, lon, day_index):
+    """(date_str, high_f) from NOAA's HRRR via Open-Meteo's forecast
+    API -- a single deterministic number, logged as one expert
+    opinion like the NWS. (None, None) when the target day is beyond
+    HRRR's short horizon or the value is missing; a missing row is
+    honest, never invented."""
+    url = ("https://api.open-meteo.com/v1/forecast"
+           f"?latitude={lat}&longitude={lon}"
+           "&daily=temperature_2m_max"
+           "&temperature_unit=fahrenheit"
+           "&models=gfs_hrrr"
+           "&forecast_days=3&timezone=auto")
+    data = get(url)
+    daily = data.get("daily", {})
+    dates = daily.get("time", [])
+    vals = daily.get("temperature_2m_max", [])
+    if len(dates) <= day_index or len(vals) <= day_index:
+        return None, None
+    v = vals[day_index]
+    if v is None:
+        return dates[day_index], None
+    return dates[day_index], round(float(v), 1)
 
 
 def nws_high(lat, lon, target_date):
@@ -140,6 +177,7 @@ def main():
     fetched = datetime.now(timezone.utc).isoformat(timespec="seconds")
     rows_per_model = {tag: 0 for tag in CANDIDATES.values()}
     rows_per_model[NWS_TAG] = 0
+    rows_per_model[HRRR_TAG] = 0
 
     with appender(out, FIELDS) as w:
         for sid, (city, lat, lon) in SITES.items():
@@ -173,6 +211,25 @@ def main():
                           f"({len(members)} members) for {d}")
                 except Exception as e:
                     print(f"{city}: {tag} failed - {e} (no row written)")
+
+            # --- NOAA HRRR via Open-Meteo (single expert opinion) ---
+            try:
+                d, t = hrrr_high(lat, lon, day_index)
+                if t is None:
+                    raise ValueError("no HRRR value for that day "
+                                     "(beyond its short horizon?)")
+                if d != target:
+                    raise ValueError(f"returned date {d}, expected "
+                                     f"{target} on {city}'s clock")
+                w.writerow({
+                    "forecast_date": d, "station": sid, "city": city,
+                    "model": HRRR_TAG, "forecast_high_f": t,
+                    "n_members": "", "members": "",
+                    "fetched_utc": fetched})
+                rows_per_model[HRRR_TAG] += 1
+                print(f"{city}: hrrr {t}F for {d}")
+            except Exception as e:
+                print(f"{city}: hrrr failed - {e} (no row written)")
 
             # --- NWS public point forecast ---
             try:
