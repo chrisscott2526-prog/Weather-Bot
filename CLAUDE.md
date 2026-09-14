@@ -1654,7 +1654,22 @@ need." Two owner decisions came out of it, plus one honesty note:
   afternoon), all 20 cities, benched included. By the October review
   that is ~35+ same-day city-days per slot to grade against
   settlements with the replay method. Research only, dead-feed law,
-  no secrets, nothing on the money path reads it.
+  no secrets, nothing on the money path reads it. First run
+  verified green same night: 20 cities × hrrr/nws/icon, 60 same-day
+  rows.
+
+**THE NWS PREVIEW (same night, recorded early on purpose).** Graded
+on the nights already stored (Aug 31 – Sep 13, 7 nights/city): the
+NWS point forecast's night-before number lands in the EXACT settled
+bracket **33% vs the money pool's 28%** — and in the benched cities
+**34% vs 24%**: the government forecast is best precisely where the
+ensembles are worst (DC, Minneapolis, San Antonio, Las Vegas each
+5-of-7). Median miss agrees (nws 1.50°F beats pool 1.60°F overall,
+and it is raw while the pool is calibrated). Stated caveat: n=7
+nights per city — a preview, not a verdict. The October review now
+has three candidates building records on both horizons (nightly +
+the same-day lab): hrrr, nws, icon. Promotion or replacement stays
+an owner decision on those records.
 
 ## THE SELL-SIGNAL FIXES (Sep 14, 2026) — OWNER INCIDENT
 
@@ -1778,6 +1793,18 @@ sliced **per-city and per-strategy**, decides everything:
   a money-path decision (gates, sizing, benches, model promotions —
   the laws above are unchanged); once the owner has said yes, build
   it, verify it, and merge it yourself.
+- **The by-all-means mandate (Sep 14 2026, owner's words):** "We're
+  gonna make this thing work by all means necessary... I'm giving
+  you permission — when you see something, do it... take some of
+  those benched ones and play around with them... if you can get it
+  on your own, just go get it." What this authorizes: proactive
+  RESEARCH — paper lanes, replays, passenger models, free data
+  feeds, experiments on the benched cities' paper records — built,
+  verified, and merged without asking. What it does NOT change: the
+  money path still moves only on the owner's explicit yes in
+  conversation, sizing/gates/benches stay owner decisions, and the
+  scoreboard still promotes — the mandate widens what gets TESTED,
+  never what gets TRUSTED.
 - **The standing supply line (Sep 14 2026, owner's words):** "You
   tell me I need this tool, go get it, and that shall be done." When
   a purchase or account genuinely earns its place on the evidence
