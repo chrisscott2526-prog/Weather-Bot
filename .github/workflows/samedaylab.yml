@@ -1,0 +1,63 @@
+name: Same-day model lab (research only, no trading)
+
+# Logs what the candidate models (hrrr / nws / icon) say TODAY's high
+# will be, twice a day, to model_research_today.csv -- a separate
+# research file nothing that trades, scans, or calibrates may ever
+# read (same law as afternoon_forecasts.csv and model_research.csv).
+#
+# WHY (owner request, Sep 14 2026): the global ensembles' same-day
+# record broke the owner's trust (the afternoon ensemble replay:
+# half their late picks sat on brackets the market had at 1c, and
+# every one lost). HRRR -- rebuilt hourly, built for "what is
+# TODAY's high" -- is the candidate that could replace them, but the
+# nightly Model Lab only logs its for-TOMORROW guess. This lab gives
+# the October review the record it actually needs: same-day numbers,
+# one pull in the buy-window hours (14:12 UTC) and one in the
+# afternoon (19:42 UTC). Promotion of anything into the vote stays
+# an owner decision made on this record -- the scoreboard promotes;
+# conviction never does.
+#
+# No Kalshi secrets, no trading step, ever. A candidate feed that
+# returns zero rows across all 20 cities exits non-zero and turns
+# the run RED (the dead-feed law).
+
+on:
+  schedule:
+    - cron: "12 14 * * *"
+    - cron: "42 19 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo-writes
+  cancel-in-progress: false
+
+jobs:
+  samedaylab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Fetch today's candidate-model highs (log only)
+        run: python model_lab.py --today --out model_research_today.csv
+
+      - name: Commit the log
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "same-day model lab $(date -u +'%F %H:%M')"
+          # real retry loop -- the old one-liner fallback died under bash -e
+          # whenever no rebase was in progress (see settlements.yml)
+          n=0
+          until git push; do
+            n=$((n+1))
+            if [ "$n" -gt 4 ]; then echo "push failed after $n tries"; exit 1; fi
+            git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
+            sleep $((2*n))
+          done
