@@ -1542,6 +1542,33 @@ commit:
    the owner: a home-screen bookmark serves a frozen copy — the
    "built X m ago" label turning red is the tell; refresh in Safari.
 
+3. **THE HOME-SCREEN SELF-HEAL (same day, second incident).**
+   "Refresh in Safari" was an explanation, not a fix, and the same
+   frozen home-screen copy cost the owner again within hours: the
+   cached swoop page didn't even list the city being sold, and the
+   sell signal reached them two hours late through Safari. The
+   frozen copy is Apple's cache, not a bot failure — but the boards
+   are the owner's money surfaces, so the pages now heal themselves:
+   - `swoop.html` (fully pre-built, so a frozen copy can only heal
+     by replacing itself): on open, on every return to the
+     foreground, and every 2 minutes, it fetches
+     `swoop_pulse.json?t=<now>` with `cache:'no-store'` (unique
+     query + no-store beats every cache layer including the CDN
+     edge); if the live board is 3+ minutes newer than the loaded
+     copy's embedded `BUILD_MS`, it jumps to
+     `swoop.html?fresh=<now>` — a cache-busting URL of itself. The
+     pulse and the page ship in the same commit, so after healing
+     the two agree and the check goes quiet — no reload loop.
+   - `index.html` was already safe on data (all fetches are
+     `?t=`-busted no-store on a 2-minute timer) but could sit up to
+     2 minutes stale at the exact moment of reopening; it now
+     reloads its data the INSTANT the page returns to the
+     foreground (visibilitychange + pageshow).
+   The same self-heal pattern is the template for sports.html and
+   whales.html if their staleness ever bites (they rebuild 2x daily
+   / 2-hourly, so the window is smaller); rolling it out there is a
+   display-only change any session may make.
+
 ## THE CARD EXPLAINS THE FLOOR (Sep 14, 2026) — OWNER CATCH
 
 The owner cross-checked three Station Board cards' pick brackets

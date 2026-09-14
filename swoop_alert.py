@@ -440,6 +440,39 @@ function swoopTick() {{
 }}
 swoopTick();
 setInterval(swoopTick, 30000);
+// THE HOME-SCREEN SELF-HEAL (Sep 14 2026). An iPad home-screen
+// bookmark restores a FROZEN copy of this page, and it cost the
+// owner real money twice: this page is fully pre-built, so a frozen
+// copy can only heal by REPLACING itself. On open, on every return
+// to the foreground, and every 2 minutes, fetch the board's own
+// heartbeat with every cache layer bypassed (no-store + a unique
+// query string); if the live board is 3+ minutes newer than this
+// copy, jump to a cache-busting URL of this same page. The page
+// never invents data -- it only replaces itself with the server's
+// newer truth. The pulse and the page ship in the same commit, so
+// after healing the two agree and the check goes quiet (no loop).
+var BUILD_MS = {build_ms};
+var healing = false;
+async function freshCheck() {{
+  if (healing) return;
+  try {{
+    var r = await fetch('swoop_pulse.json?t=' + Date.now(),
+                        {{cache: 'no-store'}});
+    if (!r.ok) return;
+    var p = await r.json();
+    var live = Date.parse(p.checked_utc || '');
+    if (!isNaN(live) && live - BUILD_MS > 180000) {{
+      healing = true;
+      location.replace(location.pathname + '?fresh=' + Date.now());
+    }}
+  }} catch (e) {{}}
+}}
+document.addEventListener('visibilitychange', function () {{
+  if (!document.hidden) {{ freshCheck(); swoopTick(); }}
+}});
+window.addEventListener('pageshow', freshCheck);
+setInterval(freshCheck, 120000);
+freshCheck();
 </script>
 </body></html>"""
 
