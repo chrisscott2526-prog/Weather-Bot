@@ -1578,6 +1578,47 @@ said plainly: even the friendly in-sample slice averaged ~$25/day
 at $50 stakes with a −$120 worst day — real if it survives, but not
 "a couple hundred every day."
 
+**THE AFTERNOON ENSEMBLE REPLAY (same day, third round) — the
+owner's real question answered from stored data.** The owner asked
+to log, for two weeks, which bracket the ENSEMBLE MEMBERS would
+pick late in the afternoon — benched cities included — because "the
+bot is just plumbing, it's the ensemble members," and surely they
+wouldn't pick a 10¢ bracket that late. No waiting was needed:
+`afternoon_forecasts.csv` has logged a fresh same-day ensemble
+fetch (~19:30–23 UTC, calibrated, all 20 cities) every day since
+Aug 25 — so the replay ran the full machinery on stored rows: fresh
+afternoon members + the day-of reality floor from `temps_log.csv`,
+voted over that day's live bracket sets from `edges.csv`, graded by
+`settlements.csv`. 240 city-days, Aug 25 – Sep 13. The verdict,
+both halves stated:
+
+- **The owner is right that the members sharpen late.** Afternoon
+  pick exact-bracket accuracy: **47%**, vs **23%** for the morning
+  pick on the SAME city-days. Benched cities: 41% afternoon vs ~15%
+  morning — the fresh look helps them most. The medians run close
+  (typically within 1–2°F of the settled number).
+- **And they still picked the dead bracket half the time.** 120 of
+  240 afternoon picks were brackets the live market priced at 15¢
+  or less — and those went **0-for-120**. When the late-day model
+  disagreed with a market that was reading the actual thermometer,
+  the market was right every single time. The other half of the
+  picks agreed with the market and cost 90¢+ (99% win rate, no pay
+  after fees). $1 on every pick priced 5–85¢: 4W–8L, −60¢/$1.
+  Close-on-temperature loses the bracket game: brackets are 2°F
+  wide, forecast error late in the day is still ~2°F, and the sigma
+  widening (an honesty feature that rides `--today` fetches too)
+  scatters the vote — tail brackets collect the scattered members,
+  which is exactly how a fresh forecast picks a 1¢ tail.
+- **No afternoon ensemble lane, and nothing to build**: the data
+  the owner asked to collect is ALREADY collected daily and forever
+  (afternoon_forecasts + edges + settlements + temps), so this
+  replay is re-runnable by any session at any time — re-grade it at
+  the October review with double the days. The right future
+  candidate for genuine afternoon skill is a same-day short-range
+  model, i.e. the `hrrr` passenger the Model Lab added Sep 14 — an
+  un-widened hourly-refresh model is a different estimator, which
+  is what the morning-thermostat rejection says re-tests need.
+
 ## THE SELL-SIGNAL FIXES (Sep 14, 2026) — OWNER INCIDENT
 
 Context every future session must know: **the owner mirrors the
