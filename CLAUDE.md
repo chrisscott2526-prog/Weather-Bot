@@ -1616,3 +1616,16 @@ sliced **per-city and per-strategy**, decides everything:
   truth of what the code really did.
 - Explain your findings to the owner in plain English, and deliver
   complete files.
+- **The owner does not press buttons (Sep 14 2026, owner decree).**
+  The owner's words: "when me and you talk it's me venting a problem
+  to you... I want you to just go do it. When I have a problem I'll
+  tell it to you and we just fix it if it's fixable." Two rules came
+  out of it. (1) A conversation with the owner is often venting, not
+  a work order — fix what is plainly broken, but do not treat every
+  musing as a mandate, and NEVER end a fix by handing the owner
+  homework. (2) Sessions merge their own pull requests after
+  verifying them — the owner is never asked to tap Merge. The one
+  thing that still needs the owner's explicit yes IN CONVERSATION is
+  a money-path decision (gates, sizing, benches, model promotions —
+  the laws above are unchanged); once the owner has said yes, build
+  it, verify it, and merge it yourself.
