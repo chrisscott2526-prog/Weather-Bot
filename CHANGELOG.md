@@ -1,5 +1,15 @@
 # CHANGELOG
 
+- 2026-09-14 (night, follow-up): THE PROPS MENU (owner request). The
+  card now lists EVERY qualifying player prop, grouped by game --
+  the player's name, the DEEPEST bar he's still a 70%+ favorite to
+  clear, and the sharps' % -- so the owner can pick freely at their
+  own book, including several props from one game. The
+  one-leg-per-game law was only ever about the card's own stacks
+  (their multiplied number must stay honest); the menu says the
+  same-game-parlay caveat once, plainly. Display only: no new data,
+  no new files, no gate changes. sports_scanner.py + CLAUDE.md.
+
 - 2026-09-14 (night): THE PROPS LADDER (owner request). A player-prop
   version of the parlay board: four NFL prop shelves verified live
   the same day via three probe runs (KXNFLPASSYDS / KXNFLREC /

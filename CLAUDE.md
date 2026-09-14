@@ -207,7 +207,16 @@ translated one-to-one:
   finally has verified series for them). Cost, stated plainly: 8
   prop keys × up to 12 NFL events × 2 scans/day on slate days ≈
   2,000–2,500 credits/month worst case against the 20K plan.
-  ADVISORY ONLY — the permanent rule covers it word for word.
+  **The props menu (owner request, same day):** the card also lists
+  EVERY qualifying prop, grouped by game — player's name, the
+  deepest bar he's still a floor-clearing favorite to beat, the
+  sharps' % — so the owner can pick freely at their own book,
+  several from one game included (`build_props_menu_html`). The
+  one-leg-per-game law governs only the card's own STACKS (their
+  multiplied number must stay honest); it was never a limit on what
+  the owner may bet, and the menu prints the same-game caveat once,
+  plainly. ADVISORY ONLY — the permanent rule covers it word for
+  word.
 - **The combo board (owner request, Sep 10 2026)** is the parlay
   board with every sector invited: one cross-sector stack ladder on
   the same card, mixing the sharps' full-game favorites (the parlay

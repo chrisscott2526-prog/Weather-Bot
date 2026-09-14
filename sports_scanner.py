@@ -1263,6 +1263,8 @@ def scan_player_prop(shelf, game, kalshi_events, rows):
         if fair_pct >= PARLAY_LEG_MIN_PROB and m.get("ticker"):
             PROPS_POOL.append({
                 "pick": pick, "game": game["game"],
+                "player": name, "what": shelf["what"],
+                "bar": int(strike + 0.5),
                 "fair_pct": fair_pct, "n_books": n,
                 "ticker": m.get("ticker", ""),
                 "commence": game["commence"],
@@ -2007,6 +2009,59 @@ there pays each leg on its own, never this multiplied number.</div>
     return out
 
 
+def build_props_menu_html(pool):
+    """THE PROPS MENU (owner request, Sep 14 2026): the pick-list the
+    ladder's one-leg-per-game law deliberately does NOT put on a slip.
+    Every qualifying prop (the sharps' PARLAY_LEG_MIN_PROB%+ OVER
+    favorites), grouped by game: the player's name, the DEEPEST bar he
+    is still a floor-clearing favorite to beat, and the sharps' own
+    number. The owner picks freely at their own book -- several from
+    one game if they like; the printed caveat says plainly why the
+    card's own stacks never multiply two legs from one game."""
+    if not pool:
+        return ""
+    best = {}                        # (game, player, market) -> deepest bar
+    for c in pool:
+        k = (c["game"], c.get("player") or c["pick"], c.get("what", ""))
+        cur = best.get(k)
+        if cur is None or (c.get("bar") or 0) > (cur.get("bar") or 0):
+            best[k] = c
+    games = defaultdict(list)
+    starts = {}
+    for c in best.values():
+        games[c["game"]].append(c)
+        if c["game"] not in starts or c["commence"] < starts[c["game"]]:
+            starts[c["game"]] = c["commence"]
+    out = (f"<h2>The props menu &mdash; every "
+           f"{PARLAY_LEG_MIN_PROB:.0f}%+ player prop, game by game</h2>"
+           "<div class='why'>Each line is the DEEPEST bar the sharp "
+           "books still make that player a "
+           f"{PARLAY_LEG_MIN_PROB:.0f}%+ favorite to clear &mdash; his "
+           "strongest honest number, not a coin flip. Pick any of them "
+           "at your book, several from one game if you like. One "
+           "warning, said once: if you PARLAY two props from the SAME "
+           "game, your book multiplies them like separate coin tosses, "
+           "but same-game props rise and fall together &mdash; the real "
+           "combined chance is lower than the slip implies. The PROPS "
+           "stacks above cross games so their multiplied number stays "
+           "honest.</div>")
+    for g in sorted(games, key=lambda g: starts[g]):
+        when = starts[g].strftime("%a %H:%M UTC")
+        rows = ""
+        for c in sorted(games[g], key=lambda c: -c["fair_pct"]):
+            rows += (f"<tr><td><b>{html.escape(c.get('player') or '')}"
+                     f"</b></td>"
+                     f"<td>{c.get('bar', '?')}+ "
+                     f"{html.escape(c.get('what') or '')}</td>"
+                     f"<td><b>{c['fair_pct']:.0f}%</b></td>"
+                     f"<td>{c['n_books']}</td></tr>")
+        out += (f"<div class='match'>{html.escape(g)} "
+                f"<span class='when'>{when}</span></div>"
+                f"<table><tr><th>Player</th><th>The prop</th>"
+                f"<th>Sharps say</th><th>Books</th></tr>{rows}</table>")
+    return out
+
+
 def build_page(shown, results, feed_dead, parlay_legs, parlays, presults,
                combo_legs, combos, cresults):
     now = datetime.now(timezone.utc).strftime("%a %b %d, %H:%M UTC")
@@ -2081,6 +2136,7 @@ robot with your wallet -- it never bets. You do (or don't).</div>
 <h2>Today's picks, biggest gap first</h2>
 {slips}
 {build_parlay_html(parlay_legs, parlays, presults)}
+{build_props_menu_html(PROPS_POOL)}
 {build_combo_html(combo_legs, combos, cresults)}
 {hist}
 <div class="foot"><b>How this card works, in one breath:</b> the sharpest
