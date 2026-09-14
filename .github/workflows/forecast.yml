@@ -25,23 +25,26 @@ concurrency:
 jobs:
   forecast:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # 5 minutes was always tight: the money fetch alone takes ~3.5.
+    # On Sep 13 and Sep 14 2026 slow ICON/NWS research calls pushed the
+    # job into the 5-minute ceiling and GitHub killed it MID-RESEARCH --
+    # before the commit step -- so the already-successful money forecast
+    # was thrown away with it, two nights running. 15 keeps the job
+    # bounded (every job carries timeout-minutes) with real headroom.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
 
       - name: Fetch forecasts
         run: python forecast.py
 
-      # THE MODEL LAB (Aug 31 2026): research passengers (ICON + NWS)
-      # ride the same nightly run. continue-on-error so a dead research
-      # feed can never cost the money forecast its commit -- the red
-      # flag AFTER the commit still fails the run loudly (dead-feed law).
-      - name: Log research models (ICON + NWS)
-        id: modellab
-        continue-on-error: true
-        run: python model_lab.py
-
-      - name: Commit the log
+      # THE MONEY FORECAST COMMITS FIRST (Sep 14 2026 -- the timeout
+      # scar above). continue-on-error already protected the commit
+      # from a research feed that FAILS; this ordering protects it from
+      # one that HANGS. Whatever happens after this step -- a stuck
+      # API, a timeout, a lost runner -- tonight's calibration rows are
+      # already on main.
+      - name: Commit the money forecast
         run: |
           git config user.name "weather-bot"
           git config user.email "bot@users.noreply.github.com"
@@ -57,11 +60,38 @@ jobs:
             sleep $((2*n))
           done
 
+      # THE MODEL LAB (Aug 31 2026): research passengers (ICON + NWS)
+      # ride the same nightly run. continue-on-error so a dead research
+      # feed can never cost the run its commits; its OWN timeout so a
+      # HUNG feed is cut loose as a loud step failure instead of eating
+      # the whole job (the Sep 13-14 2026 lesson). Either way the red
+      # flag after the commits still fails the run (dead-feed law).
+      - name: Log research models (ICON + NWS)
+        id: modellab
+        continue-on-error: true
+        timeout-minutes: 8
+        run: python model_lab.py
+
+      - name: Commit the research log
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "model lab $(date -u +'%F')"
+          n=0
+          until git push; do
+            n=$((n+1))
+            if [ "$n" -gt 4 ]; then echo "push failed after $n tries"; exit 1; fi
+            git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
+            sleep $((2*n))
+          done
+
       - name: Fail loudly if a research feed died
         if: steps.modellab.outcome == 'failure'
         run: |
-          echo "model_lab.py failed -- a research model feed is dead or"
-          echo "every city errored (see its step log above). The money"
-          echo "forecast is unaffected and already committed; this red"
-          echo "exists so the dead feed cannot scroll away green."
+          echo "model_lab.py failed or hung past its own timeout -- a"
+          echo "research model feed is dead or every city errored (see"
+          echo "its step log above). The money forecast is unaffected"
+          echo "and already committed; this red exists so the dead feed"
+          echo "cannot scroll away green."
           exit 1
