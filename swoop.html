@@ -37,16 +37,16 @@ border-radius:3px;background:#2a323b}
 </style></head><body><div class="wrap">
 <h1>Swoop Alert</h1>
 <div class="sub">Thermometer vs. market on the bot's open positions -
-checked Mon Sep 14, 17:49 UTC (<span class="age" data-built="1789408143743">just
+checked Mon Sep 14, 18:04 UTC (<span class="age" data-built="1789409042958">just
 built</span>). Graded 1 of 1 open weather positions.
 </div>
 
 <div class="card NEEDSHEAT"><div class="top">
 <span class="city">Phoenix &mdash; YES 103° to 104°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">High so far: <b>96.8&deg;</b> &nbsp;|&nbsp; Now: <b>96.8&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789406703743">reading 24m old</span>
- &nbsp;|&nbsp; Market now: <b>52c</b></div>
-<div class="note">Needs about 6° more warming to enter.</div></div>
+<div class="det">High so far: <b>98.6&deg;</b> &nbsp;|&nbsp; Now: <b>98.6&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789407602958">reading 24m old</span>
+ &nbsp;|&nbsp; Market now: <b>53c</b></div>
+<div class="note">Needs about 4° more warming to enter.</div></div>
 <div class="foot"><b>Read it like this:</b> daily highs only rise, so a
 bracket the thermometer has passed is settled physics, not opinion.
 <b>SWOOP</b> = the reading already agrees with the bot's side, the
@@ -84,5 +84,38 @@ function swoopTick() {
 }
 swoopTick();
 setInterval(swoopTick, 30000);
+// THE HOME-SCREEN SELF-HEAL (Sep 14 2026). An iPad home-screen
+// bookmark restores a FROZEN copy of this page, and it cost the
+// owner real money twice: this page is fully pre-built, so a frozen
+// copy can only heal by REPLACING itself. On open, on every return
+// to the foreground, and every 2 minutes, fetch the board's own
+// heartbeat with every cache layer bypassed (no-store + a unique
+// query string); if the live board is 3+ minutes newer than this
+// copy, jump to a cache-busting URL of this same page. The page
+// never invents data -- it only replaces itself with the server's
+// newer truth. The pulse and the page ship in the same commit, so
+// after healing the two agree and the check goes quiet (no loop).
+var BUILD_MS = 1789409042958;
+var healing = false;
+async function freshCheck() {
+  if (healing) return;
+  try {
+    var r = await fetch('swoop_pulse.json?t=' + Date.now(),
+                        {cache: 'no-store'});
+    if (!r.ok) return;
+    var p = await r.json();
+    var live = Date.parse(p.checked_utc || '');
+    if (!isNaN(live) && live - BUILD_MS > 180000) {
+      healing = true;
+      location.replace(location.pathname + '?fresh=' + Date.now());
+    }
+  } catch (e) {}
+}
+document.addEventListener('visibilitychange', function () {
+  if (!document.hidden) { freshCheck(); swoopTick(); }
+});
+window.addEventListener('pageshow', freshCheck);
+setInterval(freshCheck, 120000);
+freshCheck();
 </script>
 </body></html>
