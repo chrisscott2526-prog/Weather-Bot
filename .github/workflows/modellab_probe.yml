@@ -28,8 +28,30 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Both horizons ALWAYS run (continue-on-error + the red flag at
+      # the end, forecast.yml's pattern) -- probe run 1 proved that a
+      # failing today-step otherwise skips the tomorrow probe entirely.
+      # KNOWN QUIRK, not a dead feed: an --today probe pressed after
+      # dark honestly logs nws=0 rows, because the NWS drops a day's
+      # "daytime" forecast period once that daytime is over (the real
+      # same-day lab runs at 14:12/19:42 UTC, when it exists). A red
+      # probe at that hour means READ THE PER-CITY LOG, not
+      # necessarily that a candidate is dead.
       - name: Probe TODAY horizon (throwaway output)
+        id: today
+        continue-on-error: true
         run: python model_lab.py --today --out /tmp/probe_today.csv
 
       - name: Probe TOMORROW horizon (throwaway output)
+        id: tomorrow
+        continue-on-error: true
         run: python model_lab.py --out /tmp/probe_tomorrow.csv
+
+      - name: Fail loudly if either horizon had a dead feed
+        if: steps.today.outcome == 'failure' || steps.tomorrow.outcome == 'failure'
+        run: |
+          echo "A probe horizon reported a dead feed (zero rows across"
+          echo "all 20 cities for some model -- see the per-city log"
+          echo "above). Mind the after-dark nws quirk in the header"
+          echo "comment before declaring a candidate dead."
+          exit 1
