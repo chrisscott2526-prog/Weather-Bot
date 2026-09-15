@@ -7,7 +7,15 @@ on:
     # scan was skipped outright on Sep 11 and the 22:00 one fired 95
     # minutes late the night before, leaving the daily card a day
     # stale. Same fix, same reason as settlements.yml on Sep 10.
+    # Densified Sep 15 2026: GitHub fired the 15:23 slot at 19:05 that
+    # day (~3h40m late) and the 22:23 slot 2h19m late the night
+    # before, leaving the owner's card a day stale through the whole
+    # morning. Four slots + the poller-relay tripwire (poll.yml) now
+    # keep worst-case staleness ~5h. Cost: ~8 credits/scan against
+    # the 20K/month plan -- nothing.
+    - cron: "23 13 * * *"  # ~9am ET: the early card, before lines move
     - cron: "23 15 * * *"  # ~11am ET: lines are up for the day's slates
+    - cron: "23 18 * * *"  # ~2pm ET: afternoon refresh
     - cron: "23 22 * * *"  # ~6pm ET: evening slates + late line moves
   workflow_dispatch:
     inputs:
