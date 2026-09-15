@@ -158,6 +158,40 @@ jobs:
                 echo "Money relay already running/queued ($ACTIVE) -- tripwire has nothing to do."
               fi
             fi
+
+            # Sports card tripwire (Sep 15 2026): GitHub fired that
+            # day's 15:23 sports slot at 19:05 -- the owner's card sat
+            # a day stale through the whole morning while they were
+            # placing bets from it. Same cure as the money-lane
+            # tripwire above: during card hours (13:35-23:30 UTC), if
+            # no sports.yml run is queued/running and the newest run
+            # is over ~4h50m old, start one. Extra starts queue in the
+            # repo-writes group and cost ~8 odds credits against the
+            # 20K plan -- a false positive is cheaper than a stale
+            # card. Failures warn and never block the poll.
+            if [ "$NOWM" -ge 815 ] && [ "$NOWM" -le 1410 ]; then
+              SINFO=$(gh run list -R "$GITHUB_REPOSITORY" --workflow sports.yml \
+                        --limit 1 --json status,createdAt \
+                        --jq '.[0] | .status + " " + .createdAt' 2>/dev/null || echo "")
+              if [ -z "$SINFO" ]; then
+                echo "::warning::could not check the sports card's last run -- the next pass retries in ~15 min"
+              else
+                SSTAT=${SINFO%% *}
+                SAT=${SINFO#* }
+                if [ "$SSTAT" = "queued" ] || [ "$SSTAT" = "in_progress" ]; then
+                  echo "Sports scan already running/queued -- tripwire has nothing to do."
+                else
+                  SAGE=$(( $(date -u +%s) - $(date -u -d "$SAT" +%s 2>/dev/null || echo 0) ))
+                  if [ "$SAGE" -gt 17400 ]; then
+                    echo "::warning::sports card is $((SAGE / 60)) min stale -- starting sports.yml now"
+                    gh workflow run sports.yml -R "$GITHUB_REPOSITORY" --ref main \
+                      || echo "::warning::could not start the sports scan (dispatch failed) -- its cron slots and the Run button remain"
+                  else
+                    echo "Sports card last ran $((SAGE / 60)) min ago -- fresh enough."
+                  fi
+                fi
+              fi
+            fi
             commit_push
             echo "::endgroup::"
 

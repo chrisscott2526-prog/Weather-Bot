@@ -1,5 +1,19 @@
 # CHANGELOG
 
+- 2026-09-15: SPORTS CARD: EARLY LINES + DK COLUMN + SCHEDULE FIX
+  (owner report: card stale all day; wants NFL days early + payout
+  comparison vs their books). sports.yml 2 → 4 cron slots + a sports
+  tripwire in the poller relay (dispatch when the card is ~5h stale
+  in 13:35-23:30 UTC). NFL fetch window 30h → 78h (credit-free) with
+  a new EARLY LINES card section (sharps' 70%+ favorites 30-78h out,
+  DK price + current Kalshi ask); early games feed NO board or gap
+  card and skip prop calls; leg lab logs them (hours_to_start grades
+  early-vs-late). DraftKings' own American odds now print on parlay
+  legs, the props menu, and the early section — same payload, zero
+  extra credits, display only. Polymarket/PrizePicks staged pending
+  probe verification. sports_scanner.py + sports.yml + poll.yml +
+  CLAUDE.md, one commit; sandbox-verified.
+
 - 2026-09-15: THE JUDGE LANE (owner request: "why don't you just
   pick it... I feel like we're trying to build another you"). Claude
   itself now picks brackets ON PAPER: a claude.ai routine fires a

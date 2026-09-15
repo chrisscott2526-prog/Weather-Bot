@@ -101,6 +101,19 @@ MIN_ASK_SIZE = 50
 # MIN_BOOKS: a consensus of fewer than 3 sharp books is not a consensus.
 MIN_BOOKS = 3
 MAX_HOURS_OUT = 30          # only games starting inside this window
+
+# THE EARLY LINES (Sep 15 2026, owner request): the owner bets NFL at
+# their own book DAYS before kickoff, before the price climbs. The
+# bulk /odds call already returns every upcoming game (we were
+# filtering the far ones away client-side, so the wider look is
+# credit-FREE) -- so the NFL fetch window widens to 78h and the
+# 30-78h favorites get their own display section. Every BOARD
+# (parlay/booster/props/combo) and the gap card keep the 30h window:
+# only scan_winner handles far games, routing them to EARLY_POOL and
+# the leg lab (whose hours_to_start column exists to grade exactly
+# this early-vs-late question). Per-event PROP calls stay gated to
+# 30h -- those DO cost credits.
+EARLY_HOURS_OUT = {"americanfootball_nfl": 78}
 PROP_EVENT_CAP = 12         # per-event odds calls per sport per scan
                             # (props cost 1 credit per market per event;
                             #  this caps a scan at ~36 credits/sport)
@@ -595,6 +608,56 @@ def dollars_to_cents(m, field):
         return None
 
 
+def to_american(dec):
+    """Decimal odds -> the American string the owner's book shows
+    (2.50 -> '+150', 1.40 -> '-250'). None in, '' out -- a missing
+    book price is shown as missing, never guessed."""
+    try:
+        d = float(dec)
+    except (TypeError, ValueError):
+        return ""
+    if d <= 1.0:
+        return ""
+    if d >= 2.0:
+        return f"+{round((d - 1) * 100)}"
+    return f"-{round(100 / (d - 1))}"
+
+
+def book_h2h_price(raw, market_key, team, book="draftkings"):
+    """One named retail book's own decimal price for `team` to win,
+    read from the SAME payload the consensus used (regions=us already
+    carries every US book -- zero extra credits). None when the book
+    doesn't quote it."""
+    for bk in raw.get("bookmakers", []):
+        if bk.get("key") != book:
+            continue
+        for mkt in bk.get("markets", []):
+            if mkt.get("key") != market_key:
+                continue
+            for o in mkt.get("outcomes", []):
+                if norm(o.get("name", "")) == norm(team):
+                    return o.get("price")
+    return None
+
+
+def book_point_price(raw, market_keys, player, point, book="draftkings"):
+    """The named book's decimal price for `player` OVER `point`, from
+    the alternate/base prop markets already fetched. `player` is
+    already norm()ed by the caller. None when unquoted."""
+    for bk in raw.get("bookmakers", []):
+        if bk.get("key") != book:
+            continue
+        for mkt in bk.get("markets", []):
+            if mkt.get("key") not in market_keys:
+                continue
+            for o in mkt.get("outcomes", []):
+                if (o.get("name") == "Over"
+                        and norm(o.get("description", "")) == player
+                        and o.get("point") == point):
+                    return o.get("price")
+    return None
+
+
 def fee_cents(price_cents):
     """Kalshi taker fee per contract: ceil(7% * p * (1-p)), in cents."""
     p = price_cents / 100.0
@@ -784,12 +847,13 @@ def fetch_sharp_games(sport, featured_keys):
         print(f"!! {sport}: featured odds fetch FAILED ({err})")
         return None
     now = datetime.now(timezone.utc)
+    hours_out = EARLY_HOURS_OUT.get(sport, MAX_HOURS_OUT)
     games = []
     for ev in data:
         start = iso(ev.get("commence_time", ""))
         home, away = ev.get("home_team"), ev.get("away_team")
         if (not start or not home or not away
-                or start < now or start > now + timedelta(hours=MAX_HOURS_OUT)):
+                or start < now or start > now + timedelta(hours=hours_out)):
             continue
         games.append({"id": ev.get("id"), "sport": sport, "home": home,
                       "away": away, "game": f"{away} @ {home}",
@@ -1113,15 +1177,22 @@ def scan_winner(shelf, game, kalshi_events, rows):
         print(f"  UNMATCHED {shelf['key']}: no market for pick "
               f"{pick_team!r} in {et}")
         return
+    hrs = (game["commence"]
+           - datetime.now(timezone.utc)).total_seconds() / 3600
+    dk = to_american(book_h2h_price(game["raw"], shelf["odds_market"],
+                                    pick_team))
     if (shelf.get("parlay")
-            and fair_pct >= PARLAY_LEG_MIN_PROB):
+            and fair_pct >= PARLAY_LEG_MIN_PROB
+            and hrs <= MAX_HOURS_OUT):
         # a parlay-board candidate: the sharps' favorite, with the
         # matched Kalshi ticker that will grade it at settlement.
         # No liquidity or price gate -- the board is played at the
-        # owner's own book, not on Kalshi.
+        # owner's own book, not on Kalshi. Games past MAX_HOURS_OUT
+        # never board (the boards are TODAY's winners); they go to
+        # EARLY_POOL below instead.
         PARLAY_POOL.append({
             "pick": f"{pick_team} wins", "game": game["game"],
-            "fair_pct": fair_pct, "n_books": n,
+            "fair_pct": fair_pct, "n_books": n, "dk": dk,
             "ticker": market.get("ticker", ""),
             "commence": game["commence"],
             "label": shelf["label"].split(" ·")[0]})
@@ -1142,8 +1213,6 @@ def scan_winner(shelf, game, kalshi_events, rows):
                 bid = 100 - no_ask   # same number, quoted from the
                                      # other side of the book
         lo, hi = (span or {}).get(pick_team, (None, None))
-        hrs = (game["commence"]
-               - datetime.now(timezone.utc)).total_seconds() / 3600
         LEG_LAB.append({
             "scanned_utc": SCAN_STAMP,
             "sport": shelf["label"].split(" ·")[0],
@@ -1156,6 +1225,23 @@ def scan_winner(shelf, game, kalshi_events, rows):
             "books_high_pct": round(hi * 100, 1) if hi is not None else "",
             "kalshi_bid_cents": round(bid, 1) if bid is not None else "",
             "boarded": "1" if fair_pct >= PARLAY_LEG_MIN_PROB else "0"})
+    if hrs > MAX_HOURS_OUT:
+        # THE EARLY LINES branch (Sep 15 2026, owner request): a game
+        # days out never touches the gap card or any board -- it gets
+        # its own display section so the owner can bet the favorite
+        # at their book BEFORE the price climbs. The leg lab row
+        # above still logged it (hours_to_start is its early-vs-late
+        # question), so this section is graded like everything else.
+        if fair_pct >= PARLAY_LEG_MIN_PROB and market.get("ticker"):
+            ask = dollars_to_cents(market, "yes_ask_dollars")
+            EARLY_POOL.append({
+                "pick": f"{pick_team} wins", "game": game["game"],
+                "ticker": market.get("ticker", ""),
+                "fair_pct": fair_pct, "n_books": n, "dk": dk,
+                "kalshi_ask": round(ask) if ask is not None else None,
+                "hours": hrs, "commence": game["commence"],
+                "label": shelf["label"].split(" ·")[0]})
+        return
     what = ("wins the first 5 innings" if shelf["key"] == "MLB_F5"
             else "wins")
     evaluate(shelf, game, fair_pct, n, market, "yes",
@@ -1233,6 +1319,9 @@ def scan_pitcher_prop(shelf, game, kalshi_events, rows):
                 "pick": pick, "game": game["game"],
                 "player": name, "what": "strikeouts", "bar": need,
                 "fair_pct": fair_pct, "n_books": n,
+                "dk": to_american(book_point_price(
+                    game["raw"], (shelf["odds_market"],), player,
+                    float(strike))),
                 "ticker": m.get("ticker", ""),
                 "commence": game["commence"],
                 "label": shelf["label"].split(" ·")[0]})
@@ -1286,6 +1375,10 @@ def scan_player_prop(shelf, game, kalshi_events, rows):
                 "player": name, "what": shelf["what"],
                 "bar": int(strike + 0.5),
                 "fair_pct": fair_pct, "n_books": n,
+                "dk": to_american(book_point_price(
+                    game["raw"],
+                    (shelf.get("alt_market"), shelf["odds_market"]),
+                    player, strike)),
                 "ticker": m.get("ticker", ""),
                 "commence": game["commence"],
                 "label": shelf["label"].split(" ·")[0]})
@@ -1546,6 +1639,9 @@ def build_combos(pool):
 # --------------------------------------------------------- parlay board
 PARLAY_POOL = []            # candidates collected by scan_winner this run
 PROPS_POOL = []             # player-prop candidates from scan_player_prop
+EARLY_POOL = []             # NFL favorites 30-78h out (the early lines
+                            # section -- display + leg lab only, never
+                            # a board leg; see EARLY_HOURS_OUT)
 
 
 def stack_row(stack, pid):
@@ -1905,10 +2001,12 @@ def build_parlay_html(legs, parlays, presults):
                      f"<span class='when'>{html.escape(c['label'])} · "
                      f"{html.escape(c['game'])} · {when}</span></td>"
                      f"<td><b>{c['fair_pct']:.0f}%</b></td>"
-                     f"<td>{c['n_books']}</td></tr>")
+                     f"<td>{c['n_books']}</td>"
+                     f"<td>{c.get('dk') or '&mdash;'}</td></tr>")
         if rows:
             out += (f"<table><tr><th></th><th>The sharps' favorite</th>"
-                    f"<th>Win chance</th><th>Books</th></tr>{rows}</table>")
+                    f"<th>Win chance</th><th>Books</th><th>DK</th></tr>"
+                    f"{rows}</table>")
         for p in parlays:
             combined = float(p["combined_pct"])
             boost = "BOOST" in p["parlay_id"]
@@ -2103,13 +2201,57 @@ def build_props_menu_html(pool):
                      f"<td>{c.get('bar', '?')}+ "
                      f"<span class='when'>{c['fair_pct']:.0f}%</span></td>"
                      f"<td>{safe_cell}</td>"
-                     f"<td>{c['n_books']}</td></tr>")
+                     f"<td>{c['n_books']}</td>"
+                     f"<td>{c.get('dk') or '&mdash;'}</td></tr>")
         out += (f"<div class='match'>{html.escape(g)} "
                 f"<span class='when'>{when}</span></div>"
                 f"<table><tr><th>Player</th>"
                 f"<th>Strong ({PARLAY_LEG_MIN_PROB:.0f}%+)</th>"
                 f"<th>Safe ({PROPS_SAFE_PROB:.0f}%+)</th>"
-                f"<th>Books</th></tr>{rows}</table>")
+                f"<th>Books</th><th>DK</th></tr>{rows}</table>")
+    return out
+
+
+def build_early_html(pool):
+    """THE EARLY LINES (Sep 15 2026, owner request): NFL favorites
+    days ahead of kickoff, so the owner can get in at their book
+    before the price climbs. Display only -- these games feed no
+    board and no gap card until they enter the 30h window; the leg
+    lab logs each one, so early-vs-late gets graded on the record,
+    not on the feeling that early prices are better. The stated
+    caveat is real: a number this far out is softer and moves with
+    injury news."""
+    if not pool:
+        return ""
+    seen, legs = set(), []
+    for c in sorted(pool, key=lambda c: -c["fair_pct"]):
+        if c["ticker"] not in seen:
+            seen.add(c["ticker"])
+            legs.append(c)
+    out = ("<h2>Early lines &mdash; NFL favorites days ahead</h2>"
+           "<div class='why'>Games more than 30 hours out. The play: "
+           "a favorite's price usually climbs toward kickoff, so "
+           "betting early can pay more &mdash; but the sharps' number "
+           "this far out is SOFTER and moves with injury news, and "
+           "these games are on no stack until game day. The leg lab "
+           "grades early numbers against late ones, so this section "
+           "earns or loses trust on the record.</div>")
+    rows = ""
+    for i, c in enumerate(legs, 1):
+        when = c["commence"].strftime("%a %H:%M UTC")
+        ask = (f"{c['kalshi_ask']:.0f}&cent;"
+               if c.get("kalshi_ask") is not None else "&mdash;")
+        rows += (f"<tr><td>#{i}</td>"
+                 f"<td><b>{html.escape(c['pick'])}</b><br>"
+                 f"<span class='when'>{html.escape(c['game'])} · {when} "
+                 f"· in {c['hours']:.0f}h</span></td>"
+                 f"<td><b>{c['fair_pct']:.0f}%</b></td>"
+                 f"<td>{c['n_books']}</td>"
+                 f"<td>{c.get('dk') or '&mdash;'}</td>"
+                 f"<td>{ask}</td></tr>")
+    out += (f"<table><tr><th></th><th>The sharps' favorite</th>"
+            f"<th>Win chance</th><th>Books</th><th>DK</th>"
+            f"<th>Kalshi now</th></tr>{rows}</table>")
     return out
 
 
@@ -2187,6 +2329,7 @@ robot with your wallet -- it never bets. You do (or don't).</div>
 <h2>Today's picks, biggest gap first</h2>
 {slips}
 {build_parlay_html(parlay_legs, parlays, presults)}
+{build_early_html(EARLY_POOL)}
 {build_props_menu_html(PROPS_POOL)}
 {build_combo_html(combo_legs, combos, cresults)}
 {hist}
@@ -2290,7 +2433,9 @@ def main():
             dead_keys = set()
             games.sort(key=lambda g: g["commence"])
             for gi, game in enumerate(games):
-                if prop_keys and gi < PROP_EVENT_CAP:
+                far = (game["commence"] - datetime.now(timezone.utc)
+                       > timedelta(hours=MAX_HOURS_OUT))
+                if prop_keys and gi < PROP_EVENT_CAP and not far:
                     props = fetch_event_props(sport, game, prop_keys,
                                               dead_keys)
                     if props:
@@ -2308,6 +2453,10 @@ def main():
                     time.sleep(0.2)
                 for s in shelves:
                     if s["key"] not in kalshi:
+                        continue
+                    if far and s["kind"] != "winner":
+                        # early games exist ONLY for scan_winner's
+                        # EARLY_POOL branch; totals/props stay 30h
                         continue
                     if not s["featured"] and s["odds_market"] in dead_keys:
                         continue

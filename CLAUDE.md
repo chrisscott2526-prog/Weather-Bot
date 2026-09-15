@@ -241,6 +241,35 @@ translated one-to-one:
   shelves join same-day; each joins only after live two-sided
   verification, per the whitelist law. ADVISORY ONLY — the permanent
   rule covers it word for word.
+- **The early lines, the DK column, and the schedule densification
+  (owner request, Sep 15 2026).** Three fixes from one owner report
+  ("the sports card hasn't refreshed all day... NFL I might do a
+  couple days before, you probably get a better price"): (1) GitHub
+  fired that day's 15:23 sports slot at 19:05 — ~3h40m late, card a
+  day stale through the morning — so sports.yml now has FOUR cron
+  slots (13:23/15:23/18:23/22:23 UTC) and the poller relay carries a
+  **sports tripwire** (the money-lane tripwire pattern): during
+  13:35–23:30 UTC, a card older than ~4h50m with no run queued gets
+  dispatched. ~8 credits/scan against the 20K plan. (2) **THE EARLY
+  LINES**: the NFL fetch window widens 30h → 78h (`EARLY_HOURS_OUT`
+  — credit-FREE, the bulk call already returned those games and we
+  were discarding them), and 30–78h favorites (70%+) get their own
+  card section with kickoff time, the sharps' %, DK's price, and
+  Kalshi's current ask — **display only: an early game feeds no
+  board, no stack, and no gap card until it enters the 30h window**
+  (the boards stay "today's winners"), per-event PROP calls stay
+  gated to 30h (those cost credits), and every early favorite logs
+  to the leg lab, whose `hours_to_start` column grades early-vs-late
+  on the record. (3) **THE DK COLUMN**: parlay-board legs, the props
+  menu, and the early section now print DraftKings' own American
+  odds for the exact pick, read from the same regions=us payload the
+  consensus already uses — zero extra credits, blank when DK doesn't
+  quote it, never guessed. DK is display, never an expert: the
+  consensus and every gate are unchanged. Polymarket/PrizePicks
+  price columns are STAGED, not built: each needs its own feed
+  verified live by probe first (whitelist law; PrizePicks is fixed
+  multipliers, not odds, so its comparison is line-vs-line — a
+  different build).
 - **The combo board (owner request, Sep 10 2026)** is the parlay
   board with every sector invited: one cross-sector stack ladder on
   the same card, mixing the sharps' favorites — full-game moneylines
