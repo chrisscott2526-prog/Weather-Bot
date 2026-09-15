@@ -1,0 +1,35 @@
+name: Model lab probe (read-only, on demand)
+
+# THE PROBE BUTTON for candidate forecast models -- the sports_probe
+# pattern applied to the Model Lab (Sep 15 2026, the widen-the-field
+# pass). Runs model_lab.py on BOTH horizons (tonight's for-tomorrow
+# question and the same-day question) into throwaway files that are
+# never committed, and prints every per-city success or failure to
+# the log. Use it to verify a NEW candidate model live from GitHub's
+# own runners (this repo's sessions cannot reach Open-Meteo from
+# their sandbox) BEFORE the candidate rides the nightly run -- the
+# whitelist law: no feed joins unverified.
+#
+# Read-only by construction: no commit step, no secrets, nothing
+# written back to the repo. A candidate that returns zero rows across
+# all 20 cities exits non-zero and turns this run RED (dead-feed
+# law), which is exactly the loud answer the probe exists to get.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Probe TODAY horizon (throwaway output)
+        run: python model_lab.py --today --out /tmp/probe_today.csv
+
+      - name: Probe TOMORROW horizon (throwaway output)
+        run: python model_lab.py --out /tmp/probe_tomorrow.csv
