@@ -1,5 +1,22 @@
 # CHANGELOG
 
+- 2026-09-15: THE SUB-HOURLY FEED TEST (owner-approved side test).
+  The poller now also logs each station's FULL observation feed
+  (hourly METARs + between-hour SPECI specials) from the same
+  api.weather.gov endpoint, list form, to a new research-only CSV
+  `obs_feed_log.csv` — deduped by (station, obs_time), floored,
+  per-station failures print and skip, union-merged. Born from a
+  writeup the owner shared; its two factual errors are corrected in
+  CLAUDE.md (settlement judge is TWC per the Aug 23 audit, and its
+  KORD/KDAL examples are the wrong stations for our markets). The
+  test: do our stations file temperature-bearing specials our
+  15-minute /latest poll misses, and would they have raised the
+  day's running max when it mattered (the Philadelphia $10 shape)?
+  NOTHING on the money path reads it — promotion into temps_log/
+  the reality floor needs a walk-forward backtest and an owner
+  decision, same bar as the 6-hour-max log. poller.py + CLAUDE.md +
+  .gitattributes, one commit.
+
 - 2026-09-14 (late night): THE EVERY-SPORT PROPS WIDENING + THE DIAL
   (owner requests). Four pieces, one commit: (1) THE DIAL -- the
   props menu now shows a SAFE column beside each player's strong

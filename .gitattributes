@@ -9,6 +9,7 @@
 # rewrites into garbage. Append-only CSVs only.
 temps_log.csv merge=union
 sixhr_max_log.csv merge=union
+obs_feed_log.csv merge=union
 forecasts.csv merge=union
 afternoon_forecasts.csv merge=union
 edges.csv merge=union

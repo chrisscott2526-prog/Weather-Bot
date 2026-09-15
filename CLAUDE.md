@@ -708,6 +708,7 @@ check that line first when a feed dies.
 | `leg_research_results.csv` | `sports_scanner.py` | `graded_utc,sport,ticker,pick,books_pct,books_low_pct,books_high_pct,kalshi_bid_cents,hours_to_start,boarded,market_result,result` (WIN/LOSS/VOID per leg by Kalshi's own settled result, one row per ticker from its latest scan row; **no pnl column on purpose** — no bet was placed. The scoreboard question, verbatim from the owner: in what scenario does a 60% team still belong on the board? Slice at ~100+ graded legs: tight-books-agreement vs loose, Kalshi-confirms vs Kalshi-doubts, fresh number vs stale. Promoting any signal into a board gate is an owner decision made on this record — the scoreboard promotes; conviction never does; append-only, union-merged; same research-only law) |
 | `oddspapi_research.csv` | `oddspapi_lab.py` (oddspapi.yml, daily 15:53 UTC + Run button) | `scanned_utc,sport,game,pick,ticker,commence_utc,oddspapi_pct,n_books,oddspapi_low_pct,oddspapi_high_pct,theoddsapi_pct,kalshi_bid_cents,boarded` (THE ODDSPAPI LAB, Sep 15 2026 — the owner supplied the free-tier `ODDSPAPI_KEY` and the feed was verified live by `oddspapi_probe.yml` runs 1–4 before a line was coded: NFL=tournament 31, MLB=109, full-game moneyline marketIds 141/131 (outcome "1"=participant1), bulk endpoint one-bookmaker-per-call at ~1 req/sec, free tier serves pinnacle+3et (hand-whitelisted, no clones). Prices the leg lab's fresh NFL/MLB picks with OddsPapi's sharps next to The Odds API's number for the SAME pick; graded at review by joining `leg_research_results.csv` on ticker — no second grader. The scoreboard question: which odds feed is better calibrated? Swapping the card's feed is the decision this record can earn. Cost ~6 requests/day vs ~250/month free; the paid plan is the owner's lever, never before the record earns it. RESEARCH LOG ONLY — **nothing that boards, trades, scans for money, or calibrates may ever read it**; append-only, union-merged) |
 | `sixhr_max_log.csv` | `poller.py` | `utc_time,station,city,max6_f,obs_time_utc` (THE OVERNIGHT PEAK LOG, Sep 14 2026 — the station's OFFICIAL 6-hour maximum temperature from the 00/06/12/18 UTC synoptic observations, read from the same API payload the poller already fetches (no extra call) — the API field first, and since Sep 15 2026 the raw METAR remarks as fallback (the ' 1sTTT' group after RMK, ±60°C sanity-guarded), because three synoptic cycles proved api.weather.gov returns the field as null — floored like every temperature, deduped by (station, obs_time). Born from the Philadelphia $10: the deciding overnight peak happened BETWEEN hourly readings, this field knew it, and nothing read it. **RESEARCH LOG ONLY — nothing that trades, scans for money, or calibrates may read it** until a walk-forward backtest (the morning-thermostat standard) proves that flooring the vote at the official 6-hour max flips misses to wins, and an owner decision promotes it; append-only, union-merged) |
+| `obs_feed_log.csv` | `poller.py` | `utc_time,station,city,temp_f,obs_time_utc` (THE SUB-HOURLY FEED TEST, Sep 15 2026, owner-approved side test — the full observation feed from the same api.weather.gov station endpoint the poller already trusts, list form: every transmitted observation, hourly METARs PLUS the SPECI specials filed between hours, deduped by (station, obs_time_utc), floored like every temperature. Exists to answer, on a real record: do our 20 stations actually transmit sub-hourly readings with temperatures, and would they have raised the day's running max at moments that mattered (the Philadelphia $10 shape)? **RESEARCH LOG ONLY — nothing that trades, scans for money, or calibrates may read it; it must NEVER feed temps_log.csv or the day-of reality floor** until a walk-forward backtest (the morning-thermostat standard) and an owner decision promote it; append-only, union-merged) |
 | `model_report.md` | `model_report.py` (autopsy.yml, full rewrite each run) | per-city, per-model median miss vs the settled number: `pool`/`gfs`/`ecmwf` from forecasts.csv (calibrated; member_models splits the voters) and the research passengers from model_research.csv. Derived human-readable output ONLY — no code reads it, NEVER union-merge it. Promotion of a model into the vote is an owner decision made on this evidence |
 
 Calibration is applied **exactly once**, at forecast time
@@ -1759,6 +1760,37 @@ split** (Sep 12, unchanged) > generic spread. Display only; no gate
 or vote changed. The deeper lesson, recorded: when two numbers on
 one card come from different pipeline stages, the card must say so
 — that gap is exactly where the owner loses trust.
+
+## THE SUB-HOURLY FEED TEST (Sep 15, 2026) — OWNER-APPROVED SIDE TEST
+
+The owner shared a writeup recommending the "5-minute raw ASOS feed"
+from `api.weather.gov/stations/{ID}/observations`. Fact-checked
+against our own audited record before anything was built, and the
+corrections are recorded so no future session is misled by the
+writeup's framing: (1) settlement is **The Weather Company** per all
+20 rules panels (the Aug 23 audit), not the NWS CLI report the
+writeup names — same underlying station data, different judge;
+(2) the writeup's example stations KORD and KDAL are the WRONG
+stations for our Chicago (KMDW Midway) and Dallas (KDFW) markets —
+the exact trap the whitelist law exists for; (3) that endpoint does
+not serve true 1-/5-minute ASOS data (which lives at NCEI, days
+behind) — it serves what the station transmits: hourly METARs plus
+**SPECI specials filed between hours**. Those specials are the one
+real nugget: our `/latest` poll can miss a between-hour reading a
+SPECI carries — the same wound as the Philadelphia $10.
+
+So the poller now also logs the full feed (`fetch_feed` →
+`obs_feed_log.csv`, contract in the table) as a research rider, the
+sixhr-log pattern exactly: separate file, per-station failures print
+and skip, a fully dead feed prints loudly (it shares the API with
+the money poll, whose own failure already reddens the pass), and
+**nothing on the money path reads it** — the owner's words when
+approving it: "don't let it affect the trading." The test's
+questions: how often do our stations file temperature-bearing
+specials, and would they have raised the day's running max when it
+mattered? Promotion into `temps_log.csv`/the reality floor happens
+only after a walk-forward backtest and an owner decision — the same
+bar the 6-hour-max log waits behind.
 
 ## ROADMAP — how this grows
 
