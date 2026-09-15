@@ -30,7 +30,7 @@ can never drift from the raw log again. It exists only for a human to
 eyeball; it is a retirement candidate.
 """
 
-import csv, json, math, urllib.request
+import csv, json, math, re, urllib.request
 from datetime import datetime, timezone
 
 from cities import STATIONS
@@ -77,6 +77,28 @@ def fetch(station):
     obs_time = props.get("timestamp", "")
     m6 = props.get("maxTemperatureLast6Hours", {}).get("value")
     max6_f = c_to_f(m6) if isinstance(m6, (int, float)) else None
+    if max6_f is None:
+        # THE REMARKS FALLBACK (Sep 15 2026). Three synoptic cycles
+        # after the 6-hour-max field shipped, api.weather.gov had
+        # returned NULL maxTemperatureLast6Hours at every station --
+        # the API's own parse of the METAR group is unreliable. The
+        # group itself still rides the raw METAR remarks on the
+        # 00/06/12/18Z observations as ' 1sTTT' (s: 0 = +, 1 = -;
+        # TTT = tenths of Celsius, so 10256 = +25.6C). Read it
+        # straight from rawMessage -- but only AFTER the RMK marker,
+        # so nothing in the report body (winds, visibility) can
+        # collide -- with a +/-60C sanity guard (a garbled group must
+        # never invent a temperature). Floored like every reading.
+        raw = props.get("rawMessage") or ""
+        parts = raw.split(" RMK ", 1)
+        if len(parts) == 2:
+            m = re.search(r"(?:^|\s)1([01])(\d{3})(?=\s|$)", parts[1])
+            if m:
+                c6 = int(m.group(2)) / 10.0
+                if m.group(1) == "1":
+                    c6 = -c6
+                if -60.0 <= c6 <= 60.0:
+                    max6_f = c_to_f(c6)
     if c is None:
         return None, obs_time, max6_f
     return c_to_f(c), obs_time, max6_f
