@@ -1,6 +1,10 @@
 {
- "checked_utc": "2026-09-14T21:58:19+00:00",
- "cash_cents": 0,
- "source": "trader",
- "note": "after the end-of-day sweep"
+ "checked_utc": "2026-09-15T12:37:14+00:00",
+ "cash_cents": 7106,
+ "held_cents": 0,
+ "riding_cents": 0,
+ "n_resting": 0,
+ "n_open": 0,
+ "source": "account-check",
+ "note": ""
 }
