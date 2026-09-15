@@ -36,6 +36,19 @@ Candidates logged (add or drop in CANDIDATES / include_nws only):
            law below. Its real promotion question is SAME-DAY use
            in the morning vote, judged at the October review on
            this record.
+- nbm   -- NOAA's National Blend of Models (the widen-the-field
+           pass, Sep 15 2026, under the owner's run-every-test
+           mandate): NOAA's own statistically blended best guess of
+           all major models, tuned per station -- the very product
+           NWS forecasters start from. Via Open-Meteo's forecast
+           API (models=ncep_nbm_conus), one number, free.
+- ukmo  -- the UK Met Office global model, consistently ranked
+           top-3 worldwide and independent of GFS/ECMWF. Via
+           Open-Meteo's forecast API (models=ukmo_seamless), one
+           number, free. (Same pass, same mandate.)
+- gem   -- the Canadian global ensemble (~21 members), a third
+           full ensemble with its own honest spread, via the same
+           ensemble API as icon. (Same pass, same mandate.)
 
 Honesty rules, inherited from forecast.py:
 - Failures print and SKIP; a missing row is honest, an invented one
@@ -64,9 +77,16 @@ UA = {"User-Agent": "weather-bot-personal (aquatechpower@gmail.com)"}
 
 # Open-Meteo ensemble candidates: api_name -> short tag stored in the
 # model column. Same API and parsing as forecast.py's MODELS.
-CANDIDATES = {"icon_seamless": "icon"}
+CANDIDATES = {"icon_seamless": "icon",
+              "gem_global": "gem"}
+# Open-Meteo forecast-API candidates: single deterministic numbers,
+# each logged as one expert opinion like the NWS. One call per model
+# on purpose (the accuracy-rebuild law: a dead model prints loudly
+# and the others carry on).
+DET_CANDIDATES = {"gfs_hrrr": "hrrr",
+                  "ncep_nbm_conus": "nbm",
+                  "ukmo_seamless": "ukmo"}
 NWS_TAG = "nws"
-HRRR_TAG = "hrrr"
 
 
 def get(url, tries=3):
@@ -108,17 +128,17 @@ def ensemble_highs(lat, lon, model, day_index):
     return target, members
 
 
-def hrrr_high(lat, lon, day_index):
-    """(date_str, high_f) from NOAA's HRRR via Open-Meteo's forecast
-    API -- a single deterministic number, logged as one expert
-    opinion like the NWS. (None, None) when the target day is beyond
-    HRRR's short horizon or the value is missing; a missing row is
+def det_high(lat, lon, api_model, day_index):
+    """(date_str, high_f) from one deterministic model via Open-Meteo's
+    forecast API -- a single number, logged as one expert opinion
+    like the NWS. (None, None) when the target day is beyond the
+    model's horizon or the value is missing; a missing row is
     honest, never invented."""
     url = ("https://api.open-meteo.com/v1/forecast"
            f"?latitude={lat}&longitude={lon}"
            "&daily=temperature_2m_max"
            "&temperature_unit=fahrenheit"
-           "&models=gfs_hrrr"
+           f"&models={api_model}"
            "&forecast_days=3&timezone=auto")
     data = get(url)
     daily = data.get("daily", {})
@@ -176,8 +196,9 @@ def main():
           + f" candidate-model highs -> {out}")
     fetched = datetime.now(timezone.utc).isoformat(timespec="seconds")
     rows_per_model = {tag: 0 for tag in CANDIDATES.values()}
+    for tag in DET_CANDIDATES.values():
+        rows_per_model[tag] = 0
     rows_per_model[NWS_TAG] = 0
-    rows_per_model[HRRR_TAG] = 0
 
     with appender(out, FIELDS) as w:
         for sid, (city, lat, lon) in SITES.items():
@@ -212,24 +233,25 @@ def main():
                 except Exception as e:
                     print(f"{city}: {tag} failed - {e} (no row written)")
 
-            # --- NOAA HRRR via Open-Meteo (single expert opinion) ---
-            try:
-                d, t = hrrr_high(lat, lon, day_index)
-                if t is None:
-                    raise ValueError("no HRRR value for that day "
-                                     "(beyond its short horizon?)")
-                if d != target:
-                    raise ValueError(f"returned date {d}, expected "
-                                     f"{target} on {city}'s clock")
-                w.writerow({
-                    "forecast_date": d, "station": sid, "city": city,
-                    "model": HRRR_TAG, "forecast_high_f": t,
-                    "n_members": "", "members": "",
-                    "fetched_utc": fetched})
-                rows_per_model[HRRR_TAG] += 1
-                print(f"{city}: hrrr {t}F for {d}")
-            except Exception as e:
-                print(f"{city}: hrrr failed - {e} (no row written)")
+            # --- deterministic candidates (single expert opinions) ---
+            for api_name, tag in DET_CANDIDATES.items():
+                try:
+                    d, t = det_high(lat, lon, api_name, day_index)
+                    if t is None:
+                        raise ValueError(f"no {tag} value for that day "
+                                         "(beyond its horizon?)")
+                    if d != target:
+                        raise ValueError(f"returned date {d}, expected "
+                                         f"{target} on {city}'s clock")
+                    w.writerow({
+                        "forecast_date": d, "station": sid, "city": city,
+                        "model": tag, "forecast_high_f": t,
+                        "n_members": "", "members": "",
+                        "fetched_utc": fetched})
+                    rows_per_model[tag] += 1
+                    print(f"{city}: {tag} {t}F for {d}")
+                except Exception as e:
+                    print(f"{city}: {tag} failed - {e} (no row written)")
 
             # --- NWS public point forecast ---
             try:
@@ -243,7 +265,7 @@ def main():
                     "n_members": "", "members": "",
                     "fetched_utc": fetched})
                 rows_per_model[NWS_TAG] += 1
-                print(f"{city}: nws forecast {t}F for {d}")
+                print(f"{city}: nws forecast {t}F for {target}")
             except Exception as e:
                 print(f"{city}: nws failed - {e} (no row written)")
 

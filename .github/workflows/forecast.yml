@@ -60,16 +60,18 @@ jobs:
             sleep $((2*n))
           done
 
-      # THE MODEL LAB (Aug 31 2026): research passengers (ICON + NWS)
-      # ride the same nightly run. continue-on-error so a dead research
-      # feed can never cost the run its commits; its OWN timeout so a
-      # HUNG feed is cut loose as a loud step failure instead of eating
-      # the whole job (the Sep 13-14 2026 lesson). Either way the red
-      # flag after the commits still fails the run (dead-feed law).
-      - name: Log research models (ICON + NWS)
+      # THE MODEL LAB (Aug 31 2026): research passengers ride the same
+      # nightly run (icon/gem ensembles + hrrr/nbm/ukmo/nws single
+      # numbers since the Sep 15 2026 widen-the-field pass).
+      # continue-on-error so a dead research feed can never cost the
+      # run its commits; its OWN timeout so a HUNG feed is cut loose as
+      # a loud step failure instead of eating the whole job (the Sep
+      # 13-14 2026 lesson). Leash 8 -> 10 min with the wider field --
+      # six passengers make more calls; a hang still dies loudly.
+      - name: Log research models (passengers)
         id: modellab
         continue-on-error: true
-        timeout-minutes: 8
+        timeout-minutes: 10
         run: python model_lab.py
 
       - name: Commit the research log
