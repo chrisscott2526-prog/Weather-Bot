@@ -1,0 +1,57 @@
+name: OddsPapi probe (read-only, on demand)
+
+# THE PROBE BUTTON for the OddsPapi feed (Sep 15 2026) -- the
+# sports_probe / modellab_probe pattern: read-only discovery of what
+# the API actually returns, run from GitHub's own runners (this
+# repo's sessions cannot reach oddspapi.io from their sandbox), so
+# the research lane that follows is built against real live
+# responses, never a guessed contract.
+#
+# Auth (per OddsPapi docs): apiKey query parameter against
+# https://api.oddspapi.io/v4. GitHub masks the secret in logs.
+#
+# First check is the Aug 19 2026 empty-secret scar: an empty secret
+# in a log looks like `ODDSPAPI_KEY:` with nothing after the colon --
+# so the probe fails RED immediately if the secret is missing/empty,
+# before any call is judged.
+#
+# Read-only by construction: no commit step, nothing written back.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+    steps:
+      - name: Refuse an empty secret (the Aug 19 scar)
+        run: |
+          if [ -z "$ODDSPAPI_KEY" ]; then
+            echo "ODDSPAPI_KEY is MISSING or EMPTY -- the dead-feed"
+            echo "law says fail loudly, not probe a feed with no key."
+            exit 1
+          fi
+          echo "ODDSPAPI_KEY present (length ${#ODDSPAPI_KEY})."
+
+      - name: Probe candidate endpoints (truncated responses)
+        run: |
+          base="https://api.oddspapi.io/v4"
+          for path in "sports" "tournaments" "fixtures" "odds" \
+                      "bookmakers" "usage" "account"; do
+            echo "=============================================="
+            echo "GET /v4/$path"
+            code=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
+              --max-time 30 "$base/$path?apiKey=$ODDSPAPI_KEY" || echo "curl-failed")
+            echo "HTTP $code; response (first 1500 chars):"
+            head -c 1500 /tmp/resp.json || true
+            echo
+          done
+          echo "=============================================="
+          echo "Probe done. This step never fails on a 4xx -- the"
+          echo "point is to SEE the shapes, errors included."
