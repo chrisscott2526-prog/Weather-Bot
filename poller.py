@@ -49,6 +49,27 @@ LOG_LEGACY = [["utc_time", "station", "city", "temp_f"]]
 SIXHR_LOG = "sixhr_max_log.csv"
 SIXHR_FIELDS = ["utc_time", "station", "city", "max6_f", "obs_time_utc"]
 
+# THE SUB-HOURLY FEED TEST (Sep 15 2026, owner-approved side test).
+# The same api.weather.gov station endpoint, list form instead of
+# /latest: it serves every observation the station transmitted --
+# the hourly METAR plus any SPECI (special) reports filed between
+# hours when conditions change fast. Our /latest poll every 15 min
+# mostly re-reads the same hourly ob; a between-hour peak can hide
+# in a SPECI we never see (the Philadelphia $10 shape). This logs
+# the whole feed so a backtest can measure (a) whether our stations
+# actually transmit sub-hourly obs with temperatures, and (b)
+# whether those readings would have raised the day's running max at
+# moments that mattered. RESEARCH LOG ONLY (CLAUDE.md law): nothing
+# that trades, scans for money, or calibrates may read it -- in
+# particular it must NEVER feed temps_log.csv or the day-of reality
+# floor until a walk-forward backtest and an owner decision promote
+# it. Deduped by (station, obs_time_utc); readings floored like
+# every temperature here, never rounded up.
+FEED_LOG = "obs_feed_log.csv"
+FEED_FIELDS = ["utc_time", "station", "city", "temp_f", "obs_time_utc"]
+FEED_LIMIT = 15   # newest ~15 obs per station: covers hours of feed
+                  # between passes even with specials, small payload
+
 # (Local-day attribution now lives in highs.py -- one convention,
 # shared by every consumer: round(longitude / 15) hours from UTC.)
 
@@ -102,6 +123,66 @@ def fetch(station):
     if c is None:
         return None, obs_time, max6_f
     return c_to_f(c), obs_time, max6_f
+
+
+def fetch_feed(station, limit=FEED_LIMIT):
+    """Return [(temp_f, obs_time_iso), ...] -- the newest `limit`
+    observations the station has transmitted (hourly METARs + any
+    SPECIs), newest first. Observations with no temperature value
+    are skipped, never invented. Research path only."""
+    url = (f"https://api.weather.gov/stations/{station}"
+           f"/observations?limit={limit}")
+    req = urllib.request.Request(url, headers={"User-Agent": "weather-bot-personal"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        data = json.load(r)
+    out = []
+    for feat in data.get("features", []):
+        props = feat.get("properties", {})
+        c = props.get("temperature", {}).get("value")
+        obs_time = props.get("timestamp", "")
+        if isinstance(c, (int, float)) and obs_time:
+            out.append((c_to_f(c), obs_time))
+    return out
+
+
+def log_obs_feed(stamp):
+    """THE SUB-HOURLY FEED TEST: append the stations' full observation
+    feeds to obs_feed_log.csv, deduped by (station, obs_time_utc).
+    Failures print and skip per station -- this research step must
+    never break the money poll, which already fetched fine or errored
+    loudly on the same API before we got here."""
+    seen = set()
+    try:
+        with open(FEED_LOG) as f:
+            for row in csv.DictReader(f):
+                seen.add((row.get("station"), row.get("obs_time_utc")))
+    except OSError:
+        pass
+
+    new_rows, failed = [], 0
+    for sid, city in STATIONS.items():
+        try:
+            obs = fetch_feed(sid)
+        except Exception as e:
+            failed += 1
+            print(f"obs feed: {city} failed - {e}")
+            continue
+        for t, obs_time in obs:
+            if (sid, obs_time) not in seen:
+                seen.add((sid, obs_time))
+                new_rows.append({"utc_time": stamp, "station": sid,
+                                 "city": city, "temp_f": t,
+                                 "obs_time_utc": obs_time})
+    if new_rows:
+        with appender(FEED_LOG, FEED_FIELDS) as w:
+            for row in new_rows:
+                w.writerow(row)
+    if failed == len(STATIONS):
+        print("OBS FEED DEAD (research): every station's feed call "
+              "failed this pass")
+    else:
+        print(f"obs feed: {len(new_rows)} new observation(s) logged"
+              + (f", {failed} station(s) failed" if failed else ""))
 
 
 def write_highs():
@@ -178,6 +259,13 @@ def main():
                     w.writerow({"utc_time": stamp, "station": sid,
                                 "city": city, "max6_f": max6,
                                 "obs_time_utc": obs_time})
+
+    # THE SUB-HOURLY FEED TEST (Sep 15 2026, research only) -- after
+    # the money poll and its research riders are safely logged.
+    try:
+        log_obs_feed(stamp)
+    except Exception as e:
+        print(f"obs feed: research step failed - {e}")
 
     write_highs()
 
