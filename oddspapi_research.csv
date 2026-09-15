@@ -1,0 +1,11 @@
+scanned_utc,sport,game,pick,ticker,commence_utc,oddspapi_pct,n_books,oddspapi_low_pct,oddspapi_high_pct,theoddsapi_pct,kalshi_bid_cents,boarded
+2026-09-15T13:06:49+00:00,MLB,Athletics @ Tampa Bay Rays,Tampa Bay Rays wins,KXMLBGAME-26SEP151840ATHTB-TB,2026-09-15T22:40:00+00:00,67.3,2,67.3,67.3,66.7,68.0,0
+2026-09-15T13:06:49+00:00,MLB,Los Angeles Dodgers @ Cincinnati Reds,Los Angeles Dodgers wins,KXMLBGAME-26SEP151840LADCIN-LAD,2026-09-15T22:40:00+00:00,68.1,2,67.9,68.3,66.5,67.0,0
+2026-09-15T13:06:49+00:00,MLB,Milwaukee Brewers @ Pittsburgh Pirates,Milwaukee Brewers wins,KXMLBGAME-26SEP151840MILPIT-MIL,2026-09-15T22:41:00+00:00,69.3,2,69.1,69.4,68.8,68.0,0
+2026-09-15T13:06:49+00:00,MLB,Philadelphia Phillies @ Washington Nationals,Philadelphia Phillies wins,KXMLBGAME-26SEP151845PHIWSH-PHI,2026-09-15T22:45:00+00:00,65.7,2,65.6,65.8,64.4,65.0,0
+2026-09-15T13:06:49+00:00,MLB,Atlanta Braves @ Chicago Cubs,Chicago Cubs wins,KXMLBGAME-26SEP151940ATLCHC-CHC,2026-09-15T23:40:00+00:00,56.5,2,56.2,56.8,56.0,56.0,0
+2026-09-15T13:06:49+00:00,MLB,New York Yankees @ Minnesota Twins,New York Yankees wins,KXMLBGAME-26SEP151940NYYMIN-NYY,2026-09-15T23:40:00+00:00,61.7,2,61.6,61.8,60.6,62.0,0
+2026-09-15T13:06:49+00:00,MLB,San Francisco Giants @ St. Louis Cardinals,St. Louis Cardinals wins,KXMLBGAME-26SEP151945SFSTL-STL,2026-09-15T23:45:00+00:00,59.9,2,59.9,60.0,59.9,59.0,0
+2026-09-15T13:06:49+00:00,MLB,Kansas City Royals @ Houston Astros,Houston Astros wins,KXMLBGAME-26SEP152010KCHOU-HOU,2026-09-16T00:10:00+00:00,60.2,2,60.0,60.3,59.4,59.0,0
+2026-09-15T13:06:49+00:00,MLB,Seattle Mariners @ Los Angeles Angels,Seattle Mariners wins,KXMLBGAME-26SEP152138SEALAA-SEA,2026-09-16T01:38:00+00:00,61.2,2,61.1,61.3,60.2,60.0,0
+2026-09-15T13:06:49+00:00,MLB,Miami Marlins @ Arizona Diamondbacks,Arizona Diamondbacks wins,KXMLBGAME-26SEP152140MIAAZ-AZ,2026-09-16T01:40:00+00:00,58.1,2,57.8,58.4,57.3,57.0,0
