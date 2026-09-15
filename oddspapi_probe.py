@@ -1,38 +1,31 @@
-"""Weather-Bot: OddsPapi probe (read-only) -- ROUND 3 (Sep 15 2026).
+"""Weather-Bot: OddsPapi probe (read-only) -- ROUND 4, the last one
+before the lane (Sep 15 2026).
 
-Discovery only, the sports_probe / modellab_probe pattern: printed
-truncated live responses teach the API's real shapes before any lane
-is coded. Runs inside oddspapi_probe.yml on GitHub's runners (the
-repo's sessions cannot reach oddspapi.io from their sandbox).
+ANSWERED so far (runs 1-3, Sep 15 2026 -- full notes in each run's
+log and the CLAUDE.md session record):
+- auth apiKey param; base https://api.oddspapi.io/v4
+- sports: basketball=11, tennis=12, baseball=13, american-football=14
+- NFL tournamentId=31; fixtures carry names/Abbr/startTime/hasOdds
+  and honor from/to date filters (unfiltered = 844 rows of history)
+- odds?fixtureId works; markets keyed by NUMERIC ids; /v4/markets is
+  the dictionary (33,115 entries) and carries marketType -- the
+  2-way winner-incl-overtime type is tagged "moneyline"
+- BULK: odds-by-tournaments?tournamentIds=X&bookmaker=<slug> -- ONE
+  bookmaker per call, ~1 req/sec rate limit (429 with retryMs)
 
-ANSWERED by rounds 1-2 (logs in runs 1-2, Sep 15 2026):
-- auth: apiKey query param against https://api.oddspapi.io/v4
-- sports: american-football=14, basketball=11, tennis=12, baseball=13
-- bookmakers list carries cloneOf (clone books must not double-count
-  in any consensus); account shows the subscription
-- NFL tournamentId=31; fixtures carry full participant names, Abbr,
-  startTime, statusName, hasOdds -- but an unfiltered
-  fixtures?tournamentId=31 returns 844 rows back to 2024, so date
-  filters are mandatory
-- odds?fixtureId=... works: per-bookmaker -> markets (NUMERIC ids) ->
-  outcomes -> players -> decimal price + priceAmerican + mainLine
-- BULK EXISTS: odds-by-tournaments wants tournamentIds (plural,
-  comma-separated) -- one call per league instead of per fixture
+ROUND 4 questions (the lane's last unknowns):
+1. The moneyline marketIds for american-football (14) and baseball
+   (13) from the dictionary, with their outcome ids.
+2. MLB's tournamentId (tournaments?sportId=13).
+3. Does the FREE subscription serve sharp books through the bulk
+   endpoint -- pinnacle, and a second sharp (singbet / 3et)?
 
-ROUND 3 questions:
-1. The MARKET DICTIONARY -- which numeric marketId is the full-game
-   moneyline (and which outcome id is which side)?
-2. odds-by-tournaments?tournamentIds=31 -- response shape and rough
-   size, and whether a bookmakers filter param narrows it.
-3. fixtures with from/to date filters -- confirmed working?
-
-Honesty rules: never prints the key or full URLs; fails RED on a
-missing/empty key (the Aug 19 2026 empty-secret scar). Costs a
-handful of requests per press.
+Honesty rules unchanged: no key or URL in output; empty-secret scar
+check first; a handful of requests, ~1.2s apart for the rate limit.
 """
 
-import json, os, sys, urllib.error, urllib.parse, urllib.request
-from datetime import datetime, timedelta, timezone
+import json, os, sys, time, urllib.error, urllib.parse, urllib.request
+from datetime import datetime, timezone
 
 KEY = os.environ.get("ODDSPAPI_KEY", "").strip()
 if not KEY:
@@ -60,85 +53,56 @@ def get(path, **params):
         return None, f"<request failed: {e}>"
 
 
-def show(label, status, body, limit=2500):
-    print("=" * 55)
-    text = json.dumps(body) if not isinstance(body, str) else body
-    size = len(text)
-    print(f"{label} -> HTTP {status} ({size} chars)")
-    print(text[:limit] + ("..." if size > limit else ""))
-
-
 def main():
-    # 1. The market dictionary -- try the plausible spellings; error
-    # shapes are answers too.
-    for attempt in (("markets", {}), ("markets", {"sportId": 14}),
-                    ("market-types", {}), ("outcomes", {"sportId": 14})):
-        path, params = attempt
-        st, body = get(path, **params)
-        label = f"{path}?{urllib.parse.urlencode(params)}" if params else path
-        # American-football moneyline hunt: if it IS a list, show any
-        # entries mentioning moneyline/winner/1x2 rather than raw head
-        if st == 200 and isinstance(body, list):
-            hits = [m for m in body
-                    if any(k in json.dumps(m).lower()
-                           for k in ("moneyline", "money line", "winner",
-                                     "1x2", "match odds"))]
-            print("=" * 55)
-            print(f"{label} -> HTTP 200; {len(body)} entries; "
-                  f"{len(hits)} mention moneyline/winner/1x2; "
-                  "first 6 such:")
-            print(json.dumps(hits[:6], indent=1)[:3000])
-            print("...and the first 3 raw entries for shape:")
-            print(json.dumps(body[:3], indent=1)[:1500])
-            break
+    # 1. Moneyline dictionary entries for our sports (one request).
+    st, markets = get("markets")
+    if st != 200 or not isinstance(markets, list):
+        sys.exit(f"markets fetch failed: HTTP {st} {str(markets)[:300]}")
+    for sid, name in ((14, "american-football"), (13, "baseball"),
+                      (11, "basketball"), (12, "tennis")):
+        ml = [m for m in markets
+              if m.get("sportId") == sid
+              and m.get("marketType") == "moneyline"
+              and not m.get("playerProp")]
+        print("=" * 55)
+        print(f"{name} (sportId {sid}): {len(ml)} moneyline markets:")
+        print(json.dumps(ml, indent=1)[:2500])
+
+    # 2. MLB tournament id.
+    time.sleep(1.2)
+    st, tours = get("tournaments", sportId=13)
+    if st == 200 and isinstance(tours, list):
+        mlb = [t for t in tours
+               if "MLB" in str(t.get("tournamentName", "")).upper()
+               or t.get("tournamentSlug") == "mlb"]
+        print("=" * 55)
+        print(f"baseball tournaments: {len(tours)}; MLB-matching:")
+        print(json.dumps(mlb[:5], indent=1)[:1500])
+    else:
+        print("=" * 55)
+        print(f"tournaments?sportId=13 -> HTTP {st}: {str(tours)[:400]}")
+
+    # 3. Sharp books through the bulk endpoint on the free tier.
+    for slug in ("pinnacle", "singbet", "3et"):
+        time.sleep(1.5)
+        st, bulk = get("odds-by-tournaments", tournamentIds=31,
+                       bookmaker=slug)
+        text = json.dumps(bulk) if not isinstance(bulk, str) else bulk
+        print("=" * 55)
+        print(f"odds-by-tournaments NFL bookmaker={slug} -> HTTP {st}; "
+              f"{len(text)} chars")
+        if st == 200:
+            if isinstance(bulk, list):
+                print(f"list of {len(bulk)} fixtures; first, truncated:")
+                print(json.dumps(bulk[0], indent=1)[:2000] if bulk
+                      else "[]")
+            else:
+                print(text[:2000])
         else:
-            show(label, st, body, limit=600)
-
-    # 2. Bulk odds for the NFL -- shape + rough size; then again with
-    # a guessed bookmakers filter to see if the response narrows.
-    st, bulk = get("odds-by-tournaments", tournamentIds=31)
-    if st == 200:
-        text = json.dumps(bulk)
-        print("=" * 55)
-        print(f"odds-by-tournaments?tournamentIds=31 -> HTTP 200; "
-              f"{len(text)} chars total")
-        if isinstance(bulk, list):
-            print(f"list of {len(bulk)} entries; first entry, truncated:")
-            print(json.dumps(bulk[0], indent=1)[:2500] if bulk else "[]")
-        elif isinstance(bulk, dict):
-            print(f"dict with keys: {list(bulk.keys())[:20]}")
-            print(text[:2500])
-    else:
-        show("odds-by-tournaments?tournamentIds=31", st, bulk)
-
-    st, body = get("odds-by-tournaments", tournamentIds=31,
-                   bookmakers="pinnacle")
-    text = json.dumps(body) if not isinstance(body, str) else body
-    print("=" * 55)
-    print(f"odds-by-tournaments + bookmakers=pinnacle -> HTTP {st}; "
-          f"{len(text)} chars (filter honored if much smaller)")
-    print(text[:1200])
-
-    # 3. fixtures with date filters -- the lane must never pull 844
-    # rows of history.
-    today = datetime.now(timezone.utc).date()
-    st, fx = get("fixtures", tournamentId=31,
-                 **{"from": today.isoformat(),
-                    "to": (today + timedelta(days=3)).isoformat()})
-    if st == 200 and isinstance(fx, list):
-        print("=" * 55)
-        print(f"fixtures?tournamentId=31&from={today}&to=+3d -> "
-              f"HTTP 200; {len(fx)} fixtures:")
-        for f in fx[:10]:
-            print(f"  {f.get('startTime')}  "
-                  f"{f.get('participant1Name')} vs "
-                  f"{f.get('participant2Name')}  hasOdds="
-                  f"{f.get('hasOdds')}  id={f.get('fixtureId')}")
-    else:
-        show("fixtures with from/to", st, fx)
+            print(text[:600])
 
     print("=" * 55)
-    print("Round 3 done (read-only; a handful of requests).")
+    print("Round 4 done (read-only; ~6 requests).")
 
 
 if __name__ == "__main__":
