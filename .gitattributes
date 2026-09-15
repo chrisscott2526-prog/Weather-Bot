@@ -27,3 +27,4 @@ whale_trades.csv merge=union
 whale_results.csv merge=union
 leg_research.csv merge=union
 leg_research_results.csv merge=union
+oddspapi_research.csv merge=union

@@ -1,0 +1,57 @@
+name: OddsPapi lab (research only, no trading)
+
+# THE ODDSPAPI LAB (Sep 15 2026): prices the leg lab's fresh NFL/MLB
+# picks with OddsPapi's sharp books (pinnacle + 3et, hand-verified by
+# oddspapi_probe.yml runs 1-4) and logs the numbers next to The Odds
+# API's in oddspapi_research.csv -- so the October review can join
+# the two on the ticker (leg_research_results.csv carries the Kalshi
+# settlement) and ask which expert is better calibrated on the SAME
+# picks. RESEARCH ONLY: nothing that boards, trades, scans for money,
+# or calibrates reads its output.
+#
+# One scan per day, 15:53 UTC -- 30 min after sports.yml's 15:23 scan
+# writes fresh leg rows, on an off-peak minute (GitHub drops :00/:15/
+# :30/:45 far more often). Cost ~6 requests/day vs the free tier's
+# ~250/month; the paid plan is the owner's lever if the record earns
+# wider coverage. Failures are RED per the dead-feed law; a day with
+# no fresh picks exits green and writes nothing (honest quiet day).
+
+on:
+  schedule:
+    - cron: "53 15 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo-writes
+  cancel-in-progress: false
+
+jobs:
+  oddspapi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Price the leg lab's picks with OddsPapi (log only)
+        env:
+          ODDSPAPI_KEY: ${{ secrets.ODDSPAPI_KEY }}
+        run: python oddspapi_lab.py
+
+      - name: Commit the log
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "oddspapi lab $(date -u +'%F %H:%M')"
+          # real retry loop -- the old one-liner fallback died under
+          # bash -e whenever no rebase was in progress (settlements.yml)
+          n=0
+          until git push; do
+            n=$((n+1))
+            if [ "$n" -gt 4 ]; then echo "push failed after $n tries"; exit 1; fi
+            git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
+            sleep $((2*n))
+          done
