@@ -1,5 +1,21 @@
 # CHANGELOG
 
+- 2026-09-15: THE JUDGE LANE (owner request: "why don't you just
+  pick it... I feel like we're trying to build another you"). Claude
+  itself now picks brackets ON PAPER: a claude.ai routine fires a
+  fresh session at 14:30 + 16:30 UTC daily; each fire grades pending
+  picks, reads the full briefing (judge.py brief: fresh reading,
+  high so far, yesterday's settlement, every model's number, live
+  brackets + the ensemble's pick), judges one bracket per in-window
+  city (benched included, skips always allowed and loud), logs
+  validated picks to judge_picks.csv, grades by settlements into
+  judge_results.csv — judge vs ensemble on the same city-days.
+  judge.py is dumb plumbing; the judgment lives only in the session.
+  ADVISORY/PAPER ONLY: nothing that trades, scans, or calibrates may
+  read the judge CSVs; promotion is an owner decision on the record.
+  DST note: shift fires to 15:30/17:30 UTC when daylight saving ends
+  Nov 1 2026. judge.py + CLAUDE.md + .gitattributes, one commit.
+
 - 2026-09-15: THE SUB-HOURLY FEED TEST (owner-approved side test).
   The poller now also logs each station's FULL observation feed
   (hourly METARs + between-hour SPECI specials) from the same

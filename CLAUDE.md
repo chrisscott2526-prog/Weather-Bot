@@ -709,6 +709,8 @@ check that line first when a feed dies.
 | `oddspapi_research.csv` | `oddspapi_lab.py` (oddspapi.yml, daily 15:53 UTC + Run button) | `scanned_utc,sport,game,pick,ticker,commence_utc,oddspapi_pct,n_books,oddspapi_low_pct,oddspapi_high_pct,theoddsapi_pct,kalshi_bid_cents,boarded` (THE ODDSPAPI LAB, Sep 15 2026 — the owner supplied the free-tier `ODDSPAPI_KEY` and the feed was verified live by `oddspapi_probe.yml` runs 1–4 before a line was coded: NFL=tournament 31, MLB=109, full-game moneyline marketIds 141/131 (outcome "1"=participant1), bulk endpoint one-bookmaker-per-call at ~1 req/sec, free tier serves pinnacle+3et (hand-whitelisted, no clones). Prices the leg lab's fresh NFL/MLB picks with OddsPapi's sharps next to The Odds API's number for the SAME pick; graded at review by joining `leg_research_results.csv` on ticker — no second grader. The scoreboard question: which odds feed is better calibrated? Swapping the card's feed is the decision this record can earn. Cost ~6 requests/day vs ~250/month free; the paid plan is the owner's lever, never before the record earns it. RESEARCH LOG ONLY — **nothing that boards, trades, scans for money, or calibrates may ever read it**; append-only, union-merged) |
 | `sixhr_max_log.csv` | `poller.py` | `utc_time,station,city,max6_f,obs_time_utc` (THE OVERNIGHT PEAK LOG, Sep 14 2026 — the station's OFFICIAL 6-hour maximum temperature from the 00/06/12/18 UTC synoptic observations, read from the same API payload the poller already fetches (no extra call) — the API field first, and since Sep 15 2026 the raw METAR remarks as fallback (the ' 1sTTT' group after RMK, ±60°C sanity-guarded), because three synoptic cycles proved api.weather.gov returns the field as null — floored like every temperature, deduped by (station, obs_time). Born from the Philadelphia $10: the deciding overnight peak happened BETWEEN hourly readings, this field knew it, and nothing read it. **RESEARCH LOG ONLY — nothing that trades, scans for money, or calibrates may read it** until a walk-forward backtest (the morning-thermostat standard) proves that flooring the vote at the official 6-hour max flips misses to wins, and an owner decision promotes it; append-only, union-merged) |
 | `obs_feed_log.csv` | `poller.py` | `utc_time,station,city,temp_f,obs_time_utc` (THE SUB-HOURLY FEED TEST, Sep 15 2026, owner-approved side test — the full observation feed from the same api.weather.gov station endpoint the poller already trusts, list form: every transmitted observation, hourly METARs PLUS the SPECI specials filed between hours, deduped by (station, obs_time_utc), floored like every temperature. Exists to answer, on a real record: do our 20 stations actually transmit sub-hourly readings with temperatures, and would they have raised the day's running max at moments that mattered (the Philadelphia $10 shape)? **RESEARCH LOG ONLY — nothing that trades, scans for money, or calibrates may read it; it must NEVER feed temps_log.csv or the day-of reality floor** until a walk-forward backtest (the morning-thermostat standard) and an owner decision promote it; append-only, union-merged) |
+| `judge_picks.csv` | `judge.py log` (run by the Judge Lane Claude routine, twice daily) | `picked_utc,market_date,station,city,ticker,subtitle,floor,cap,claude_pct,yes_ask,ensemble_pick,ens_floor,ens_cap,ensemble_pct,why` (THE JUDGE LANE, Sep 15 2026 — Claude's own paper bracket picks, made in each city's 9–11 AM window from the full briefing, benched cities included; every pick validated against a live bracket from today's freshest scan — an unmatched or out-of-window pick is REFUSED loudly, never guessed; ensemble_* = the mechanical vote's pick from the same scan, stored so the comparison is self-contained; append-only, union-merged; **ADVISORY/RESEARCH ONLY — nothing that trades, scans for money, or calibrates may ever read it**) |
+| `judge_results.csv` | `judge.py grade` (same routine) | `graded_utc,market_date,station,city,ticker,subtitle,claude_pct,yes_ask,ensemble_pick,settled_low,settled_high,result,ensemble_result` (HIT/MISS by Kalshi's own settled bracket from settlements.csv, judge and ensemble graded on the SAME city-days; **no pnl column on purpose** — no bet was placed; the scoreboard question: does a judgment layer over the same data beat the mechanical vote?; append-only, union-merged; same research-only law) |
 | `model_report.md` | `model_report.py` (autopsy.yml, full rewrite each run) | per-city, per-model median miss vs the settled number: `pool`/`gfs`/`ecmwf` from forecasts.csv (calibrated; member_models splits the voters) and the research passengers from model_research.csv. Derived human-readable output ONLY — no code reads it, NEVER union-merge it. Promotion of a model into the vote is an owner decision made on this evidence |
 
 Calibration is applied **exactly once**, at forecast time
@@ -1791,6 +1793,55 @@ specials, and would they have raised the day's running max when it
 mattered? Promotion into `temps_log.csv`/the reality floor happens
 only after a walk-forward backtest and an owner decision — the same
 bar the 6-hour-max log waits behind.
+
+## THE JUDGE LANE (Sep 15, 2026) — OWNER REQUEST, PAPER ONLY
+
+The owner's words, verbatim intent: all this information comes in and
+we trust the ensembles to vote — "why don't you just pick it... you
+can see everything in Kalshi through the bot... I feel like we're
+trying to build another you." So Claude now picks, ON PAPER: a Claude
+routine in the owner's claude.ai account (not in this repo's
+workflows) fires a fresh session twice daily (14:30 and 16:30 UTC —
+chosen so, in summer time, every city gets judged inside its own
+9–11 AM window: East/Central at the first fire, Mountain/Pacific/
+Arizona at the second; **when US daylight saving ends (Nov 1 2026)
+these must shift to 15:30/17:30 UTC or Pacific goes unjudged** —
+whichever session is around then, make that shift). Each fire: pull
+main → `judge.py grade` (settle pending picks) → `judge.py brief`
+(the full world per city: fresh reading + age, high so far,
+yesterday's settled bracket, every model's number from the research
+logs, the live brackets with prices and the ensemble's own pick) →
+the SESSION judges and picks one bracket per in-window city, benched
+cities included, with an honest confidence % — skipping any city is
+always allowed and always loud — → `judge.py log` (validates every
+pick against a live bracket; refuses anything else) → commit ONLY the
+two judge CSVs and push.
+
+The laws:
+
+- **ADVISORY / PAPER ONLY.** Nothing that trades, scans for money, or
+  calibrates may ever read `judge_picks.csv` or `judge_results.csv`.
+  The judge never places, sizes, or sells anything, and never touches
+  scanner/trader/gates or any other file. Promotion of the judge into
+  anything money-touching is an owner decision made on this record.
+- **The judgment lives in the session, never in code.** `judge.py` is
+  deliberately dumb plumbing: brief, validate, log, grade. No
+  heuristic fallback ever picks a bracket when the session doesn't —
+  a missing pick is a loud skip, never a synthesized row.
+- **Settlement truth grades it**, judge and ensemble on the same
+  city-days, no pnl column (no bet was placed). The record answers
+  ONE question: does a judgment layer reading the same data beat the
+  mechanical vote's exact-bracket rate? Stated honestly at birth:
+  both prior judgment-flavored ideas (the afternoon favorite, the
+  morning thermostat) FAILED their tests — that is exactly why this
+  starts on paper, and the honest prior is that beating the vote is
+  hard.
+- **Cost, said plainly:** each fire is a Claude session on the
+  owner's plan — two short sessions a day. The owner approved the
+  build in conversation ("why don't you just pick it"); turning the
+  routine off is one sentence any time.
+- Review alongside the October review: ~30+ graded judge picks per
+  fire slot by then. The scoreboard promotes; conviction never does.
 
 ## ROADMAP — how this grows
 
