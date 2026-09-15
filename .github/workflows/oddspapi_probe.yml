@@ -39,19 +39,15 @@ jobs:
           fi
           echo "ODDSPAPI_KEY present (length ${#ODDSPAPI_KEY})."
 
-      - name: Probe candidate endpoints (truncated responses)
-        run: |
-          base="https://api.oddspapi.io/v4"
-          for path in "sports" "tournaments" "fixtures" "odds" \
-                      "bookmakers" "usage" "account"; do
-            echo "=============================================="
-            echo "GET /v4/$path"
-            code=$(curl -sS -o /tmp/resp.json -w "%{http_code}" \
-              --max-time 30 "$base/$path?apiKey=$ODDSPAPI_KEY" || echo "curl-failed")
-            echo "HTTP $code; response (first 1500 chars):"
-            head -c 1500 /tmp/resp.json || true
-            echo
-          done
-          echo "=============================================="
-          echo "Probe done. This step never fails on a 4xx -- the"
-          echo "point is to SEE the shapes, errors included."
+      - uses: actions/checkout@v5
+
+      - name: Probe the fixtures/odds chain (round 2, Python)
+        run: python oddspapi_probe.py
+
+      # Round 1 (Sep 15 2026, run 1) flat-probed sports / tournaments /
+      # fixtures / odds / bookmakers / usage / account -- results are
+      # in that run's log and the session record: sports and
+      # bookmakers list openly (american-football=14, basketball=11,
+      # tennis=12, baseball=13; bookmakers carry cloneOf), account
+      # shows the subscription, odds wants fixtureId. Those calls are
+      # answered and not re-spent -- the free tier is request-capped.
