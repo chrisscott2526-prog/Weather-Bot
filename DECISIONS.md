@@ -2,6 +2,24 @@
 
 One line of why per decision, newest first, as the standing orders require.
 
+## 2026-09-16 (later) — the shaded pair (owner order: "add Atlanta and San Francisco... subtract 1 degree on Atlanta and add 1 degree to San Francisco")
+
+1. **The shade is applied to the NWS number before the bracket is
+   chosen, and before the reality floor.** Why: it corrects the
+   forecast's recorded lean (Atlanta all-warm misses, SF nearly
+   all-cool), and the floor must always outrank any forecast.
+
+2. **nws_f keeps logging the RAW NWS number.** Why: the raw record
+   grades the NWS itself; the selected row grades the shaded
+   decision — two questions, both answerable forever.
+
+3. **Backtest stated plainly at ship time: Atlanta −1 went 2-of-7,
+   SF +1 went 1-of-7 on the stored nights** (SF's lean ran 2–3°, so
+   +1 usually falls short). Why recorded: the owner chose this as
+   their own test with the numbers on the table — ~$2/day max
+   exposure, the band still gating, and the shaded-vs-raw record
+   accruing daily for the October review.
+
 ## 2026-09-16 — THE NWS LANE (owner order, verbatim intent: "bench everything except Washington, Las Vegas, Minneapolis, San Antonio, New Orleans... only allowed to purchase what NWS says on those")
 
 1. **The NWS number is fetched LIVE at scan time, never read from
