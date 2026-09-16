@@ -209,16 +209,30 @@ MIN_PICK_PROB = 40.0   # top bracket weaker than this = day too uncertain
 # still computed, logged, and paper-tracked in every city, benched
 # included, so every prior record keeps accruing.
 NWS_PICK_CITIES = {"Washington DC", "Las Vegas", "Minneapolis",
-                   "San Antonio", "New Orleans"}
+                   "San Antonio", "New Orleans",
+                   "Atlanta", "San Francisco"}
 
-# Everything NOT in the NWS five is benched (same owner decision):
-# money moves only where the NWS record earned it; all 15 keep full
+# THE SHADED PAIR (Sep 16 2026, same-day owner order): Atlanta and
+# San Francisco join the lane WITH their recorded NWS lean corrected
+# -- every Atlanta miss on the 7 graded nights was too WARM (bet the
+# bracket holding NWS minus 1) and San Francisco's were nearly all
+# too COOL (NWS plus 1). Stated at ship time, honestly: the shades
+# only partly reach (shaded replay: Atlanta 2-of-7, SF 1-of-7 exact
+# -- SF's cool lean ran 2-3 degrees, so +1 usually falls short), so
+# these two enter as underdogs to the five and the band still vetoes
+# their bad days. Changing a shade, or shading anyone else, is an
+# owner decision on the record edges.csv now builds (nws_f logs the
+# RAW number; the selected bracket row embodies the shade).
+NWS_SHADE_F = {"Atlanta": -1.0, "San Francisco": 1.0}
+
+# Everything NOT in the NWS lane is benched (same owner decision):
+# money moves only where the NWS record earned it; all 13 keep full
 # paper records, as the bench law requires, and can earn their way
 # back at the October review.
 BENCHED_CITIES = {"Oklahoma City", "Dallas", "Philadelphia",
                   "Phoenix", "Austin", "Boston", "Chicago", "Houston",
-                  "Seattle", "Atlanta", "New York City", "Miami",
-                  "Denver", "Los Angeles", "San Francisco"}
+                  "Seattle", "New York City", "Miami",
+                  "Denver", "Los Angeles"}
 
 # Day-of reality check (Aug 28 2026): on a morning scan, the settlement
 # station has already reported real readings. The final high can never
@@ -517,7 +531,17 @@ def main():
                 # A stale reading applies no floor, as always.
                 nws_tick = ""
                 if nws_val is not None and mdate == today:
-                    eff = nws_val
+                    # THE SHADED PAIR: the owner's per-city lean
+                    # correction is applied to the number BEFORE the
+                    # bracket is chosen (Atlanta -1, San Francisco
+                    # +1); the reality floor then applies to the
+                    # shaded number like any forecast.
+                    shade = NWS_SHADE_F.get(city, 0.0)
+                    eff = nws_val + shade
+                    if shade:
+                        print(f"  {city} {mdate}: NWS {nws_val:.0f}F "
+                              f"read as {eff:.0f}F (owner shade "
+                              f"{shade:+.0f} for the recorded lean)")
                     if city in obs_floors:
                         obs, age = obs_floors[city]
                         if age <= MAX_OBS_FLOOR_AGE_MIN and obs > eff:

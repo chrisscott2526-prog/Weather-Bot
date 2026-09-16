@@ -247,7 +247,12 @@ const WIN_START = 9, WIN_END = 11;   // 9:00-10:59 AM city time
 // bracket 5-of-7 nights each, New Orleans 4-of-7). The ensemble's
 // pick is still logged on paper everywhere. Change both files in the
 // same commit, same law as every money-gate mirror.
-const NWS_STATIONS = {KDCA: 1, KLAS: 1, KMSP: 1, KSAT: 1, KMSY: 1};
+// Values are the owner's per-city shade in degrees (Sep 16 2026,
+// second order, same day): Atlanta reads NWS minus 1 (its misses all
+// ran warm), San Francisco reads NWS plus 1 (its ran cool). Mirror
+// of scanner.py's NWS_PICK_CITIES + NWS_SHADE_F -- same commit law.
+const NWS_STATIONS = {KDCA: 0, KLAS: 0, KMSP: 0, KSAT: 0, KMSY: 0,
+                      KATL: -1, KSFO: 1};
 // THE CITY BENCH: mirror of scanner.py's BENCHED_CITIES (by station
 // id). Since the NWS Lane (Sep 16 2026, owner decision) everything
 // outside the five NWS cities is benched -- money moves only where
@@ -264,12 +269,10 @@ const BENCHED_STATIONS = {
   KMDW: "the map narrowed to the five NWS-best cities (Sep 16 2026)",
   KHOU: "the map narrowed to the five NWS-best cities (Sep 16 2026)",
   KSEA: "the map narrowed to the five NWS-best cities (Sep 16 2026)",
-  KATL: "the map narrowed to the five NWS-best cities (Sep 16 2026)",
   KNYC: "the map narrowed to the five NWS-best cities (Sep 16 2026)",
   KMIA: "the map narrowed to the five NWS-best cities (Sep 16 2026)",
   KDEN: "the map narrowed to the five NWS-best cities (Sep 16 2026)",
-  KLAX: "the map narrowed to the five NWS-best cities (Sep 16 2026)",
-  KSFO: "the map narrowed to the five NWS-best cities (Sep 16 2026)"};
+  KLAX: "the map narrowed to the five NWS-best cities (Sep 16 2026)"};
 
 // station -> UTC offset in hours: round(longitude / 15), generated
 // from cities.py (the source of truth). highs.py uses the exact same
@@ -651,8 +654,15 @@ function betSection(sid, now, edges, trades, fcs, settleBy, hiByDay){
     // The NWS lane's own first sentence: the number that decides.
     if(nwsRow){
       const nv = Number(nwsRow.nws_f);
+      const sh = NWS_STATIONS[sid] || 0;
       why = `<b>The NWS forecasts ${isNaN(nv) ? "?" : nv.toFixed(0)}`
-          + `&deg;</b> for today &mdash; its bracket `
+          + `&deg;</b> for today`
+          + (sh && !isNaN(nv)
+             ? ` &mdash; read as <b>${(nv + sh).toFixed(0)}&deg;</b> `
+               + `here (${sh > 0 ? "+" : ""}${sh}&deg; owner shade for `
+               + `this station's recorded lean)`
+             : ``)
+          + ` &mdash; its bracket `
           + `<b>${esc(nwsRow.subtitle)}</b> is the only one the bot `
           + `may buy here (owner rule, Sep 16 2026). `;
     }else{

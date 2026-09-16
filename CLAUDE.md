@@ -1972,6 +1972,23 @@ the same day. What changed, and what the record said at ship time:
   still promotes, and everything benched can still earn its way
   back in October.
 
+**THE SHADED PAIR (Sep 16 2026, same day, second owner order).**
+After seeing the per-city lean table (every Atlanta NWS miss ran
+warm, San Francisco's nearly all cool), the owner added both to the
+lane with the lean corrected: **Atlanta bets the bracket holding NWS
+minus 1°, San Francisco NWS plus 1°** (`NWS_SHADE_F` in scanner.py,
+mirrored in `NWS_STATIONS`'s values in index.html; the shade applies
+BEFORE the reality floor; `nws_f` keeps logging the RAW number — the
+selected bracket row embodies the shade). The record at ship time,
+stated honestly: on the 7 graded nights the shaded picks went
+**Atlanta 2-of-7 and SF 1-of-7 exact** (raw: 1-of-7 and 0-of-7) —
+SF's cool lean ran 2–3°, so +1 usually falls short — these two are
+the lane's underdogs, entered deliberately as the owner's own test,
+~$2/day max exposure, with the band still vetoing their bad days.
+The buyable map is now SEVEN cities; the other 13 stay benched on
+full paper. Changing a shade, or shading any other city, is an
+owner decision on the accruing record.
+
 ## ROADMAP — how this grows
 
 Flat $1 stakes are **temporary tuition**. The record in `results.csv`,
