@@ -1,4 +1,4 @@
-# Loss autopsy — 2026-09-15 17:07 UTC
+# Loss autopsy — 2026-09-16 12:36 UTC
 
 182 settled bets on the scoreboard. Where did the day's real high land, relative to what we bought?
 
@@ -187,7 +187,7 @@
 | 2026-09-13 | San Antonio | 100° to 101° | 46¢ | WIN | settlement |
 | 2026-09-13 | San Francisco | 71° to 72° | 53¢ | WIN | settlement |
 | 2026-09-14 | Philadelphia | 76° to 77° | 49¢ | MISS-HIGH-BY-1 | settlement |
-| 2026-09-14 | Phoenix | 103° to 104° | 45¢ | MISS-HIGH-BY-1 | instrument |
+| 2026-09-14 | Phoenix | 103° to 104° | 45¢ | MISS-HIGH-BY-1 | settlement |
 
 ## 1. Overall
 
