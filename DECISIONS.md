@@ -2,6 +2,23 @@
 
 One line of why per decision, newest first, as the standing orders require.
 
+## 2026-09-16 — the NWS second-opinion test (owner hypothesis: the local forecast should veto far-away picks)
+
+1. **Graded the hypothesis from stored data instead of building a
+   gate** (`nws_second_opinion.py` + CLAUDE.md section). Why: the
+   by-all-means mandate authorizes research; gates are owner
+   decisions, and the veto's real-money sample is one bet (a win).
+
+2. **NWS verified within one bracket 86% of 140 city-days; picks
+   2+ brackets from NWS ran 5W–34L on paper.** Why recorded: the
+   October review already weighs promoting NWS — this pre-registers
+   the "within one bracket of NWS" gate as a candidate to judge on
+   post-tail-fix data.
+
+3. **Nothing on the money path changed.** Why: the 45¢ price floor
+   already blocks every cheap veto-zone pick, so today the veto has
+   nothing to protect and n=1 to argue from.
+
 ## 2026-09-12 — per-model bias (owner: "Go for it", after catching the wild brackets themselves)
 
 1. **Each ensemble member is now shifted by its own model's learned
