@@ -2,6 +2,34 @@
 
 One line of why per decision, newest first, as the standing orders require.
 
+## 2026-09-16 — THE NWS LANE (owner order, verbatim intent: "bench everything except Washington, Las Vegas, Minneapolis, San Antonio, New Orleans... only allowed to purchase what NWS says on those")
+
+1. **The NWS number is fetched LIVE at scan time, never read from
+   model_research.csv.** Why: the research-log law ("nothing that
+   trades may ever read it") stands; sharing the fetch function is
+   code reuse, sharing the file would be a law break.
+
+2. **The pick column stays the ensemble's pick everywhere; the NWS
+   choice rides a new nws_f column on its own bracket's row.** Why:
+   every existing record (the race, the bench paper, the judge
+   comparison) keeps accruing unbroken, and the NWS decision is
+   still self-documenting in the data.
+
+3. **The 45–54¢ band still gates the NWS bracket; MIN_PICK_PROB does
+   not.** Why: the band is the second expert (on stored days where
+   the NWS bracket priced under 45¢, the NWS was usually wrong), and
+   a member-share bar cannot apply to a single-number expert.
+
+4. **The reality floor applies to the NWS number.** Why: a fresh
+   observed high the station already reached outranks any forecast
+   — same physics as the member floor, same freshness rule.
+
+5. **Stated caveat recorded with the ship**: the five cities were
+   chosen on the same 7 graded nights the 9W–1L replay ran on, so
+   the replay is partly circular and the honest test starts out of
+   sample. The owner made the call with the sample size stated —
+   the Handful Cut precedent.
+
 ## 2026-09-16 — the NWS second-opinion test (owner hypothesis: the local forecast should veto far-away picks)
 
 1. **Graded the hypothesis from stored data instead of building a
