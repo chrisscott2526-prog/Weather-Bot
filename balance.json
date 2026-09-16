@@ -1,6 +1,10 @@
 {
- "checked_utc": "2026-09-16T14:09:38+00:00",
- "cash_cents": 2671,
- "source": "trader",
- "note": "after placing orders"
+ "checked_utc": "2026-09-16T14:33:41+00:00",
+ "cash_cents": 613,
+ "held_cents": 0,
+ "riding_cents": 0,
+ "n_resting": 0,
+ "n_open": 0,
+ "source": "account-check",
+ "note": ""
 }
