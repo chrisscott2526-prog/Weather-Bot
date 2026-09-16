@@ -1872,6 +1872,45 @@ The laws:
 - Review alongside the October review: ~30+ graded judge picks per
   fire slot by then. The scoreboard promotes; conviction never does.
 
+## THE NWS SECOND-OPINION TEST (Sep 16, 2026) — OWNER HYPOTHESIS, VERIFIED ON PAPER
+
+The owner's question, in their words: the local weatherman tells you
+the expected high and "he's damn close — if he's not dead on, he's
+one bracket away up or down." If the ensemble had that number in
+front of it and still picked a 2¢ bracket, that would "earn a spot of
+absolutely no trust." Tested the same day from data already stored
+(`nws_second_opinion.py`, re-runnable by any session — edges picks vs
+the Model Lab's nightly NWS rows vs official settlements). Three
+verdicts, all stated:
+
+1. **The owner is right about the local forecast.** Over 140 graded
+   city-days (Sep 1–14), the NWS night-before number landed in the
+   EXACT settled bracket 33% and within ONE bracket **86%** of the
+   time. Only 2 of 140 days was it more than two brackets off.
+2. **The owner is right about the veto zone.** When the morning
+   pick sat 2+ brackets from the NWS number: **5W–34L (13% exact)**.
+   When NWS was inside or one bracket away: 21W–50L (30%). Nearly
+   every veto-zone pick was a cheap tail bracket — the scattered-
+   vote-into-tails shape. Caveat, stated honestly: most veto-zone
+   rows predate the Sep 12 tail-strike fix, which inflated exactly
+   those tail votes, so part of that 13% is disease already cured —
+   re-run this script at the October review on post-fix data.
+3. **But the money was never in the veto zone — the price band
+   already does this veto's job.** A 2¢ bracket can never be bought
+   (45¢ floor). Of the real morning-lane bets on NWS-covered days,
+   exactly ONE sat in the veto zone — and it won (+$0.47). On real
+   money the veto so far has nothing to block and one win to cost.
+
+What this changes NOW: **nothing on the money path** — the veto-zone
+sample where it matters (bought bets) is n=1, and gates are owner
+decisions. What it feeds: the October review, where NWS promotion
+was already on the table (the NWS Preview: 33% exact vs the pool's
+28%, best in the benched cities). This test pre-registers the
+candidate gate for that review: **pick must sit within one bracket
+of the NWS night-before number** — judged then on the thicker
+record, especially post-tail-fix days. The scoreboard promotes;
+conviction never does.
+
 ## ROADMAP — how this grows
 
 Flat $1 stakes are **temporary tuition**. The record in `results.csv`,
