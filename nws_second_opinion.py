@@ -125,6 +125,29 @@ def main():
     within = dist_count[0] + dist_count[1]
     print("  within one bracket: %d (%.0f%%)" % (within, 100.0 * within / n))
 
+    # Per-city breakdown, all 20 (benched included — the bench law).
+    # Bench list parsed from scanner.py's source at run time, the
+    # watchdog pattern — never a mirrored copy that can drift.
+    src = open(os.path.join(REPO, "scanner.py")).read()
+    m = re.search(r"BENCHED_CITIES\s*=\s*[\{\[](.*?)[\}\]]", src, re.S)
+    benched = {a or b for a, b in
+               re.findall(r'"([^"]+)"|\'([^\']+)\'', m.group(1))} if m else set()
+    station2city = {v[1]: v[0] for v in CITIES.values()}
+    per = defaultdict(lambda: [0, 0, 0])  # city -> [exact, one off, 2+ off]
+    for (st, d), val in nws.items():
+        if (st, d) not in settled:
+            continue
+        dd = bracket_dist(*settled[(st, d)], val)
+        per[station2city.get(st, st)][min(dd, 2)] += 1
+    print("\n  per city (RIGHT = exact settled bracket):")
+    print("  %-16s %-8s %5s %5s %5s %5s" % ("city", "status", "right", "1off", "2+off", "days"))
+    for city in sorted(per, key=lambda c: -(per[c][0] / sum(per[c]))):
+        e, o, f2 = per[city]
+        tag = "BENCHED" if city in benched else "active"
+        print("  %-16s %-8s %5d %5d %5d %5d   (%.0f%% right, %.0f%% within one)"
+              % (city, tag, e, o, f2, e + o + f2,
+                 100.0 * e / (e + o + f2), 100.0 * (e + o) / (e + o + f2)))
+
     # ---- Test 2: pick accuracy split by distance to the NWS number ----
     print("\n=== TEST 2: morning pick exact-bracket rate, by distance to NWS ===")
     rows = []
