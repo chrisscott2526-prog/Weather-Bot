@@ -1911,6 +1911,67 @@ of the NWS night-before number** — judged then on the thicker
 record, especially post-tail-fix days. The scoreboard promotes;
 conviction never does.
 
+## THE NWS LANE (Sep 16, 2026) — OWNER DECISION, THE MONEY PATH
+
+Hours after the second-opinion test above, the owner made the call,
+in their words: "Bench everything except Washington, Las Vegas,
+Minneapolis, San Antonio, New Orleans... the bot is only allowed to
+purchase what NWS says on those... We're still pulling all the data."
+Explicit owner yes in conversation — the money-path bar — executed
+the same day. What changed, and what the record said at ship time:
+
+- **The buyable map is the NWS five**: Washington DC, Las Vegas,
+  Minneapolis, San Antonio (each 5-of-7 exact settled brackets on
+  the NWS's night-before number, Sep 1–12) and New Orleans (4-of-7).
+  `BENCHED_CITIES` = the other 15. Every benched city keeps its full
+  poll/forecast/scan/paper record, as the bench law requires.
+- **In the five, the NWS picks the bracket** (`NWS_PICK_CITIES` in
+  scanner.py, morning scans only): the scanner fetches the NWS point
+  forecast's high for today LIVE at scan time (`model_lab.nws_high`
+  — shared code; the research-log DATA law stands untouched) and the
+  only bracket `would_bet` may flag is the one holding that number.
+  No NWS number = loud NO BUY, never a guess (fail-closed, verified
+  in an offline end-to-end test at ship time). The day-of reality
+  floor applies to the NWS number exactly as it does to members: a
+  fresh observed high already past it moves the bracket up (never
+  down), a stale reading applies nothing.
+- **Every other seatbelt is unchanged**: the 45–54¢ band (the market
+  stays the second expert — and its graded job here is real: on the
+  days the band would have skipped because the NWS bracket was under
+  45¢, the NWS was usually wrong), the 9–11 AM window, $1 sizing,
+  MAX_PER_CITY_DAY, the fail-closed exposure check, the sweep.
+  `MIN_PICK_PROB` does NOT gate the NWS pick — a single number has
+  no member count; the price band is its confidence check.
+- **The ensemble is paper everywhere now, but fully logged**: the
+  `pick` column stays the ensemble's pick on every row in every city
+  (the race, the bench records, the judge comparisons all keep
+  accruing), and the new `nws_f` column (edges.csv, last position)
+  carries the raw NWS number ONLY on the row of the bracket it
+  selected, so every reader can find the NWS choice without
+  re-deriving it. Night scans are untouched ensemble paper.
+- **The replay of this exact rule on the stored record** (first
+  qualifying morning scan, NWS bracket, 45–54¢ band, graded by
+  settlements): **9W–1L, +$7.17**, with 17 city-days skipped on
+  price. THE CAVEAT, stated at decision time: the five cities were
+  CHOSEN on those same 7 nights, so that replay is partly circular —
+  the honest test starts out of sample the morning after this
+  shipped. The lane also buys on the SAME-DAY NWS number while the
+  graded record is the night-before number; fresher should be no
+  worse, but that is expectation, not record yet.
+- The Station Board explains the new regime per card (NWS number,
+  its bracket, the rule that said no; `NWS_STATIONS` +
+  `BENCHED_STATIONS` mirrors moved in the same commit, as the law
+  requires). The combo board's weather legs now draw only from the
+  five (bench parse is automatic) and still use their own
+  dual-expert ensemble rule.
+- **Grading**: results.csv rows land under strategy=morning as
+  always; the NWS lane's record is separable by date (from Sep 16
+  2026 on, morning buys in the five cities are NWS picks) and by
+  joining edges.csv's nws_f. Reviewing, widening, or reverting this
+  lane is an owner decision off that settled record — the scoreboard
+  still promotes, and everything benched can still earn its way
+  back in October.
+
 ## ROADMAP — how this grows
 
 Flat $1 stakes are **temporary tuition**. The record in `results.csv`,

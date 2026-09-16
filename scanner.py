@@ -65,20 +65,33 @@ from cities import CITIES, STATIONS, local_time
 from calibration import compute_calibration
 from csvio import appender, is_morning_row
 from highs import highs_today
+from model_lab import nws_high   # the NWS point forecast, fetched
+                                 # live -- shared code, never shared
+                                 # research DATA (that law stands)
 
 OUT = "edges.csv"
 FIELDS = ["scanned_utc", "city", "market", "subtitle", "floor", "cap",
           "yes_ask", "no_ask", "model_prob_pct", "edge_yes", "edge_no",
           "bias_f", "spread_scale", "sigma_f", "n_members", "pick",
-          "edge_pick", "would_bet", "strategy"]
+          "edge_pick", "would_bet", "strategy", "nws_f"]
 # sigma_f (Aug 24 2026): the calibration's learned target error spread
 # in degrees F -- replaces the old unitless spread_scale ratio, whose
 # column stays so old rows keep their meaning (new rows leave it
 # blank; the two numbers must never share a column).
-# Older layouts: 18 columns with spread_scale but no sigma_f
-# (Aug 20-24 2026), 17 columns also without strategy (pre Aug 20).
-LEGACY = ([c for c in FIELDS if c != "sigma_f"],
-          [c for c in FIELDS if c not in ("sigma_f", "strategy")])
+# nws_f (Sep 16 2026, THE NWS LANE): on a morning scan of an NWS-pick
+# city, the raw NWS forecast high (F) fetched live at scan time --
+# written ONLY on the row of the bracket that number selects (after
+# the day-of reality floor), blank everywhere else, so readers can
+# find the NWS-chosen bracket without re-deriving it. The pick column
+# stays the ENSEMBLE's pick on every row, so its paper record never
+# stops accruing.
+# Older layouts: 19 columns without nws_f (Sep 12-16 2026), 18 columns
+# with spread_scale but no sigma_f (Aug 20-24 2026), 17 columns also
+# without strategy (pre Aug 20).
+LEGACY = ([c for c in FIELDS if c != "nws_f"],
+          [c for c in FIELDS if c not in ("nws_f", "sigma_f")],
+          [c for c in FIELDS if c not in ("nws_f", "sigma_f",
+                                          "strategy")])
 
 
 def strategy_from_argv():
@@ -179,9 +192,33 @@ MIN_PICK_PROB = 40.0   # top bracket weaker than this = day too uncertain
 # Miami 33%, Denver 33%, San Francisco 32%.
 # Mirrored for display in index.html (BENCHED_STATIONS) -- change both
 # in the same commit, same law as every money-gate mirror.
-BENCHED_CITIES = {"Oklahoma City", "Dallas", "Washington DC",
-                  "Philadelphia", "Phoenix", "Austin", "Boston",
-                  "Chicago", "Houston", "Seattle", "New Orleans"}
+# THE NWS LANE (Sep 16 2026, OWNER DECISION -- see CLAUDE.md, THE NWS
+# LANE): the owner cut the buyable map to the five cities where the
+# NWS point forecast has been provably best (graded vs official
+# settlements, Sep 1-12: DC / Vegas / Minneapolis / San Antonio 5-of-7
+# exact each, New Orleans 4-of-7; the replay of this exact rule --
+# NWS bracket + the 45-54c band -- went 9W-1L on the stored record,
+# with the stated caveat that the cities were chosen on those same
+# nights, so the honest test starts out of sample). In these five, on
+# MORNING scans only, the bracket the bot may buy is the one holding
+# the NWS's own forecast high, fetched LIVE at scan time (never from
+# a research file -- the research-log law stands). No NWS number =
+# loud skip, never a guess. The price band still gates (the market
+# stays the second expert); MIN_PICK_PROB does not apply to the NWS
+# pick (a single number has no member count). The ensemble's pick is
+# still computed, logged, and paper-tracked in every city, benched
+# included, so every prior record keeps accruing.
+NWS_PICK_CITIES = {"Washington DC", "Las Vegas", "Minneapolis",
+                   "San Antonio", "New Orleans"}
+
+# Everything NOT in the NWS five is benched (same owner decision):
+# money moves only where the NWS record earned it; all 15 keep full
+# paper records, as the bench law requires, and can earn their way
+# back at the October review.
+BENCHED_CITIES = {"Oklahoma City", "Dallas", "Philadelphia",
+                  "Phoenix", "Austin", "Boston", "Chicago", "Houston",
+                  "Seattle", "Atlanta", "New York City", "Miami",
+                  "Denver", "Los Angeles", "San Francisco"}
 
 # Day-of reality check (Aug 28 2026): on a morning scan, the settlement
 # station has already reported real readings. The final high can never
@@ -380,6 +417,27 @@ def main():
                           f"{lt.strftime('%H:%M')}, outside the "
                           f"{WINDOW[0]}-{WINDOW[1]} AM buying window")
                     continue
+            # THE NWS LANE: in the five NWS-pick cities the morning
+            # scan needs the NWS's own number for today, fetched live
+            # right now. A failed fetch is a loud NO BUY for the city
+            # (honesty law: skip, never guess) -- the ensemble is
+            # still scanned and logged on paper below either way.
+            nws_val = None
+            if STRATEGY == "morning" and city in NWS_PICK_CITIES:
+                try:
+                    nws_val = nws_high(_lat, _lon, today)
+                except Exception as e:
+                    print(f"{city}: NWS forecast fetch FAILED ({e}) "
+                          f"-- no NWS number, so NO BUY here today")
+                else:
+                    if nws_val is None:
+                        print(f"{city}: NWS published no daytime high "
+                              f"for {today} -- NO BUY (never guessed)")
+                    else:
+                        print(f"{city}: NWS forecast high for {today}: "
+                              f"{nws_val:.0f}F (the only buyable "
+                              f"bracket)")
+
             try:
                 data = ksigned(f"/trade-api/v2/markets?series_ticker={series}"
                                f"&status=open&limit=200")
@@ -450,6 +508,35 @@ def main():
                 top_p, top_m = scored[0][0], scored[0][1]
                 pick_tick = top_m.get("ticker", "")
 
+                # THE NWS LANE: find the one bracket holding the NWS
+                # number. The day-of reality floor applies to it the
+                # same way it applies to members: a FRESH observed
+                # high the station already reached is a hard floor
+                # (the final high cannot be below it), so the
+                # effective number is max(NWS, fresh observed high).
+                # A stale reading applies no floor, as always.
+                nws_tick = ""
+                if nws_val is not None and mdate == today:
+                    eff = nws_val
+                    if city in obs_floors:
+                        obs, age = obs_floors[city]
+                        if age <= MAX_OBS_FLOOR_AGE_MIN and obs > eff:
+                            print(f"  {city} {mdate}: station already "
+                                  f"read {obs:.1f}F -- floors the NWS "
+                                  f"number {nws_val:.0f}F for the "
+                                  f"bracket choice")
+                            eff = obs
+                    for p, m, lo, hi in scored:
+                        ok_lo = (lo is None) or (eff >= lo - 0.5)
+                        ok_hi = (hi is None) or (eff < hi + 0.5)
+                        if ok_lo and ok_hi:
+                            nws_tick = m.get("ticker", "")
+                            break
+                    if not nws_tick:
+                        print(f"  {city} {mdate}: no open bracket "
+                              f"holds the NWS number {eff:.0f}F -- "
+                              f"NO BUY (never a substitute)")
+
                 # old rule's hypothetical, logged for the scoreboard
                 edge_pick = ""
                 best_e = None
@@ -477,7 +564,42 @@ def main():
 
                     would = ""
                     is_pick = (tick == pick_tick)
-                    if is_pick:
+                    is_nws_pick = (nws_tick != "" and tick == nws_tick)
+
+                    if STRATEGY == "morning" and city in NWS_PICK_CITIES:
+                        # THE NWS LANE: the NWS bracket is the only
+                        # buyable one here. The ensemble pick is
+                        # logged on paper (pick column) but decides
+                        # nothing. Price band gates as everywhere;
+                        # MIN_PICK_PROB does not apply (single-number
+                        # expert -- the market band is the second
+                        # opinion).
+                        if is_nws_pick:
+                            if not yes_ask:
+                                print(f"  NO BUY {city} {mdate}: NWS "
+                                      f"bracket {tick} has no ask price")
+                            elif yes_ask > MAX_PICK_COST:
+                                print(f"  NO BUY {city} {mdate}: NWS "
+                                      f"bracket {tick} costs "
+                                      f"{yes_ask:.0f}c (> "
+                                      f"{MAX_PICK_COST:.0f}c cap)")
+                            elif yes_ask < MIN_PICK_COST:
+                                print(f"  NO BUY {city} {mdate}: NWS "
+                                      f"bracket {tick} at "
+                                      f"{yes_ask:.0f}c - market says "
+                                      f"the NWS is wrong today, "
+                                      f"believe it")
+                            else:
+                                would = "YES"
+                                buys += 1
+                                print(f"  BUY {city} {mdate}: {tick} "
+                                      f"(NWS pick, {nws_val:.0f}F) @ "
+                                      f"{yes_ask:.0f}c")
+                        elif is_pick:
+                            print(f"  {city} {mdate}: ensemble pick "
+                                  f"{tick} logged on paper - the NWS "
+                                  f"decides buys here (Sep 16 2026)")
+                    elif is_pick:
                         pct = round(top_p * 100, 1)
                         if city in BENCHED_CITIES:
                             print(f"  NO BUY {city} {mdate}: BENCHED by "
@@ -524,7 +646,9 @@ def main():
                                 "edge_pick": "1" if tick == edge_pick
                                              else "",
                                 "would_bet": would,
-                                "strategy": STRATEGY})
+                                "strategy": STRATEGY,
+                                "nws_f": nws_val if is_nws_pick
+                                         else ""})
                     rows_written += 1
 
     print(f"Scan complete. {rows_written} rows, {buys} buys flagged.")
