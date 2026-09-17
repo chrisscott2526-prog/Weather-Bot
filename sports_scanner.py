@@ -2409,6 +2409,16 @@ def build_game_stacks_html(gstacks, presults):
     for s in gstacks:
         row, legs = s["row"], s["legs"]
         combined = float(row["combined_pct"])
+        # THE WALK-AWAY PRICE (owner incident, Sep 17 2026: they
+        # priced the first night's stack at their book and the payout
+        # didn't work). Exact bound, no correlation guessed: a stack
+        # can never be MORE likely than its single weakest leg, so a
+        # same-game payout under 1/(weakest leg) is a bad price under
+        # ANY correlation. Fair sits between that and the independent
+        # value; the graded record pins where these stacks really
+        # live inside the range.
+        weakest = min(c["fair_pct"] for c in legs)
+        walk = 1 / (weakest / 100.0)
         when = min(c["commence"] for c in legs).strftime("%a %H:%M UTC")
         legs_html = "".join(
             f"<div class='pick'>&#10148; <b>{html.escape(c['pick'])}"
@@ -2423,12 +2433,17 @@ def build_game_stacks_html(gstacks, presults):
 <span class="tag">{s['kind']} STACK</span><span class="when">{html.escape(s['title'])} · {html.escape(s['game'])} · {when}</span>
 {legs_html}
 <div class="nums"><span>If the legs were independent: <b>{combined:.0f}%</b></span>
-<span>Fair payout <b>${row['fair_payout']} per $1</b></span></div>
-<div class="why">Same-game legs move together, so the real chance of
-this slip likely sits a bit ABOVE {combined:.0f}% for the same-offense
-legs and a bit below where receivers split the same targets. If your
-book's same-game parlay pays well under ${row['fair_payout']}, the
-difference is the correlation tax plus the parlay tax.</div>
+<span>Fair payout <b>${row['fair_payout']} per $1</b></span>
+<span>Walk away under <b>${walk:.2f}</b></span></div>
+<div class="why">THE PRICING TEST, for checking your book's same-game
+quote before you place it: this slip can never be MORE likely to hit
+than its weakest leg ({weakest:.0f}%), so any payout under
+<b>${walk:.2f} per $1</b> is a bad price no matter how tightly the
+legs move together &mdash; walk away. Full independent value is
+${row['fair_payout']}; an honest quote lands between the two, and the
+closer your book sits to ${walk:.2f}, the more of the stack it is
+keeping for itself. The graded record keeps score on where these
+stacks really live inside that range.</div>
 </div></div>"""
     if grec:
         done = [r for r in grec if r["result"] in ("HIT", "MISS")]
