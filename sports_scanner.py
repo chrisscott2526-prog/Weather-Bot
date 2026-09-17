@@ -2163,6 +2163,9 @@ border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:13px}
 th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line)}
 th{font:600 12px/1 "Barlow Condensed",sans-serif;letter-spacing:.12em;
 text-transform:uppercase;color:var(--dim)}
+.teamhead{font:600 13px/1 "Barlow Condensed",sans-serif;
+letter-spacing:.14em;text-transform:uppercase;color:var(--felt);
+background:rgba(29,39,51,.05)}
 tr:last-child td{border-bottom:none}
 .W{color:var(--felt);font-weight:600}.L{color:var(--red);font-weight:600}
 .V{color:var(--dim);font-weight:600}
@@ -2360,7 +2363,9 @@ def build_props_menu_html(pool, early=False):
     early=True renders the EARLY PROPS menu (Sep 17 2026, owner
     request) from EARLY_PROPS: same table, games 30h+ out, its own
     heading and the early-lines caveat -- these props are on no
-    stack and no board until game day."""
+    stack and no board until game day. Its players list by TEAM
+    within each game (same-day owner request), attributed off
+    Kalshi's own ticker via leg_team -- never a guessed roster."""
     if not pool:
         return ""
     best, safe = {}, {}              # (game, player, market) -> deepest bar
@@ -2415,19 +2420,51 @@ def build_props_menu_html(pool, early=False):
             hrs = (starts[g] - datetime.now(timezone.utc)
                    ).total_seconds() / 3600
             when += f" · in {hrs:.0f}h"
+        entries = sorted(games[g], key=lambda x: -x[0]["fair_pct"])
+        if early:
+            # THE EARLY TEAM SPLIT (owner request, Sep 17 2026): days
+            # ahead the owner shops one team's players at a time, so
+            # each early game's props list by team, away side first.
+            # The team is read off Kalshi's own prop ticker (leg_team
+            # -- the team stacks' attribution, never a guessed
+            # roster); a ticker naming neither team lists under its
+            # own heading, fail closed.
+            codes = {}
+            for nm in (t.strip() for t in g.split(" @ ")):
+                for table in TEAM_CODES.values():
+                    if nm in table:
+                        codes[nm] = table[nm]
+                        break
+            grouped = {nm: [] for nm in codes}
+            unread = []
+            for e in entries:
+                t = leg_team(e[0], codes) if len(codes) == 2 else None
+                (grouped[t] if t else unread).append(e)
+            sections = [(nm, grouped[nm]) for nm in codes if grouped[nm]]
+            if unread:
+                sections.append(
+                    ("Team not named on the ticker" if sections
+                     else None, unread))
+        else:
+            sections = [(None, entries)]
         rows = ""
-        for c, s in sorted(games[g], key=lambda x: -x[0]["fair_pct"]):
-            safe_cell = (f"{s.get('bar', '?')}+ "
-                         f"<span class='when'>{s['fair_pct']:.0f}%</span>"
-                         if s else "&mdash;")
-            rows += (f"<tr><td><b>{html.escape(c.get('player') or '')}"
-                     f"</b><br><span class='when'>"
-                     f"{html.escape(c.get('what') or '')}</span></td>"
-                     f"<td>{c.get('bar', '?')}+ "
-                     f"<span class='when'>{c['fair_pct']:.0f}%</span></td>"
-                     f"<td>{safe_cell}</td>"
-                     f"<td>{c['n_books']}</td>"
-                     f"<td>{c.get('dk') or '&mdash;'}</td></tr>")
+        for team, ents in sections:
+            if team:
+                rows += (f"<tr><td colspan='5' class='teamhead'>"
+                         f"{html.escape(team)}</td></tr>")
+            for c, s in ents:
+                safe_cell = (f"{s.get('bar', '?')}+ "
+                             f"<span class='when'>{s['fair_pct']:.0f}%"
+                             f"</span>" if s else "&mdash;")
+                rows += (f"<tr><td><b>{html.escape(c.get('player') or '')}"
+                         f"</b><br><span class='when'>"
+                         f"{html.escape(c.get('what') or '')}</span></td>"
+                         f"<td>{c.get('bar', '?')}+ "
+                         f"<span class='when'>{c['fair_pct']:.0f}%</span>"
+                         f"</td>"
+                         f"<td>{safe_cell}</td>"
+                         f"<td>{c['n_books']}</td>"
+                         f"<td>{c.get('dk') or '&mdash;'}</td></tr>")
         out += (f"<div class='match'>{html.escape(g)} "
                 f"<span class='when'>{when}</span></div>"
                 f"<table><tr><th>Player</th>"
