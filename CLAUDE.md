@@ -257,10 +257,11 @@ translated one-to-one:
   card section with kickoff time, the sharps' %, DK's price, and
   Kalshi's current ask — **display only: an early game feeds no
   board, no stack, and no gap card until it enters the 30h window**
-  (the boards stay "today's winners"), per-event PROP calls stay
-  gated to 30h (those cost credits), and every early favorite logs
-  to the leg lab, whose `hours_to_start` column grades early-vs-late
-  on the record. (3) **THE DK COLUMN**: parlay-board legs, the props
+  (the boards stay "today's winners"), per-event PROP calls stayed
+  gated to 30h until Sep 17 2026 (THE EARLY PROPS, its own entry
+  below, lifted that gate to the full early window), and every
+  early favorite logs to the leg lab, whose `hours_to_start` column
+  grades early-vs-late on the record. (3) **THE DK COLUMN**: parlay-board legs, the props
   menu, and the early section now print DraftKings' own American
   odds for the exact pick, read from the same regions=us payload the
   consensus already uses — zero extra credits, blank when DK doesn't
@@ -270,6 +271,28 @@ translated one-to-one:
   verified live by probe first (whitelist law; PrizePicks is fixed
   multipliers, not odds, so its comparison is line-vs-line — a
   different build).
+- **THE EARLY PROPS (owner request, Sep 17 2026).** The owner saw
+  Sunday's early lines on a Wednesday card and asked the right
+  question: "shouldn't I be receiving player props for each team of
+  each game?" The 30h gate on per-event prop calls was free-tier
+  thrift (500 credits/month) that the 20K paid plan had already
+  made obsolete — so prop fetches now run across the FULL early
+  window (78h NFL), and the qualifying 70%+ OVER favorites for
+  30h+ games render as the **EARLY PROPS menu** right under the
+  early lines: same STRONG/SAFE/Books/DK table as the props menu,
+  kickoff time and hours-out on each game. The constitution is
+  unchanged and enforced fail-closed inside each prop scanner: an
+  early prop feeds **no board, no stack, and no gap card** — it
+  lives in `EARLY_PROPS`, a display-only pool nothing else reads —
+  and on game day the same props re-qualify fresh through the
+  normal 30h path at that morning's numbers. The stated caveat
+  prints on the card: prop lines days out are SOFTER than
+  moneylines (injury reports, inactives, outright scratches).
+  Cost, said plainly: `PROP_EVENT_CAP` rose 12 → 16 in the same
+  commit (a Thu–Sat scan now holds the whole ~14–16 game Sunday
+  slate; 12 left the late games without props) — worst case ~48
+  credits/sport/scan, ~6K/month at 4 scans/day against the 20K
+  plan, with `CREDIT_RESERVE` still guarding the floor.
 - **THE TEAM AND GAME STACKS (owner request, Sep 17 2026).** The
   owner asked for correlated parlays "built for each team playing":
   when one player on an offense gets his numbers, his teammates
