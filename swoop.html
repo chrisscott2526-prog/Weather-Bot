@@ -37,27 +37,27 @@ border-radius:3px;background:#2a323b}
 </style></head><body><div class="wrap">
 <h1>Swoop Alert</h1>
 <div class="sub">Thermometer vs. market on the bot's open positions -
-checked Thu Sep 17, 20:49 UTC (<span class="age" data-built="1789678148499">just
+checked Thu Sep 17, 21:04 UTC (<span class="age" data-built="1789679051456">just
 built</span>). Graded 3 of 3 open weather positions.
 </div>
 
 <div class="card OVERSHOOTRISK"><div class="top">
 <span class="city">Washington DC &mdash; YES 88° to 89°</span>
 <span class="badge">OVERSHOOT RISK</span></div>
-<div class="det">High so far: <b>87.8&deg;</b> &nbsp;|&nbsp; Now: <b>84.2&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789676708499">reading 24m old</span>
- &nbsp;|&nbsp; Market now: <b>5c</b></div>
-<div class="note">Observed high 87.8° is inside the bracket. Wins if the heat stops here - watch for late overshoot. The day&#x27;s high 87.8° is only 1.2° under the 89° cap - but that high is BANKED: the station now reads 84.2°, 3.6° below the day&#x27;s peak. This wins if the heat stays away; it dies only if the afternoon climbs back past the 89° cap. Reading is 24m old. Our side currently fetches 2c on the market. Advisory only - this board never sells for you.</div></div>
+<div class="det">High so far: <b>87.8&deg;</b> &nbsp;|&nbsp; Now: <b>84.2&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789677611456">reading 24m old</span>
+ &nbsp;|&nbsp; Market now: <b>4c</b></div>
+<div class="note">Observed high 87.8° is inside the bracket. Wins if the heat stops here - watch for late overshoot. The day&#x27;s high 87.8° is only 1.2° under the 89° cap - but that high is BANKED: the station now reads 84.2°, 3.6° below the day&#x27;s peak. This wins if the heat stays away; it dies only if the afternoon climbs back past the 89° cap. Reading is 24m old. Our side currently fetches 1c on the market. Advisory only - this board never sells for you.</div></div>
 <div class="card OVERSHOOTRISK"><div class="top">
 <span class="city">San Antonio &mdash; YES 97° to 98°</span>
 <span class="badge">OVERSHOOT RISK</span></div>
-<div class="det">High so far: <b>96.8&deg;</b> &nbsp;|&nbsp; Now: <b>93.2&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789676708499">reading 24m old</span>
- &nbsp;|&nbsp; Market now: <b>71c</b></div>
-<div class="note">Observed high 96.8° is inside the bracket. Wins if the heat stops here - watch for late overshoot. The day&#x27;s high 96.8° is only 1.2° under the 98° cap - but that high is BANKED: the station now reads 93.2°, 3.6° below the day&#x27;s peak. This wins if the heat stays away; it dies only if the afternoon climbs back past the 98° cap. Reading is 24m old. Our side currently fetches 70c on the market. Advisory only - this board never sells for you.</div></div>
+<div class="det">High so far: <b>96.8&deg;</b> &nbsp;|&nbsp; Now: <b>95.0&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789677611456">reading 24m old</span>
+ &nbsp;|&nbsp; Market now: <b>80c</b></div>
+<div class="note">Observed high 96.8° is inside the bracket. Wins if the heat stops here - watch for late overshoot. The day&#x27;s high 96.8° is only 1.2° under the 98° cap - but that high is BANKED: the station now reads 95.0°, 1.8° below the day&#x27;s peak. This wins if the heat stays away; it dies only if the afternoon climbs back past the 98° cap. Reading is 24m old. Our side currently fetches 69c on the market. Advisory only - this board never sells for you.</div></div>
 <div class="card NEEDSHEAT"><div class="top">
 <span class="city">San Francisco &mdash; YES 71° to 72°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">High so far: <b>68.0&deg;</b> &nbsp;|&nbsp; Now: <b>68.0&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789677008499">reading 19m old</span>
- &nbsp;|&nbsp; Market now: <b>58c</b></div>
+<div class="det">High so far: <b>68.0&deg;</b> &nbsp;|&nbsp; Now: <b>68.0&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789677611456">reading 24m old</span>
+ &nbsp;|&nbsp; Market now: <b>45c</b></div>
 <div class="note">Needs about 3° more warming to enter.</div></div>
 <div class="foot"><b>Read it like this:</b> daily highs only rise, so a
 bracket the thermometer has passed is settled physics, not opinion.
@@ -107,7 +107,7 @@ setInterval(swoopTick, 30000);
 // never invents data -- it only replaces itself with the server's
 // newer truth. The pulse and the page ship in the same commit, so
 // after healing the two agree and the check goes quiet (no loop).
-var BUILD_MS = 1789678148499;
+var BUILD_MS = 1789679051456;
 var healing = false;
 async function freshCheck() {
   if (healing) return;
