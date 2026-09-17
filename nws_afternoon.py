@@ -19,12 +19,24 @@ honestly so the review knows how close to 1:00 each row really was):
     never a guessed row), with the bracket's ask at that scan for
     context.
 
+  - the bracket's LIVE Kalshi ask at capture time (`live_ask`, the
+    unauth single-market read, settlements.py's own pattern) -- the
+    owner's sharpened question (Sep 17, morning) is not just "is NWS
+    right late in the day" but "in WHICH cities is it right late AND
+    still at a payable price" -- and that handful may not be the
+    lane's seven. A dead price fetch logs blank with a note, never a
+    guess, and never blocks the capture (accuracy is the record;
+    price is its context).
+
 Grading is by Kalshi's own settled bracket (settlements.csv), and the
 standings print the comparison the owner actually asked for: the 1 PM
 number vs the NWS NIGHT-BEFORE number (model_research.csv) vs the NWS
 morning same-day pull (model_research_today.csv, the ~14:12 UTC slot)
-on the SAME city-days. All 20 cities, benched included -- the bench
-law: paper records accrue everywhere.
+on the SAME city-days -- plus the PER-CITY table (exact rate, median
+capture-time ask) and the record sliced by capture-time ask bucket,
+so the handful question reads straight off the printout. All 20
+cities, benched included -- the bench law: paper records accrue
+everywhere.
 
 THE LAW (same as the Model Lab, the Judge Lane, and every research
 rider): **RESEARCH ONLY -- nothing that trades, scans for money, or
@@ -40,8 +52,11 @@ Usage:
 """
 
 import csv
+import json
 import os
 import sys
+import time
+import urllib.request
 from datetime import datetime, timezone
 
 from cities import CITIES, local_time
@@ -55,12 +70,39 @@ import highs
 PICKS = "nws_afternoon_picks.csv"
 PICK_FIELDS = ["logged_utc", "local_hhmm", "market_date", "station", "city",
                "nws_f", "ticker", "subtitle", "floor", "cap", "yes_ask",
-               "scan_utc"]
+               "live_ask", "scan_utc"]
 
 RESULTS = "nws_afternoon_results.csv"
 RESULT_FIELDS = ["graded_utc", "market_date", "station", "city", "nws_f",
-                 "subtitle", "floor", "cap", "yes_ask",
+                 "subtitle", "floor", "cap", "yes_ask", "live_ask",
                  "settled_low", "settled_high", "result", "brackets_off"]
+
+# Kalshi public API, unauthenticated on purpose -- settlements.py's
+# exact pattern, pacing included (its Aug 20 2026 429 scar).
+KALSHI = "https://api.elections.kalshi.com"
+FETCH_GAP_SECONDS = 0.7
+RETRY_429_WAIT = 5.0
+
+
+def live_yes_ask(ticker):
+    """The market's CURRENT yes ask in cents from Kalshi's public
+    single-market endpoint, or None (unquoted / dead call -- caller
+    logs blank and says so, never guesses)."""
+    url = f"{KALSHI}/trade-api/v2/markets/{ticker}"
+    req = urllib.request.Request(
+        url, headers={"User-Agent": "weather-bot-personal"})
+    time.sleep(FETCH_GAP_SECONDS)
+    try:
+        with urllib.request.urlopen(req, timeout=30) as r:
+            m = json.load(r).get("market") or {}
+    except urllib.error.HTTPError as e:
+        if e.code != 429:
+            raise
+        time.sleep(RETRY_429_WAIT)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            m = json.load(r).get("market") or {}
+    ask = m.get("yes_ask")
+    return None if ask in (None, 0) else float(ask)
 
 # Capture window on the CITY'S OWN clock: 1 PM up to 2:59 PM. The
 # target is 13:0x; the tail of the window exists so a dropped cron
@@ -132,23 +174,32 @@ def log(now=None):
                       "-- refusing to guess")
                 continue
 
+            ticker = (row.get("market") or "").strip()
+            try:
+                ask_now = live_yes_ask(ticker)
+            except Exception as e:
+                print(f"  note {city}: live ask fetch failed -- {e} "
+                      "(logging blank, capture stands)")
+                ask_now = None
             w.writerow({
                 "logged_utc": stamp,
                 "local_hhmm": loc.strftime("%H:%M"),
                 "market_date": mdate,
                 "station": station, "city": city,
                 "nws_f": val,
-                "ticker": (row.get("market") or "").strip(),
+                "ticker": ticker,
                 "subtitle": (row.get("subtitle") or "").strip(),
                 "floor": (row.get("floor") or "").strip(),
                 "cap": (row.get("cap") or "").strip(),
                 "yes_ask": (row.get("yes_ask") or "").strip(),
+                "live_ask": "" if ask_now is None else ask_now,
                 "scan_utc": scan["scanned_utc"],
             })
             done.add((station, mdate))
             logged += 1
+            ask_txt = "?" if ask_now is None else f"{ask_now:.0f}"
             print(f"logged {city}: NWS {val}F -> "
-                  f"{row.get('subtitle')} (ask {row.get('yes_ask')}c, "
+                  f"{row.get('subtitle')} (live ask {ask_txt}c, "
                   f"local {loc.strftime('%H:%M')})")
 
     print(f"{logged} captured, {attempted - logged} skipped")
@@ -229,6 +280,7 @@ def grade(now=None):
                 "nws_f": p.get("nws_f"), "subtitle": p.get("subtitle"),
                 "floor": p.get("floor"), "cap": p.get("cap"),
                 "yes_ask": p.get("yes_ask"),
+                "live_ask": p.get("live_ask"),
                 "settled_low": "" if lo is None else lo,
                 "settled_high": "" if hi is None else hi,
                 "result": "HIT" if hit else "MISS",
@@ -242,7 +294,7 @@ def grade(now=None):
     #    on exactly the city-days the 1 PM log has graded --
     night = _nws_reference("model_research.csv")
     morning = _nws_reference("model_research_today.csv", 13, 17)
-    rows = []
+    rows, graded_rows = [], []
     with open(RESULTS, newline="") as f:
         for r in csv.DictReader(f):
             key = ((r.get("station") or "").strip(),
@@ -252,6 +304,7 @@ def grade(now=None):
             if s is None or v is None:
                 continue
             rows.append((key, s, v))
+            graded_rows.append(r)
     if not rows:
         print("no graded city-days yet -- standings start "
               "when the first market settles")
@@ -273,6 +326,45 @@ def grade(now=None):
     tally("NWS night before", [(r, night.get(r[0])) for r in rows])
     tally("NWS morning same-day", [(r, morning.get(r[0])) for r in rows])
     tally("NWS at ~1 PM local", [(r, r[2]) for r in rows])
+
+    # -- the handful question (owner, Sep 17): WHICH cities is the
+    #    1 PM number right in, and what did the bracket cost then?
+    #    Ask slices use the capture-time live ask only -- a row
+    #    without one stays out of the price slices, never guessed. --
+    per = {}
+    for r in graded_rows:
+        rec = per.setdefault(r["city"], {"hit": 0, "n": 0, "asks": []})
+        rec["n"] += 1
+        rec["hit"] += (r.get("result") == "HIT")
+        a = _f(r.get("live_ask"))
+        if a is not None:
+            rec["asks"].append(a)
+    print("\nPER CITY (1 PM NWS bracket vs settlement):")
+    print("  %-16s %5s %5s %6s  %s" % ("city", "hit", "days",
+                                       "rate", "median 1PM ask"))
+    for city in sorted(per, key=lambda c: -per[c]["hit"] / per[c]["n"]):
+        rec = per[city]
+        asks = sorted(rec["asks"])
+        med = f"{asks[len(asks) // 2]:.0f}c" if asks else "--"
+        print("  %-16s %5d %5d %5.0f%%  %s"
+              % (city, rec["hit"], rec["n"],
+                 100.0 * rec["hit"] / rec["n"], med))
+
+    buckets = [(0, 44, "under 45c"), (45, 54, "45-54c (the band)"),
+               (55, 69, "55-69c"), (70, 84, "70-84c"), (85, 200, "85c+")]
+    print("\nBY CAPTURE-TIME ASK (all cities pooled):")
+    priced = 0
+    for lo, hi, lab in buckets:
+        sub = [r for r in graded_rows
+               if _f(r.get("live_ask")) is not None
+               and lo <= _f(r.get("live_ask")) <= hi]
+        priced += len(sub)
+        if sub:
+            h = sum(r.get("result") == "HIT" for r in sub)
+            print("  %-18s: %dW-%dL" % (lab, h, len(sub) - h))
+    unpriced = len(graded_rows) - priced
+    if unpriced:
+        print(f"  ({unpriced} graded row(s) had no capture-time ask)")
 
 
 def main():
