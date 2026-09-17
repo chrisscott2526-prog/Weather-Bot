@@ -792,6 +792,8 @@ check that line first when a feed dies.
 | `obs_feed_log.csv` | `poller.py` | `utc_time,station,city,temp_f,obs_time_utc` (THE SUB-HOURLY FEED TEST, Sep 15 2026, owner-approved side test — the full observation feed from the same api.weather.gov station endpoint the poller already trusts, list form: every transmitted observation, hourly METARs PLUS the SPECI specials filed between hours, deduped by (station, obs_time_utc), floored like every temperature. Exists to answer, on a real record: do our 20 stations actually transmit sub-hourly readings with temperatures, and would they have raised the day's running max at moments that mattered (the Philadelphia $10 shape)? **RESEARCH LOG ONLY — nothing that trades, scans for money, or calibrates may read it; it must NEVER feed temps_log.csv or the day-of reality floor** until a walk-forward backtest (the morning-thermostat standard) and an owner decision promote it; append-only, union-merged) |
 | `judge_picks.csv` | `judge.py log` (run by the Judge Lane Claude routine, twice daily) | `picked_utc,market_date,station,city,ticker,subtitle,floor,cap,claude_pct,yes_ask,ensemble_pick,ens_floor,ens_cap,ensemble_pct,why` (THE JUDGE LANE, Sep 15 2026 — Claude's own paper bracket picks, made in each city's 9–11 AM window from the full briefing, benched cities included; every pick validated against a live bracket from today's freshest scan — an unmatched or out-of-window pick is REFUSED loudly, never guessed; ensemble_* = the mechanical vote's pick from the same scan, stored so the comparison is self-contained; append-only, union-merged; **ADVISORY/RESEARCH ONLY — nothing that trades, scans for money, or calibrates may ever read it**) |
 | `judge_results.csv` | `judge.py grade` (same routine) | `graded_utc,market_date,station,city,ticker,subtitle,claude_pct,yes_ask,ensemble_pick,settled_low,settled_high,result,ensemble_result` (HIT/MISS by Kalshi's own settled bracket from settlements.csv, judge and ensemble graded on the SAME city-days; **no pnl column on purpose** — no bet was placed; the scoreboard question: does a judgment layer over the same data beat the mechanical vote?; append-only, union-merged; same research-only law) |
+| `nws_afternoon_picks.csv` | `nws_afternoon.py log` (nwsafternoon.yml, two slots per UTC hour 17:00–21:59 + Run button) | `logged_utc,local_hhmm,market_date,station,city,nws_f,ticker,subtitle,floor,cap,yes_ask,scan_utc` (THE NWS 1 PM LOG, Sep 17 2026 — once per city per day, when that city's OWN clock reads 13:00–14:59 (first capture wins, local_hhmm records how close to 1:00 it really was), the LIVE NWS same-day number via `model_lab.nws_high` (shared code, one source one method) and the live Kalshi bracket it lands in, matched against the freshest scan of today's market in edges.csv (judge.py's matcher) — no NWS number, no live scan, or no containing bracket = LOUD skip, never a guessed row; yes_ask/scan_utc are context from that scan, prices never gate anything here; append-only, union-merged; **RESEARCH ONLY — nothing that trades, scans for money, or calibrates may ever read it**) |
+| `nws_afternoon_results.csv` | `nws_afternoon.py grade` (same workflow) | `graded_utc,market_date,station,city,nws_f,subtitle,floor,cap,yes_ask,settled_low,settled_high,result,brackets_off` (HIT/MISS by Kalshi's own settled bracket from settlements.csv; brackets_off = how many brackets the 1 PM number sat from the settled one, 0 = exact; **no pnl column on purpose** — no bet was placed; the grade printout answers the owner's question directly: night-before vs morning-same-day vs 1 PM NWS exact/within-one rates on the SAME graded city-days; append-only, union-merged; same research-only law) |
 | `model_report.md` | `model_report.py` (autopsy.yml, full rewrite each run) | per-city, per-model median miss vs the settled number: `pool`/`gfs`/`ecmwf` from forecasts.csv (calibrated; member_models splits the voters) and the research passengers from model_research.csv. Derived human-readable output ONLY — no code reads it, NEVER union-merge it. Promotion of a model into the vote is an owner decision made on this evidence |
 
 Calibration is applied **exactly once**, at forecast time
@@ -1923,6 +1925,49 @@ The laws:
   routine off is one sentence any time.
 - Review alongside the October review: ~30+ graded judge picks per
   fire slot by then. The scoreboard promotes; conviction never does.
+
+## THE NWS 1 PM LOG (Sep 17, 2026) — OWNER REQUEST, RESEARCH ONLY
+
+The owner's ask, in their words: "make sure there is a log of what
+NWS would purchase — what bracket — at 1 o'clock in the afternoon,
+or the closest refresh of temperatures closest to that time. What
+I'm looking for is if NWS is more accurate, or the most accurate,
+later in the day." With the NWS lane now buying real money on the
+NWS's SAME-DAY morning number, the question of how that number
+sharpens (or doesn't) through the day is a money-relevant record to
+build — on paper, the only way records get built here.
+
+`nws_afternoon.py` (contracts in the table) captures, once per city
+per day in each city's own 13:00–14:59 local window: the live NWS
+same-day high (fetched at capture time through `model_lab.nws_high`
+— the same shared code the money lane and the Model Lab use) and
+the live Kalshi bracket that number lands in, matched against the
+freshest scan of today's market in edges.csv (judge.py's own
+matcher — brackets are disjoint, so any number names exactly one;
+an unmatched number is a loud skip, never a guess). All 20 cities,
+benched included — the bench law. Grading is by settlement, and the
+grade printout answers the question directly: exact-bracket and
+within-one rates for the NWS night-before number
+(model_research.csv), the NWS morning same-day pull
+(model_research_today.csv rows fetched before 17:00 UTC — before
+any city reaches 1 PM), and the 1 PM capture, all on the SAME
+graded city-days. The prior record at build time: night-before ran
+33% exact / 86% within one (the second-opinion test, 140
+city-days); the 1 PM number's record starts at zero and accrues
+~20 city-days a day.
+
+The laws: **RESEARCH ONLY** — nothing that trades, scans for money,
+or calibrates may ever read either CSV (same law as the Model Lab
+and the Judge Lane); no pnl column (no bet is placed); the bracket
+asks logged are context, never a gate. `nwsafternoon.yml` needs no
+secrets. Slots cover 17:00–21:59 UTC two per hour, so every
+timezone's 1 PM is inside the net summer and winter (ET 17/18 UTC,
+PT 20/21 UTC), GitHub's drop-prone cron gets ~4 chances per city,
+and repeat passes are free (first capture per city-day wins). If
+the 1 PM record ever earns a decision — a later buy window, an
+intraday NWS refresh in the lane, anything money-touching — that
+is an owner decision made on this record at a review. The
+scoreboard promotes; conviction never does.
 
 ## THE NWS SECOND-OPINION TEST (Sep 16, 2026) — OWNER HYPOTHESIS, VERIFIED ON PAPER
 

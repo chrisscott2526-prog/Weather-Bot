@@ -1,0 +1,62 @@
+name: NWS 1 PM log (research only, no trading)
+
+# THE NWS 1 PM LOG (owner request, Sep 17 2026): once per city per
+# day, when that city's OWN clock reads ~1 PM, log the live NWS
+# same-day number and the Kalshi bracket it would buy, then grade by
+# settlement -- so the record can answer "is NWS more accurate later
+# in the day?" against its night-before and morning numbers.
+#
+# nws_afternoon.py holds the laws (RESEARCH ONLY -- nothing that
+# trades, scans for money, or calibrates may ever read its CSVs; a
+# capture that can't name a live bracket is a loud skip, never a
+# guess). No Kalshi secrets, no trading step, ever.
+
+on:
+  schedule:
+    # Two slots per UTC hour across 17:00-21:59 -- 1 PM local hits
+    # 17:00 UTC (ET, summer) through 21:00 UTC (PT, winter), and
+    # GitHub's cron is best-effort (the poller once fired 9 of 96),
+    # so each city gets ~4 chances inside its 13:00-14:59 capture
+    # window. Off-peak minutes on purpose; repeat passes are free
+    # (one capture per city per day, first wins).
+    - cron: "6 17,18,19,20,21 * * *"
+    - cron: "48 17,18,19,20,21 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: repo-writes
+  cancel-in-progress: false
+
+jobs:
+  nwsafternoon:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Capture the 1 PM NWS bracket picks (log only)
+        run: python nws_afternoon.py log
+
+      - name: Grade settled captures
+        run: python nws_afternoon.py grade
+
+      - name: Commit the log
+        run: |
+          git config user.name "weather-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "nws 1pm log $(date -u +'%F %H:%M')"
+          # real retry loop -- the old one-liner fallback died under bash -e
+          # whenever no rebase was in progress (see settlements.yml)
+          n=0
+          until git push; do
+            n=$((n+1))
+            if [ "$n" -gt 4 ]; then echo "push failed after $n tries"; exit 1; fi
+            git pull --rebase -X ours || { git rebase --abort 2>/dev/null || true; }
+            sleep $((2*n))
+          done

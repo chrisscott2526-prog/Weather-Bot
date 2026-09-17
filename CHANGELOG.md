@@ -1,5 +1,21 @@
 # CHANGELOG
 
+- 2026-09-17: THE NWS 1 PM LOG (owner request: "a log of what NWS
+  would purchase — what bracket — at 1 o'clock in the afternoon...
+  is NWS more accurate later in the day?"). New nws_afternoon.py +
+  nwsafternoon.yml: once per city per day, in each city's own
+  13:00–14:59 local window, log the live NWS same-day number
+  (model_lab.nws_high, shared code) and the live Kalshi bracket it
+  lands in (judge.py's matcher — unmatched = loud skip, never a
+  guess), then grade by settlement with brackets_off distance. The
+  grade printout compares night-before vs morning-same-day vs 1 PM
+  NWS on the same graded city-days. New nws_afternoon_picks.csv /
+  nws_afternoon_results.csv (union-merged, no pnl). RESEARCH ONLY —
+  nothing that trades, scans, or calibrates reads them; no secrets.
+  nws_afternoon.py + nwsafternoon.yml + .gitattributes + CLAUDE.md,
+  one commit; sandbox-verified (window selection, bracket matching
+  incl. tails, dedupe, dead-feed red exit, grading + idempotence).
+
 - 2026-09-15: SPORTS CARD: EARLY LINES + DK COLUMN + SCHEDULE FIX
   (owner report: card stale all day; wants NFL days early + payout
   comparison vs their books). sports.yml 2 → 4 cron slots + a sports
