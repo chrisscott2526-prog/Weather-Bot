@@ -372,3 +372,4 @@ placed_utc,ticker,subtitle,side,count,limit_cents,model_pct,edge,live,status,ord
 2026-09-17T13:09:35+00:00,KXHIGHTATL-26SEP17-B90.5,90° to 91°,yes,1,53,34.1,,True,submitted,01a0af7c-9e98-7e92-a1b5-a469ab7559ee,morning
 2026-09-17T14:10:41+00:00,KXHIGHTSATX-26SEP17-B97.5,97° to 98°,yes,1,53,11.0,,True,submitted,01a0afb4-92d0-7d41-aae1-2b8d27e6f269,morning
 2026-09-17T14:40:42+00:00,KXHIGHTDC-26SEP17-B88.5,88° to 89°,yes,2,49,14.6,,True,submitted,01a0afd0-0df8-7f85-a1db-a9ca36790c47,morning
+2026-09-17T16:10:41+00:00,KXHIGHTSFO-26SEP17-B71.5,71° to 72°,yes,1,51,43.9,,True,submitted,01a0b022-6fd0-772d-822b-b560a91eb9c6,morning
