@@ -1,8 +1,8 @@
 {
- "checked_utc": "2026-09-17T02:05:43+00:00",
- "api_tried": 0,
- "api_ok": 0,
+ "checked_utc": "2026-09-17T07:48:07+00:00",
+ "api_tried": 16,
+ "api_ok": 16,
  "rows_written": 0,
  "rows_total": 587,
- "note": ""
+ "note": "ran fine; Kalshi has not finalized anything new yet - will retry"
 }
