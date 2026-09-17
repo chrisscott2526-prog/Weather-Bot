@@ -111,12 +111,32 @@ MAX_HOURS_OUT = 30          # only games starting inside this window
 # (parlay/booster/props/combo) and the gap card keep the 30h window:
 # only scan_winner handles far games, routing them to EARLY_POOL and
 # the leg lab (whose hours_to_start column exists to grade exactly
-# this early-vs-late question). Per-event PROP calls stay gated to
-# 30h -- those DO cost credits.
+# this early-vs-late question).
+#
+# THE EARLY PROPS (Sep 17 2026, owner request: "shouldn't I be
+# receiving player props for each team of each game?"): per-event
+# PROP calls originally stayed gated to 30h because they cost
+# credits and the key was on the 500/month free tier. On the 20K
+# paid plan that thrift starved the card: from Wednesday on the
+# early section showed Sunday's favorites with NO props anywhere.
+# So prop fetches now run across the FULL early window too. The
+# constitution is unchanged: early props are DISPLAY ONLY (the
+# early props menu, build_props_menu_html early=True) -- they feed
+# no board, no stack, and no gap card until the game enters the
+# 30h window, enforced fail-closed inside each prop scanner, and
+# early lines this soft carry the same stated injury-news caveat
+# as the early moneylines.
 EARLY_HOURS_OUT = {"americanfootball_nfl": 78}
-PROP_EVENT_CAP = 12         # per-event odds calls per sport per scan
-                            # (props cost 1 credit per market per event;
-                            #  this caps a scan at ~36 credits/sport)
+PROP_EVENT_CAP = 16         # per-event odds calls per sport per scan
+                            # (props cost credits per event; ~48
+                            #  credits/sport at this cap. 12 until
+                            #  Sep 17 2026 -- with the early window
+                            #  a Thu-Sat scan holds the whole ~14-16
+                            #  game Sunday slate, and 12 left the
+                            #  late games without props. Worst case
+                            #  ~4 scans/day is ~6K credits/month
+                            #  against the 20K plan; CREDIT_RESERVE
+                            #  below still guards the floor)
 # CREDIT_RESERVE: once remaining credits drop below this floor, prop
 # calls stop for the run (loudly) and the card runs on featured markets
 # only. The guard reads the live x-requests-remaining header, so it
@@ -1342,6 +1362,11 @@ def scan_pitcher_prop(shelf, game, kalshi_events, rows):
     lines = {k: v for k, v in lines.items() if k[0]}         # per player
     if not lines:
         return
+    # early game (only possible for sports with an EARLY_HOURS_OUT
+    # window): qualifying OVER favorites go to the display-only early
+    # menu, and NOTHING here may reach a board pool or the gap card
+    far = (game["commence"] - datetime.now(timezone.utc)
+           > timedelta(hours=MAX_HOURS_OUT))
     et, mkts = match_event(kalshi_events, shelf["series"],
                            shelf["sport"], game)
     if not mkts:
@@ -1371,7 +1396,7 @@ def scan_pitcher_prop(shelf, game, kalshi_events, rows):
             # pitcher strikeouts join the props pool (owner request,
             # Sep 14 2026 -- "every prop we can get in there"): same
             # OVER-only, floor-clearing law as the NFL prop shelves
-            PROPS_POOL.append({
+            (EARLY_PROPS if far else PROPS_POOL).append({
                 "pick": pick, "game": game["game"],
                 "player": name, "what": "strikeouts", "bar": need,
                 "fair_pct": fair_pct, "n_books": n,
@@ -1381,6 +1406,8 @@ def scan_pitcher_prop(shelf, game, kalshi_events, rows):
                 "ticker": m.get("ticker", ""),
                 "commence": game["commence"],
                 "label": shelf["label"].split(" ·")[0]})
+        if far:
+            continue        # early games never touch the gap card
         if fair_pct < MIN_PICK_PROB:
             continue
         evaluate(shelf, game, fair_pct, n, m, side, pick,
@@ -1405,6 +1432,12 @@ def scan_player_prop(shelf, game, kalshi_events, rows):
                            shelf["sport"], game)
     if not mkts:
         return
+    # early game (30-78h out, the NFL early window): qualifying OVER
+    # favorites go to the display-only early props menu, and NOTHING
+    # here may reach a board pool or the gap card (Sep 17 2026,
+    # owner request -- see EARLY_HOURS_OUT's config block)
+    far = (game["commence"] - datetime.now(timezone.utc)
+           > timedelta(hours=MAX_HOURS_OUT))
     for m in mkts:
         strike = m.get("floor_strike")
         sub = m.get("yes_sub_title") or ""       # 'Bo Nix: 160+'
@@ -1426,7 +1459,7 @@ def scan_player_prop(shelf, game, kalshi_events, rows):
         bar = sub.split(":", 1)[1].strip()
         pick = f"{name} {bar} {shelf['what']}"
         if fair_pct >= PARLAY_LEG_MIN_PROB and m.get("ticker"):
-            PROPS_POOL.append({
+            (EARLY_PROPS if far else PROPS_POOL).append({
                 "pick": pick, "game": game["game"],
                 "player": name, "what": shelf["what"],
                 "bar": int(strike + 0.5),
@@ -1438,6 +1471,8 @@ def scan_player_prop(shelf, game, kalshi_events, rows):
                 "ticker": m.get("ticker", ""),
                 "commence": game["commence"],
                 "label": shelf["label"].split(" ·")[0]})
+        if far:
+            continue        # early games never touch the gap card
         if fair_pct < MIN_PICK_PROB:
             continue
         evaluate(shelf, game, fair_pct, n, m, "yes", pick,
@@ -1698,6 +1733,11 @@ PROPS_POOL = []             # player-prop candidates from scan_player_prop
 EARLY_POOL = []             # NFL favorites 30-78h out (the early lines
                             # section -- display + leg lab only, never
                             # a board leg; see EARLY_HOURS_OUT)
+EARLY_PROPS = []            # player-prop favorites 30-78h out (the
+                            # early props menu, Sep 17 2026 -- display
+                            # ONLY: never a board, a stack, or a gap
+                            # card; they re-qualify normally once the
+                            # game enters the 30h window)
 
 
 def stack_row(stack, pid):
@@ -2303,7 +2343,7 @@ there pays each leg on its own, never this multiplied number.</div>
     return out
 
 
-def build_props_menu_html(pool):
+def build_props_menu_html(pool, early=False):
     """THE PROPS MENU (owner request, Sep 14 2026): the pick-list the
     ladder's one-leg-per-game law deliberately does NOT put on a slip.
     Every qualifying prop (the sharps' PARLAY_LEG_MIN_PROB%+ OVER
@@ -2311,7 +2351,12 @@ def build_props_menu_html(pool):
     is still a floor-clearing favorite to beat, and the sharps' own
     number. The owner picks freely at their own book -- several from
     one game if they like; the printed caveat says plainly why the
-    card's own stacks never multiply two legs from one game."""
+    card's own stacks never multiply two legs from one game.
+
+    early=True renders the EARLY PROPS menu (Sep 17 2026, owner
+    request) from EARLY_PROPS: same table, games 30h+ out, its own
+    heading and the early-lines caveat -- these props are on no
+    stack and no board until game day."""
     if not pool:
         return ""
     best, safe = {}, {}              # (game, player, market) -> deepest bar
@@ -2330,9 +2375,23 @@ def build_props_menu_html(pool):
         games[c["game"]].append((c, safe.get(k)))
         if c["game"] not in starts or c["commence"] < starts[c["game"]]:
             starts[c["game"]] = c["commence"]
-    out = (f"<h2>The props menu &mdash; every "
-           f"{PARLAY_LEG_MIN_PROB:.0f}%+ player prop, game by game</h2>"
-           "<div class='why'>STRONG is the deepest bar the sharp books "
+    if early:
+        out = (f"<h2>Early props &mdash; every "
+               f"{PARLAY_LEG_MIN_PROB:.0f}%+ player prop, days ahead</h2>"
+               "<div class='why'>Player props for the games in the "
+               "early lines section above &mdash; same STRONG and SAFE "
+               "columns as the props menu, for betting early at your "
+               "own book before the price climbs. The warnings, said "
+               "plainly: a prop line this far out is SOFTER than a "
+               "moneyline &mdash; it moves hard on injury reports and "
+               "inactives, and a player can be scratched outright. "
+               "These props sit on NO stack and NO board until the "
+               "game is inside 30 hours; on game day they re-qualify "
+               "fresh, at that morning's numbers.</div>")
+    else:
+        out = (f"<h2>The props menu &mdash; every "
+               f"{PARLAY_LEG_MIN_PROB:.0f}%+ player prop, game by game</h2>")
+    out += ("<div class='why'>STRONG is the deepest bar the sharp books "
            f"still make that player a {PARLAY_LEG_MIN_PROB:.0f}%+ "
            "favorite to clear. SAFE is the dial moved back &mdash; the "
            f"deepest bar he's a {PROPS_SAFE_PROB:.0f}%+ favorite to "
@@ -2348,6 +2407,10 @@ def build_props_menu_html(pool):
            "means.</div>")
     for g in sorted(games, key=lambda g: starts[g]):
         when = starts[g].strftime("%a %H:%M UTC")
+        if early:
+            hrs = (starts[g] - datetime.now(timezone.utc)
+                   ).total_seconds() / 3600
+            when += f" · in {hrs:.0f}h"
         rows = ""
         for c, s in sorted(games[g], key=lambda x: -x[0]["fair_pct"]):
             safe_cell = (f"{s.get('bar', '?')}+ "
@@ -2483,7 +2546,10 @@ def build_early_html(pool):
            "this far out is SOFTER and moves with injury news, and "
            "these games are on no stack until game day. The leg lab "
            "grades early numbers against late ones, so this section "
-           "earns or loses trust on the record.</div>")
+           "earns or loses trust on the record."
+           + (" Player props for these same games are in the EARLY "
+              "PROPS menu just below." if EARLY_PROPS else "")
+           + "</div>")
     rows = ""
     for i, c in enumerate(legs, 1):
         when = c["commence"].strftime("%a %H:%M UTC")
@@ -2578,6 +2644,7 @@ robot with your wallet -- it never bets. You do (or don't).</div>
 {slips}
 {build_parlay_html(parlay_legs, parlays, presults)}
 {build_early_html(EARLY_POOL)}
+{build_props_menu_html(EARLY_PROPS, early=True)}
 {build_props_menu_html(PROPS_POOL)}
 {build_game_stacks_html(game_stacks, presults)}
 {build_combo_html(combo_legs, combos, cresults)}
@@ -2692,7 +2759,13 @@ def main():
             for gi, game in enumerate(games):
                 far = (game["commence"] - datetime.now(timezone.utc)
                        > timedelta(hours=MAX_HOURS_OUT))
-                if prop_keys and gi < PROP_EVENT_CAP and not far:
+                # prop calls run across the sport's FULL fetch window
+                # (far games exist only for sports in EARLY_HOURS_OUT;
+                # their props feed the display-only early menu --
+                # Sep 17 2026, owner request). Games are sorted by
+                # kickoff, so the nearest games always get the cap's
+                # slots first.
+                if prop_keys and gi < PROP_EVENT_CAP:
                     props = fetch_event_props(sport, game, prop_keys,
                                               dead_keys)
                     if props:
@@ -2711,9 +2784,13 @@ def main():
                 for s in shelves:
                     if s["key"] not in kalshi:
                         continue
-                    if far and s["kind"] != "winner":
-                        # early games exist ONLY for scan_winner's
-                        # EARLY_POOL branch; totals/props stay 30h
+                    if far and s["kind"] == "total":
+                        # totals stay 30h (a total is neither an early
+                        # line nor a prop). Winner shelves route far
+                        # games to EARLY_POOL; prop shelves route them
+                        # to EARLY_PROPS -- display only, never a
+                        # board or the gap card, enforced fail-closed
+                        # inside each prop scanner
                         continue
                     if not s["featured"] and s["odds_market"] in dead_keys:
                         continue
@@ -2754,6 +2831,9 @@ def main():
     print(f"props ladder: {len(prop_legs)} qualifying prop favorites "
           f"(one per game, from {len(PROPS_POOL)} candidates), "
           f"{len(prop_stacks)} stacks")
+    print(f"early props menu: {len(EARLY_PROPS)} qualifying favorites "
+          f"across {len({c['game'] for c in EARLY_PROPS})} early games "
+          f"(display only -- no board until 30h)")
 
     # THE GAME STACKS: same-game correlated bundles (owner request,
     # Sep 17 2026 -- the config block has the law). Rows ride
