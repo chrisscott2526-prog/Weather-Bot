@@ -15,6 +15,13 @@
   nws_afternoon.py + nwsafternoon.yml + .gitattributes + CLAUDE.md,
   one commit; sandbox-verified (window selection, bracket matching
   incl. tails, dedupe, dead-feed red exit, grading + idempotence).
+  Same morning (owner's sharpened ask: "that handful that it is
+  correct on late in the day and still has a good price — may not
+  be the seven"): each capture also fetches the bracket's LIVE
+  Kalshi ask at capture time (live_ask, unauth single-market read,
+  settlements.py's 429-paced pattern; blank + note on a dead call,
+  capture stands), and the grade printout adds the per-city table
+  (hit rate, median capture-time ask) and the ask-bucket record.
 
 - 2026-09-15: SPORTS CARD: EARLY LINES + DK COLUMN + SCHEDULE FIX
   (owner report: card stale all day; wants NFL days early + payout
