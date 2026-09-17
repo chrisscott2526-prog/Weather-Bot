@@ -128,14 +128,18 @@ MAX_HOURS_OUT = 30          # only games starting inside this window
 # as the early moneylines.
 EARLY_HOURS_OUT = {"americanfootball_nfl": 78}
 PROP_EVENT_CAP = 16         # per-event odds calls per sport per scan
-                            # (props cost credits per event; ~48
-                            #  credits/sport at this cap. 12 until
-                            #  Sep 17 2026 -- with the early window
-                            #  a Thu-Sat scan holds the whole ~14-16
-                            #  game Sunday slate, and 12 left the
-                            #  late games without props. Worst case
-                            #  ~4 scans/day is ~6K credits/month
-                            #  against the 20K plan; CREDIT_RESERVE
+                            # (12 until Sep 17 2026 -- with the early
+                            #  window a Thu-Sat scan holds the whole
+                            #  ~14-16 game Sunday slate, and 12 left
+                            #  the late games without props. The
+                            #  MEASURED cost, from run 140's live
+                            #  credit ticker: ~8 credits per NFL
+                            #  event, so a full slate at this cap is
+                            #  ~120-128 credits/scan, ~500/day at 4
+                            #  scans on NFL-window days, roughly
+                            #  8-11K credits/month worst case with
+                            #  MLB against the 20K plan -- real
+                            #  headroom, not 40x; CREDIT_RESERVE
                             #  below still guards the floor)
 # CREDIT_RESERVE: once remaining credits drop below this floor, prop
 # calls stop for the run (loudly) and the card runs on featured markets
