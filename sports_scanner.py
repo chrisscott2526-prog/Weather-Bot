@@ -323,6 +323,53 @@ COMBO_RESULTS_FIELDS = ["graded_utc", "combo_id", "n_legs", "sectors",
 # the floor are unchanged.
 PROPS_SAFE_PROB = 90.0
 
+# THE GAME STACKS (owner request, Sep 17 2026): the owner asked for
+# correlated parlays "built for each team playing" -- the same-game
+# bundle their own sportsbook sells as a same-game parlay. Their
+# reasoning, near-verbatim: it's a team of people out there, and when
+# one gets theirs the others normally get theirs -- a quarterback
+# gets his passing yards and his receivers and running back get their
+# yards in the same drives. That is TRUE, and it is exactly why the
+# PROPS ladder's one-leg-per-game law exists: same-game legs rise and
+# fall together, which breaks the independence the plain product
+# assumes. The ladder KEEPS its law (its cross-game product must stay
+# honest). The game stacks are a separate section that bundles
+# same-game legs ON PURPOSE and says plainly what its number means:
+#   - the stated combined % is still the plain product, printed as
+#     the honest reference with the DIRECTION of its error stated on
+#     the card: legs riding one offense (the QB + his catchers + his
+#     back) tend to hit together, so for those the product
+#     UNDERSTATES the true joint chance (the safe direction -- the
+#     same understate-never-overstate principle as the weather legs'
+#     dual-expert rule); receivers competing for the same targets
+#     pull mildly the other way. We hold no measured correlation
+#     number, so none is invented and none is stated.
+#   - every stack is graded like every board: ids <day>-GAME<n> ride
+#     parlay_picks.csv and grade through grade_stacks by Kalshi
+#     settlement into parlay_results.csv. The GAME-id slice's stated
+#     % vs hit rate MEASURES the same-game correlation on a real
+#     record -- if these stacks hit more often than they state, that
+#     is the correlation showing up as a fact, not a guess.
+#   - grouping is per GAME, not per team, and honestly so: no feed
+#     we hold verifiably maps a prop's player to his team (the odds
+#     feed and Kalshi's subtitles carry the player's name and the
+#     game only), and a guessed roster is invented data -- a traded
+#     player would silently poison a stack, the wrong-station trap
+#     wearing a jersey. The game's moneyline favorite anchors the
+#     stack when it clears the floor, and the card prints every leg
+#     so the owner can drop the other side's legs at their book for
+#     a pure one-team stack.
+#   - one leg per PLAYER, his single most-likely qualifying bar: two
+#     bars on the same player are nearly the same event, and a stack
+#     wants his likeliest line, not his deepest.
+#   - Kalshi itself has no parlay ticket: buying these legs on
+#     Kalshi pays each leg on its own minus a fee per leg (the ~$2
+#     slip the owner saw when they tried). This section exists for
+#     the owner's OWN book's same-game parlay. ADVISORY ONLY -- the
+#     permanent rule covers it word for word.
+GAME_STACK_MAX_LEGS = 6     # strongest first; deeper than 6 even
+                            # correlated favorites read as a lottery
+
 LEG_LAB_MIN_PROB = 55.0
 LEG_LAB_CSV = "leg_research.csv"
 LEG_LAB_RESULTS_CSV = "leg_research_results.csv"
@@ -1646,10 +1693,15 @@ EARLY_POOL = []             # NFL favorites 30-78h out (the early lines
 
 def stack_row(stack, pid):
     """One parlay_picks.csv row for a stack of legs. Combined
-    probability is the plain product -- separate games are independent
-    events, and one leg per game is guaranteed by construction
-    (scan_winner emits at most one favorite per game per moneyline
-    shelf)."""
+    probability is the plain product. For the LOCKS/BOOST/PROPS
+    ladders one leg per game holds by construction (scan_winner emits
+    at most one favorite per game per moneyline shelf; the props
+    ladder takes one leg per game), so the product is honest as an
+    independent multiply. The GAME stacks deliberately stack one
+    game's correlated legs -- their product is a stated REFERENCE,
+    not an independence claim, per the config block's honesty
+    framing, and the GAME-id slice of the results file measures the
+    difference."""
     combined = 1.0
     for c in stack:
         combined *= c["fair_pct"] / 100.0
@@ -1752,6 +1804,44 @@ def build_props_ladder(pool):
     for n in range(2, min(len(legs), PARLAY_MAX_LEGS) + 1):
         stacks.append(stack_row(legs[:n], f"{day}-PROPS{n}"))
     return legs, stacks
+
+
+def build_game_stacks(prop_pool, ml_pool):
+    """THE GAME STACKS (owner request, Sep 17 2026): one correlated
+    same-game bundle per game -- the moneyline favorite (when it
+    clears the floor) plus each player's single most-likely
+    qualifying prop, strongest legs first, up to GAME_STACK_MAX_LEGS.
+    The full law -- why the stated % is the plain product printed as
+    a reference, why grouping is per game and never a guessed roster,
+    and how the GAME-id record measures the correlation -- lives in
+    the config block. Rows ride parlay_picks.csv and grade through
+    grade_stacks by Kalshi settlement, unchanged. ADVISORY ONLY."""
+    by_game = {}
+    # strongest first, so setdefault keeps each player's single
+    # most-likely qualifying leg (his shallowest strong bar)
+    for c in sorted(prop_pool, key=lambda c: -c["fair_pct"]):
+        if not c["ticker"]:
+            continue
+        key = ("player", c.get("player") or c["pick"])
+        by_game.setdefault(c["game"], {}).setdefault(key, c)
+    for c in ml_pool:
+        if c["ticker"]:
+            # at most one moneyline favorite per game by construction
+            by_game.setdefault(c["game"], {}).setdefault(("ml",), c)
+    stacks = []
+    day = SCAN_STAMP[:10]
+    order = sorted(by_game.items(),
+                   key=lambda kv: min(c["commence"]
+                                      for c in kv[1].values()))
+    n = 0
+    for game, picks in order:
+        legs = sorted(picks.values(),
+                      key=lambda c: -c["fair_pct"])[:GAME_STACK_MAX_LEGS]
+        if len(legs) < 2:
+            continue                 # a single leg is not a bundle
+        n += 1
+        stacks.append((game, legs, stack_row(legs, f"{day}-GAME{n}")))
+    return stacks
 
 
 _SETTLE_CACHE = {}          # ticker -> market object, shared by both
@@ -2185,9 +2275,11 @@ def build_props_menu_html(pool):
            "said once: if you PARLAY two props from the SAME game, your "
            "book multiplies them like separate coin tosses, but "
            "same-game props rise and fall together &mdash; the real "
-           "combined chance is lower than the slip implies. The PROPS "
+           "combined chance is not what the slip implies. The PROPS "
            "stacks above cross games so their multiplied number stays "
-           "honest.</div>")
+           "honest; the GAME STACKS section below bundles same-game "
+           "legs on purpose and says plainly what its number "
+           "means.</div>")
     for g in sorted(games, key=lambda g: starts[g]):
         when = starts[g].strftime("%a %H:%M UTC")
         rows = ""
@@ -2209,6 +2301,75 @@ def build_props_menu_html(pool):
                 f"<th>Strong ({PARLAY_LEG_MIN_PROB:.0f}%+)</th>"
                 f"<th>Safe ({PROPS_SAFE_PROB:.0f}%+)</th>"
                 f"<th>Books</th><th>DK</th></tr>{rows}</table>")
+    return out
+
+
+def build_game_stacks_html(gstacks, presults):
+    """THE GAME STACKS section (owner request, Sep 17 2026): the
+    correlated same-game bundles, one per game, built for the owner's
+    own book's same-game parlay. Laws and honesty framing in the
+    config block; the GAME-id slice of the parlay record is shown
+    here because its stated-vs-actual gap is the measured answer to
+    what the correlation is worth."""
+    grec = [r for r in presults if "-GAME" in r.get("parlay_id", "")]
+    if not gstacks and not grec:
+        return ""
+    out = ("<h2>The game stacks &mdash; one correlated bundle per "
+           "game</h2>"
+           "<div class='why'>These are the same-game bundles: one "
+           "slip per game, the favorite to win it plus each player's "
+           "most-likely prop line. When an offense gets rolling, the "
+           "quarterback's yards and his catchers' yards come from the "
+           "same drives &mdash; these legs tend to hit TOGETHER, "
+           "which is exactly why your book sells this as a same-game "
+           "parlay. The stated chance still multiplies the legs like "
+           "separate coin flips, because that is the only number we "
+           "can state without inventing one: for legs riding the same "
+           "offense the real chance is usually HIGHER than stated, "
+           "while two receivers fighting for the same targets pull it "
+           "a little lower &mdash; the record below measures which "
+           "way it really leans. Two things said plainly: our feeds "
+           "don't say which team each player is on, so a stack covers "
+           "the whole game &mdash; drop the other side's legs at your "
+           "book if you want a pure one-team stack. And Kalshi has no "
+           "parlay ticket: buying these legs on Kalshi pays each leg "
+           "alone, minus a fee per leg (that's the ~$2 slip you saw) "
+           "&mdash; this section is for your own sportsbook.</div>")
+    for game, legs, row in gstacks:
+        combined = float(row["combined_pct"])
+        when = min(c["commence"] for c in legs).strftime("%a %H:%M UTC")
+        legs_html = "".join(
+            f"<div class='pick'>&#10148; <b>{html.escape(c['pick'])}"
+            f"</b> <span class='when'>{c['fair_pct']:.0f}%"
+            + (f" · DK {html.escape(c['dk'])}" if c.get("dk") else "")
+            + "</span></div>"
+            for c in legs)
+        out += f"""
+<div class="slip"><div class="punch"></div>
+<div class="stamp gap">{row['n_legs']} LEGS</div>
+<div class="slipbody">
+<span class="tag">GAME STACK</span><span class="when">{html.escape(game)} · {when}</span>
+{legs_html}
+<div class="nums"><span>If the legs were independent: <b>{combined:.0f}%</b></span>
+<span>Fair payout <b>${row['fair_payout']} per $1</b></span></div>
+<div class="why">Same-game legs move together, so the real chance of
+this slip likely sits a bit ABOVE {combined:.0f}% for the same-offense
+legs and a bit below where receivers split the same targets. If your
+book's same-game parlay pays well under ${row['fair_payout']}, the
+difference is the correlation tax plus the parlay tax.</div>
+</div></div>"""
+    if grec:
+        done = [r for r in grec if r["result"] in ("HIT", "MISS")]
+        hits = sum(1 for r in done if r["result"] == "HIT")
+        stated = (sum(float(r["combined_pct"]) for r in done)
+                  / len(done)) if done else 0.0
+        out += (f"<div class='why'><b>Game-stack record: {hits} hit, "
+                f"{len(done) - hits} missed</b>, stating "
+                f"{stated:.0f}% on average (graded by Kalshi "
+                "settlement). If the hit rate runs above the stated "
+                "number as this record grows, that's the same-game "
+                "correlation showing up as a measured fact instead of "
+                "a theory.</div>")
     return out
 
 
@@ -2256,7 +2417,7 @@ def build_early_html(pool):
 
 
 def build_page(shown, results, feed_dead, parlay_legs, parlays, presults,
-               combo_legs, combos, cresults):
+               combo_legs, combos, cresults, game_stacks):
     now = datetime.now(timezone.utc).strftime("%a %b %d, %H:%M UTC")
     wins = sum(1 for r in results if r["result"] == "WIN")
     losses = sum(1 for r in results if r["result"] == "LOSS")
@@ -2331,6 +2492,7 @@ robot with your wallet -- it never bets. You do (or don't).</div>
 {build_parlay_html(parlay_legs, parlays, presults)}
 {build_early_html(EARLY_POOL)}
 {build_props_menu_html(PROPS_POOL)}
+{build_game_stacks_html(game_stacks, presults)}
 {build_combo_html(combo_legs, combos, cresults)}
 {hist}
 <div class="foot"><b>How this card works, in one breath:</b> the sharpest
@@ -2360,7 +2522,13 @@ the board can be graded by Kalshi's own settlement &mdash; hit or miss,
 in parlay_results.csv. The stated combined chance is the honest
 multiplied probability; there's no dollar score on purpose, because
 every sportsbook pays parlays differently. This board, like everything
-here, never bets. You do (or don't).
+here, never bets. You do (or don't). <b>The game stacks</b> are the one
+section that bundles legs from a SINGLE game on purpose &mdash; built
+for a sportsbook's same-game parlay, since Kalshi has no parlay ticket.
+Their stated % is the plain independent product, printed as a reference
+with the direction of its error said out loud, and their graded record
+(the GAME ids in parlay_results.csv) measures what the same-game
+correlation is actually worth.
 <br><br><b>The combo board</b> is the parlay board with every sector
 of this operation invited: the sharps' strongest game favorites plus
 the weather bot's own strongest bracket picks, stacked tallest-payout
@@ -2498,6 +2666,18 @@ def main():
           f"(one per game, from {len(PROPS_POOL)} candidates), "
           f"{len(prop_stacks)} stacks")
 
+    # THE GAME STACKS: same-game correlated bundles (owner request,
+    # Sep 17 2026 -- the config block has the law). Rows ride
+    # parlay_picks.csv under GAME ids and grade via grade_stacks like
+    # every board; the card section states what their product means.
+    game_stacks = build_game_stacks(PROPS_POOL, PARLAY_POOL)
+    if game_stacks:
+        with appender(PARLAY_CSV, PARLAY_FIELDS) as w:
+            for _, _, p in game_stacks:
+                w.writerow(p)
+    print(f"game stacks: {len(game_stacks)} same-game bundles "
+          f"(correlated on purpose; stated % is the plain product)")
+
     # THE LEG LAB: research rows only, nothing reads them back into
     # any board (see the config block for the law)
     if LEG_LAB:
@@ -2539,7 +2719,7 @@ def main():
     with open(PAGE, "w") as f:
         f.write(build_page(shown, results, feed_dead,
                            parlay_legs, parlays, presults,
-                           combo_legs, combos, cresults))
+                           combo_legs, combos, cresults, game_stacks))
     print(f"wrote {PAGE}")
 
     if feed_dead:

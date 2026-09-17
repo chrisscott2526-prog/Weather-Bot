@@ -270,6 +270,40 @@ translated one-to-one:
   verified live by probe first (whitelist law; PrizePicks is fixed
   multipliers, not odds, so its comparison is line-vs-line — a
   different build).
+- **THE GAME STACKS (owner request, Sep 17 2026).** The owner asked
+  for correlated parlays "built for each team playing": when one
+  player on an offense gets his numbers, his teammates usually get
+  theirs — a QB's passing yards and his receivers' yards are the
+  same drives — and their own book's same-game parlay pays the
+  bundle, while Kalshi has no parlay ticket at all (the owner tried
+  the exact slip on Kalshi: each leg pays alone with a fee per leg,
+  ~$2 total — fees eat it). So the card now carries ONE bundle per
+  game: the moneyline favorite (when it clears the 70 floor) plus
+  each player's single most-likely qualifying prop (one leg per
+  PLAYER — two bars on one player are nearly the same event),
+  strongest first, up to 6 legs (`GAME_STACK_MAX_LEGS`), ids
+  `<day>-GAME<n>` riding parlay_picks.csv and graded by Kalshi
+  settlement through grade_stacks like every board. The honesty
+  laws, stated at birth: the stated combined % is STILL the plain
+  product — we hold no measured correlation and invent none — and
+  the card states the direction of its error out loud: same-offense
+  legs hit together, so the product usually UNDERSTATES their joint
+  chance (the safe direction, the dual-expert rule's own principle),
+  while receivers splitting the same targets pull it mildly the
+  other way; the GAME-id slice of parlay_results.csv (stated % vs
+  hit rate) MEASURES the correlation on a real record instead of
+  guessing a coefficient. Grouping is per GAME, not per team,
+  deliberately: no feed we hold verifiably maps a prop's player to
+  his team (odds outcomes and Kalshi subtitles carry player + game
+  only), and a guessed roster is invented data — a traded player
+  would silently poison a stack, the wrong-station trap wearing a
+  jersey. The card says so and prints every leg with its DK price,
+  so the owner can drop the other side's legs at their book for a
+  pure one-team stack. The PROPS ladder's one-leg-per-game law is
+  UNCHANGED — its cross-game product must stay honest; the game
+  stacks are the one section where same-game correlation is the
+  point, said plainly. ADVISORY ONLY — the permanent rule covers it
+  word for word.
 - **The combo board (owner request, Sep 10 2026)** is the parlay
   board with every sector invited: one cross-sector stack ladder on
   the same card, mixing the sharps' favorites — full-game moneylines
@@ -721,7 +755,7 @@ check that line first when a feed dies.
 | `results.csv` | `settle.py` | `graded_utc,ticker,city,action,cost_cents,count,fee_cents,market_result,result,pnl,strategy` (fee_cents added Aug 18, strategy Aug 20 2026; old rows backfilled `night`; readers treat a blank strategy as night) |
 | `sports_picks.csv` | `sports_scanner.py` | `scanned_utc,sport,shelf,game,detail,commence_utc,series,ticker,side,pick,books_pct,kalshi_cents,fee_cents,gap_cents,n_books,shown,why` (wiped + new header Aug 19, 2026 — edge-era rows graded a dead rule) |
 | `sports_results.csv` | `sports_scanner.py` | `graded_utc,sport,shelf,game,detail,ticker,side,pick,books_pct,kalshi_cents,gap_cents,market_result,result,pnl` (wiped same commit) |
-| `parlay_picks.csv` | `sports_scanner.py` | `scanned_utc,parlay_id,n_legs,legs,tickers,leg_probs_pct,combined_pct,fair_payout,last_start_utc` (the parlay board, Sep 8 2026; legs/tickers/leg_probs_pct pipe-separated and index-aligned; fair_payout = 1/combined_prob in $ per $1; append-only, union-merged; ADVISORY ONLY — nothing that trades may ever read it) |
+| `parlay_picks.csv` | `sports_scanner.py` | `scanned_utc,parlay_id,n_legs,legs,tickers,leg_probs_pct,combined_pct,fair_payout,last_start_utc` (the parlay board, Sep 8 2026; legs/tickers/leg_probs_pct pipe-separated and index-aligned; fair_payout = 1/combined_prob in $ per $1; id families share the file: `<day>-<n>LEG` locks, `<day>-BOOST<n>`, `<day>-PROPS<n>`, and since Sep 17 2026 `<day>-GAME<n>` — the same-game stacks, whose combined_pct is the plain product stated as a correlated REFERENCE, see the game-stacks law; append-only, union-merged; ADVISORY ONLY — nothing that trades may ever read it) |
 | `parlay_results.csv` | `sports_scanner.py` | `graded_utc,parlay_id,n_legs,legs,tickers,combined_pct,legs_won,legs_lost,legs_void,result` (result HIT/MISS/VOID by Kalshi settlement per leg — any lost leg = MISS, void legs drop out like a book's pushed legs; **no pnl column on purpose**: a book's parlay payout is unknowable, so the scoreboard grades calibration — stated % vs hit rate) |
 | `combo_picks.csv` | `sports_scanner.py` | `scanned_utc,combo_id,n_legs,sectors,legs,tickers,leg_probs_pct,combined_pct,fair_payout,last_start_utc` (THE COMBO BOARD, Sep 10 2026 — cross-sector stacks: parlay-board sports legs + dual-expert weather legs; sectors/legs/tickers/leg_probs_pct pipe-separated and index-aligned, sectors ∈ MLB/NFL/CFB/NBA/TENNIS/WEATHER; a weather leg's stated prob = min(ensemble member share, live Kalshi YES bid); append-only, union-merged; ADVISORY ONLY — nothing that trades may ever read it) |
 | `combo_results.csv` | `sports_scanner.py` | `graded_utc,combo_id,n_legs,sectors,legs,tickers,combined_pct,legs_won,legs_lost,legs_void,result` (HIT/MISS/VOID by Kalshi settlement per leg, void legs drop out, **no pnl column on purpose** — same laws as `parlay_results.csv`; the scoreboard question is calibration of the cross-sector product, which the card admits is approximate when weather legs share an air mass) |
