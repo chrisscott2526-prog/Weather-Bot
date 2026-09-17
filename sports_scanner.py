@@ -350,15 +350,24 @@ PROPS_SAFE_PROB = 90.0
 #     % vs hit rate MEASURES the same-game correlation on a real
 #     record -- if these stacks hit more often than they state, that
 #     is the correlation showing up as a fact, not a guess.
-#   - grouping is per GAME, not per team, and honestly so: no feed
-#     we hold verifiably maps a prop's player to his team (the odds
-#     feed and Kalshi's subtitles carry the player's name and the
-#     game only), and a guessed roster is invented data -- a traded
-#     player would silently poison a stack, the wrong-station trap
-#     wearing a jersey. The game's moneyline favorite anchors the
-#     stack when it clears the floor, and the card prints every leg
-#     so the owner can drop the other side's legs at their book for
-#     a pure one-team stack.
+#   - TEAM stacks are read off Kalshi's OWN tickers, never a guessed
+#     roster. At birth this section was per-game only, because no
+#     feed hands us a player->team map and inventing one is invented
+#     data (a traded player would silently poison a stack -- the
+#     wrong-station trap wearing a jersey). Then the first live run
+#     (sports.yml run 135, Sep 17 2026) showed Kalshi's prop tickers
+#     carry the team code inside the player segment
+#     (KXNFLRECYDS-26SEP17DETBUF-BUFDMOORE2-25: BUF + DMOORE2), and
+#     moneyline tickers end in the bare code (-BUF) -- Kalshi's own
+#     hand-verified market identifiers, not a guess. So each game
+#     builds a stack per TEAM (ids <day>-TEAM<n>) from the legs whose
+#     ticker names that team, plus the whole-game bundle (the
+#     shootout script -- both offenses' volume rises together in a
+#     high-total game) ONLY when it differs from every team stack:
+#     the same stack never logs under two names (the combo board's
+#     law). A leg whose ticker matches neither team code joins only
+#     the game bundle -- fail closed, never attributed by guess. The
+#     game's moneyline favorite rides its own team's stack.
 #   - one leg per PLAYER, his single most-likely qualifying bar: two
 #     bars on the same player are nearly the same event, and a stack
 #     wants his likeliest line, not his deepest.
@@ -1806,16 +1815,42 @@ def build_props_ladder(pool):
     return legs, stacks
 
 
+def leg_team(c, codes):
+    """Which of a game's two teams a leg belongs to, read straight
+    off Kalshi's OWN market ticker -- never a guessed roster. The
+    third ticker segment is the team-prefixed player id on prop
+    ladders (KXNFLRECYDS-26SEP17DETBUF-BUFDMOORE2-25, verified live
+    on sports.yml run 135) and the bare team code on moneylines
+    (KXNFLGAME-...-BUF). codes maps this game's two team names to
+    their hand-verified TEAM_CODES entries. Longest matching code
+    wins (two prefixes of one string can't disagree); no match means
+    no attribution and the leg rides only the whole-game bundle --
+    fail closed, never a guess."""
+    parts = (c.get("ticker") or "").split("-")
+    if len(parts) < 3:
+        return None
+    seg = parts[2]
+    best = None
+    for name, code in codes.items():
+        if code and (seg == code or seg.startswith(code)):
+            if best is None or len(code) > len(codes[best]):
+                best = name
+    return best
+
+
 def build_game_stacks(prop_pool, ml_pool):
-    """THE GAME STACKS (owner request, Sep 17 2026): one correlated
-    same-game bundle per game -- the moneyline favorite (when it
-    clears the floor) plus each player's single most-likely
-    qualifying prop, strongest legs first, up to GAME_STACK_MAX_LEGS.
-    The full law -- why the stated % is the plain product printed as
-    a reference, why grouping is per game and never a guessed roster,
-    and how the GAME-id record measures the correlation -- lives in
-    the config block. Rows ride parlay_picks.csv and grade through
-    grade_stacks by Kalshi settlement, unchanged. ADVISORY ONLY."""
+    """THE GAME AND TEAM STACKS (owner request, Sep 17 2026):
+    correlated same-game bundles. Per game: one stack per TEAM (legs
+    whose Kalshi ticker names that team -- see leg_team), plus the
+    whole-game bundle only when it differs from every team stack (the
+    same stack never logs under two names). Legs are the moneyline
+    favorite (when it clears the floor) plus each player's single
+    most-likely qualifying prop, strongest first, capped at
+    GAME_STACK_MAX_LEGS. The full law -- why the stated % is the
+    plain product printed as a reference, and how the TEAM/GAME-id
+    record measures the correlation -- lives in the config block.
+    Rows ride parlay_picks.csv and grade through grade_stacks by
+    Kalshi settlement, unchanged. ADVISORY ONLY."""
     by_game = {}
     # strongest first, so setdefault keeps each player's single
     # most-likely qualifying leg (his shallowest strong bar)
@@ -1833,14 +1868,45 @@ def build_game_stacks(prop_pool, ml_pool):
     order = sorted(by_game.items(),
                    key=lambda kv: min(c["commence"]
                                       for c in kv[1].values()))
-    n = 0
+    ng = nt = 0
     for game, picks in order:
-        legs = sorted(picks.values(),
-                      key=lambda c: -c["fair_pct"])[:GAME_STACK_MAX_LEGS]
+        legs = sorted(picks.values(), key=lambda c: -c["fair_pct"])
         if len(legs) < 2:
             continue                 # a single leg is not a bundle
-        n += 1
-        stacks.append((game, legs, stack_row(legs, f"{day}-GAME{n}")))
+        # this game's two team codes, from the hand-verified tables
+        # (the odds feed's team names ARE the TEAM_CODES keys)
+        codes = {}
+        for nm in (t.strip() for t in game.split(" @ ")):
+            for table in TEAM_CODES.values():
+                if nm in table:
+                    codes[nm] = table[nm]
+                    break
+        teams = {}
+        if len(codes) == 2:
+            for c in legs:
+                t = leg_team(c, codes)
+                if t:
+                    teams.setdefault(t, []).append(c)
+        team_rows = []
+        for nm in codes:             # away first -- game-string order
+            tlegs = teams.get(nm, [])[:GAME_STACK_MAX_LEGS]
+            if len(tlegs) < 2:
+                continue
+            nt += 1
+            team_rows.append({
+                "kind": "TEAM", "title": f"{nm} legs only", "game": game,
+                "legs": tlegs,
+                "row": stack_row(tlegs, f"{day}-TEAM{nt}")})
+        stacks.extend(team_rows)
+        glegs = legs[:GAME_STACK_MAX_LEGS]
+        gset = {c["ticker"] for c in glegs}
+        if all(gset != {c["ticker"] for c in tr["legs"]}
+               for tr in team_rows):
+            ng += 1
+            stacks.append({
+                "kind": "GAME", "title": "whole game", "game": game,
+                "legs": glegs,
+                "row": stack_row(glegs, f"{day}-GAME{ng}")})
     return stacks
 
 
@@ -2277,7 +2343,7 @@ def build_props_menu_html(pool):
            "same-game props rise and fall together &mdash; the real "
            "combined chance is not what the slip implies. The PROPS "
            "stacks above cross games so their multiplied number stays "
-           "honest; the GAME STACKS section below bundles same-game "
+           "honest; the TEAM STACKS section below bundles same-game "
            "legs on purpose and says plainly what its number "
            "means.</div>")
     for g in sorted(games, key=lambda g: starts[g]):
@@ -2305,37 +2371,43 @@ def build_props_menu_html(pool):
 
 
 def build_game_stacks_html(gstacks, presults):
-    """THE GAME STACKS section (owner request, Sep 17 2026): the
-    correlated same-game bundles, one per game, built for the owner's
-    own book's same-game parlay. Laws and honesty framing in the
-    config block; the GAME-id slice of the parlay record is shown
-    here because its stated-vs-actual gap is the measured answer to
-    what the correlation is worth."""
-    grec = [r for r in presults if "-GAME" in r.get("parlay_id", "")]
+    """THE GAME AND TEAM STACKS section (owner request, Sep 17
+    2026): the correlated same-game bundles -- a stack per team,
+    plus the whole-game bundle when it's genuinely different --
+    built for the owner's own book's same-game parlay. Laws and
+    honesty framing in the config block; the TEAM/GAME-id slice of
+    the parlay record is shown here because its stated-vs-actual
+    gap is the measured answer to what the correlation is worth."""
+    grec = [r for r in presults
+            if "-GAME" in r.get("parlay_id", "")
+            or "-TEAM" in r.get("parlay_id", "")]
     if not gstacks and not grec:
         return ""
-    out = ("<h2>The game stacks &mdash; one correlated bundle per "
-           "game</h2>"
-           "<div class='why'>These are the same-game bundles: one "
-           "slip per game, the favorite to win it plus each player's "
-           "most-likely prop line. When an offense gets rolling, the "
-           "quarterback's yards and his catchers' yards come from the "
-           "same drives &mdash; these legs tend to hit TOGETHER, "
-           "which is exactly why your book sells this as a same-game "
-           "parlay. The stated chance still multiplies the legs like "
-           "separate coin flips, because that is the only number we "
-           "can state without inventing one: for legs riding the same "
-           "offense the real chance is usually HIGHER than stated, "
-           "while two receivers fighting for the same targets pull it "
-           "a little lower &mdash; the record below measures which "
-           "way it really leans. Two things said plainly: our feeds "
-           "don't say which team each player is on, so a stack covers "
-           "the whole game &mdash; drop the other side's legs at your "
-           "book if you want a pure one-team stack. And Kalshi has no "
-           "parlay ticket: buying these legs on Kalshi pays each leg "
-           "alone, minus a fee per leg (that's the ~$2 slip you saw) "
-           "&mdash; this section is for your own sportsbook.</div>")
-    for game, legs, row in gstacks:
+    out = ("<h2>The team stacks &mdash; correlated bundles, one team "
+           "at a time</h2>"
+           "<div class='why'>These are the same-game bundles: each "
+           "team's favorite legs on one slip &mdash; the moneyline "
+           "when it qualifies, plus each player's most-likely prop "
+           "line. When an offense gets rolling, the quarterback's "
+           "yards and his catchers' yards come from the same drives "
+           "&mdash; these legs tend to hit TOGETHER, which is exactly "
+           "why your book sells this as a same-game parlay. Which "
+           "team each player is on comes straight off Kalshi's own "
+           "market ticker, never a guess. The WHOLE GAME slip appears "
+           "when it adds legs beyond one team &mdash; in a "
+           "high-scoring game both offenses' numbers rise together. "
+           "The stated chance still multiplies the legs like separate "
+           "coin flips, because that is the only number we can state "
+           "without inventing one: for legs riding the same offense "
+           "the real chance is usually HIGHER than stated, while two "
+           "receivers fighting for the same targets pull it a little "
+           "lower &mdash; the record below measures which way it "
+           "really leans. And Kalshi has no parlay ticket: buying "
+           "these legs on Kalshi pays each leg alone, minus a fee per "
+           "leg (that's the ~$2 slip you saw) &mdash; this section is "
+           "for your own sportsbook.</div>")
+    for s in gstacks:
+        row, legs = s["row"], s["legs"]
         combined = float(row["combined_pct"])
         when = min(c["commence"] for c in legs).strftime("%a %H:%M UTC")
         legs_html = "".join(
@@ -2348,7 +2420,7 @@ def build_game_stacks_html(gstacks, presults):
 <div class="slip"><div class="punch"></div>
 <div class="stamp gap">{row['n_legs']} LEGS</div>
 <div class="slipbody">
-<span class="tag">GAME STACK</span><span class="when">{html.escape(game)} · {when}</span>
+<span class="tag">{s['kind']} STACK</span><span class="when">{html.escape(s['title'])} · {html.escape(s['game'])} · {when}</span>
 {legs_html}
 <div class="nums"><span>If the legs were independent: <b>{combined:.0f}%</b></span>
 <span>Fair payout <b>${row['fair_payout']} per $1</b></span></div>
@@ -2363,7 +2435,7 @@ difference is the correlation tax plus the parlay tax.</div>
         hits = sum(1 for r in done if r["result"] == "HIT")
         stated = (sum(float(r["combined_pct"]) for r in done)
                   / len(done)) if done else 0.0
-        out += (f"<div class='why'><b>Game-stack record: {hits} hit, "
+        out += (f"<div class='why'><b>Team/game stack record: {hits} hit, "
                 f"{len(done) - hits} missed</b>, stating "
                 f"{stated:.0f}% on average (graded by Kalshi "
                 "settlement). If the hit rate runs above the stated "
@@ -2522,12 +2594,14 @@ the board can be graded by Kalshi's own settlement &mdash; hit or miss,
 in parlay_results.csv. The stated combined chance is the honest
 multiplied probability; there's no dollar score on purpose, because
 every sportsbook pays parlays differently. This board, like everything
-here, never bets. You do (or don't). <b>The game stacks</b> are the one
-section that bundles legs from a SINGLE game on purpose &mdash; built
-for a sportsbook's same-game parlay, since Kalshi has no parlay ticket.
+here, never bets. You do (or don't). <b>The team stacks</b> are the one
+section that bundles legs from a SINGLE game on purpose &mdash; one
+slip per team (each player's team read off Kalshi's own ticker, never
+guessed), plus the whole-game slip when it adds legs &mdash; built for
+a sportsbook's same-game parlay, since Kalshi has no parlay ticket.
 Their stated % is the plain independent product, printed as a reference
 with the direction of its error said out loud, and their graded record
-(the GAME ids in parlay_results.csv) measures what the same-game
+(the TEAM/GAME ids in parlay_results.csv) measures what the same-game
 correlation is actually worth.
 <br><br><b>The combo board</b> is the parlay board with every sector
 of this operation invited: the sharps' strongest game favorites plus
@@ -2673,10 +2747,12 @@ def main():
     game_stacks = build_game_stacks(PROPS_POOL, PARLAY_POOL)
     if game_stacks:
         with appender(PARLAY_CSV, PARLAY_FIELDS) as w:
-            for _, _, p in game_stacks:
-                w.writerow(p)
-    print(f"game stacks: {len(game_stacks)} same-game bundles "
-          f"(correlated on purpose; stated % is the plain product)")
+            for s in game_stacks:
+                w.writerow(s["row"])
+    nteam = sum(1 for s in game_stacks if s["kind"] == "TEAM")
+    print(f"team/game stacks: {nteam} team + {len(game_stacks) - nteam} "
+          f"whole-game bundles (correlated on purpose; stated % is "
+          f"the plain product)")
 
     # THE LEG LAB: research rows only, nothing reads them back into
     # any board (see the config block for the law)
