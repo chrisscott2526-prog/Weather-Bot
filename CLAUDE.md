@@ -288,11 +288,16 @@ translated one-to-one:
   normal 30h path at that morning's numbers. The stated caveat
   prints on the card: prop lines days out are SOFTER than
   moneylines (injury reports, inactives, outright scratches).
-  Cost, said plainly: `PROP_EVENT_CAP` rose 12 → 16 in the same
-  commit (a Thu–Sat scan now holds the whole ~14–16 game Sunday
-  slate; 12 left the late games without props) — worst case ~48
-  credits/sport/scan, ~6K/month at 4 scans/day against the 20K
-  plan, with `CREDIT_RESERVE` still guarding the floor.
+  Cost, said plainly and MEASURED (run 140's live credit ticker,
+  the shipping scan): ~8 credits per NFL event, 120 that scan for
+  15 games — `PROP_EVENT_CAP` rose 12 → 16 in the same commit (a
+  Thu–Sat scan now holds the whole ~14–16 game Sunday slate; 12
+  left the late games without props), so worst case is ~500
+  credits/day at 4 scans on NFL-window days, roughly 8–11K/month
+  with MLB against the 20K plan. That is real headroom but no
+  longer 40× — if the CREDIT GUARD ever prints, this widening is
+  the first suspect after the plan's renewal, and narrowing it
+  back is one constant.
 - **THE TEAM AND GAME STACKS (owner request, Sep 17 2026).** The
   owner asked for correlated parlays "built for each team playing":
   when one player on an offense gets his numbers, his teammates
