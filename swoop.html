@@ -37,33 +37,33 @@ border-radius:3px;background:#2a323b}
 </style></head><body><div class="wrap">
 <h1>Swoop Alert</h1>
 <div class="sub">Thermometer vs. market on the bot's open positions -
-checked Thu Sep 17, 18:34 UTC (<span class="age" data-built="1789670048320">just
+checked Thu Sep 17, 18:49 UTC (<span class="age" data-built="1789670948673">just
 built</span>). Graded 4 of 4 open weather positions.
 </div>
 
 <div class="card OVERSHOOTRISK"><div class="top">
 <span class="city">Washington DC &mdash; YES 88° to 89°</span>
 <span class="badge">OVERSHOOT RISK</span></div>
-<div class="det">High so far: <b>87.8&deg;</b> &nbsp;|&nbsp; Now: <b>86.0&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789669208320">reading 14m old</span>
- &nbsp;|&nbsp; Market now: <b>36c</b></div>
-<div class="note">Observed high 87.8° is inside the bracket. Wins if the heat stops here - watch for late overshoot. The day&#x27;s high 87.8° is only 1.2° under the 89° cap - but that high is BANKED: the station now reads 86.0°, 1.8° below the day&#x27;s peak. This wins if the heat stays away; it dies only if the afternoon climbs back past the 89° cap. Reading is 14m old. Our side currently fetches 30c on the market. Advisory only - this board never sells for you.</div></div>
+<div class="det">High so far: <b>87.8&deg;</b> &nbsp;|&nbsp; Now: <b>84.2&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789669808673">reading 19m old</span>
+ &nbsp;|&nbsp; Market now: <b>19c</b></div>
+<div class="note">Observed high 87.8° is inside the bracket. Wins if the heat stops here - watch for late overshoot. The day&#x27;s high 87.8° is only 1.2° under the 89° cap - but that high is BANKED: the station now reads 84.2°, 3.6° below the day&#x27;s peak. This wins if the heat stays away; it dies only if the afternoon climbs back past the 89° cap. Reading is 19m old. Our side currently fetches 14c on the market. Advisory only - this board never sells for you.</div></div>
 <div class="card NEEDSHEAT"><div class="top">
 <span class="city">San Francisco &mdash; YES 71° to 72°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">High so far: <b>66.2&deg;</b> &nbsp;|&nbsp; Now: <b>66.2&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789669208320">reading 14m old</span>
- &nbsp;|&nbsp; Market now: <b>47c</b></div>
+<div class="det">High so far: <b>66.2&deg;</b> &nbsp;|&nbsp; Now: <b>66.2&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789669508673">reading 24m old</span>
+ &nbsp;|&nbsp; Market now: <b>50c</b></div>
 <div class="note">Needs about 5° more warming to enter.</div></div>
 <div class="card NEEDSHEAT"><div class="top">
 <span class="city">San Antonio &mdash; YES 97° to 98°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">High so far: <b>91.4&deg;</b> &nbsp;|&nbsp; Now: <b>89.6&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789668908320">reading 19m old</span>
- &nbsp;|&nbsp; Market now: <b>35c</b></div>
+<div class="det">High so far: <b>91.4&deg;</b> &nbsp;|&nbsp; Now: <b>89.6&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789669508673">reading 24m old</span>
+ &nbsp;|&nbsp; Market now: <b>42c</b></div>
 <div class="note">Needs about 6° more warming to enter.</div></div>
 <div class="card NEEDSHEAT"><div class="top">
 <span class="city">Atlanta &mdash; YES 90° to 91°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">High so far: <b>87.8&deg;</b> &nbsp;|&nbsp; Now: <b>87.8&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789668908320">reading 19m old</span>
- &nbsp;|&nbsp; Market now: <b>74c</b></div>
+<div class="det">High so far: <b>87.8&deg;</b> &nbsp;|&nbsp; Now: <b>87.8&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789669508673">reading 24m old</span>
+ &nbsp;|&nbsp; Market now: <b>68c</b></div>
 <div class="note">Needs about 2° more warming to enter.</div></div>
 <div class="foot"><b>Read it like this:</b> daily highs only rise, so a
 bracket the thermometer has passed is settled physics, not opinion.
@@ -113,7 +113,7 @@ setInterval(swoopTick, 30000);
 // never invents data -- it only replaces itself with the server's
 // newer truth. The pulse and the page ship in the same commit, so
 // after healing the two agree and the check goes quiet (no loop).
-var BUILD_MS = 1789670048320;
+var BUILD_MS = 1789670948673;
 var healing = false;
 async function freshCheck() {
   if (healing) return;
