@@ -310,8 +310,18 @@ translated one-to-one:
   owner decision then. The PROPS ladder's one-leg-per-game law is
   UNCHANGED — its cross-game product must stay honest; the team
   stacks are the one section where same-game correlation is the
-  point, said plainly. ADVISORY ONLY — the permanent rule covers it
-  word for word.
+  point, said plainly. **The walk-away price (owner incident,
+  Sep 17 2026, the first night):** the owner priced the first team
+  stack at their book and the payout "was not gonna work out" — the
+  book prices correlated bundles near their true joint chance and
+  keeps the difference. So every stack slip now prints the PRICING
+  TEST: a stack can never be more likely than its single weakest
+  leg, so a same-game payout under 1/(weakest leg %) is a bad price
+  under ANY correlation — walk away. That bound is a theorem, not a
+  guessed coefficient; fair sits between it and the independent
+  value, and the graded TEAM/GAME record pins where these stacks
+  really live inside the range. ADVISORY ONLY — the permanent rule
+  covers it word for word.
 - **The combo board (owner request, Sep 10 2026)** is the parlay
   board with every sector invited: one cross-sector stack ladder on
   the same card, mixing the sharps' favorites — full-game moneylines
