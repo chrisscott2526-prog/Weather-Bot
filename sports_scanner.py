@@ -1839,6 +1839,37 @@ def build_parlays(pool):
             continue
         seen_stacks.add(row["tickers"])
         parlays.append(row)
+
+    # THE SLATE STACKS (owner decision, Sep 18 2026, in conversation):
+    # "I shouldn't see anything on the screen that I'm not allowed to
+    # bet on... everything is done already for me. Do the percentages,
+    # build the parlays, build the stacks -- you use the math and you
+    # do it." The locks/booster ladders only ever USE the top few
+    # favorites, which left the rest of a big slate (19 qualifying CFB
+    # favorites on Sep 18) as a list the owner would have had to
+    # combine themselves. So the whole ranked pool is now chunked into
+    # ready-made slips: strongest PARLAY_MAX_LEGS on one slip, the
+    # next PARLAY_MAX_LEGS on the next, until every qualifying
+    # favorite rides exactly one pre-built stack. The laws hold
+    # unchanged: every leg cleared the 70 floor upstream, no slip goes
+    # deeper than PARLAY_MAX_LEGS (the depth the record convicted),
+    # cross-game legs multiply honestly by construction, a chunk
+    # identical to an existing rung is skipped (never the same stack
+    # under two names), and a leftover single leg makes no stack --
+    # it already stands on the ranked list as its own bet. Graded
+    # through parlay_picks.csv like every board.
+    k = 0
+    for i in range(0, len(legs), PARLAY_MAX_LEGS):
+        chunk = legs[i:i + PARLAY_MAX_LEGS]
+        if len(chunk) < 2:
+            break
+        row = stack_row(chunk, "")
+        if row["tickers"] in seen_stacks:
+            continue
+        k += 1
+        row["parlay_id"] = f"{day}-SLATE{k}"
+        seen_stacks.add(row["tickers"])
+        parlays.append(row)
     return legs, parlays
 
 
@@ -2224,13 +2255,14 @@ def build_parlay_html(legs, parlays, presults):
                 "from weaker favorites would be a lottery ticket, so "
                 "there isn't one.</div>")
     else:
-        # THE FULL FAVORITES LIST (owner request, Sep 18 2026): every
-        # floor-clearing favorite on today's slate, grouped by league,
-        # strongest first inside each group -- the whole menu, not just
-        # the top rows the stacks happen to use. Each line is its own
-        # game, so any mix the owner stacks at their book multiplies
-        # honestly (the one-leg-per-game law holds by construction for
-        # cross-game moneylines).
+        # THE FULL FAVORITES LIST (owner request, Sep 18 2026; framing
+        # corrected same day): every floor-clearing favorite on
+        # today's slate, grouped by league, strongest first. Each line
+        # is a FINISHED single bet, bettable exactly as printed -- the
+        # owner's rule: nothing on the card asks them to combine,
+        # choose, or judge anything. The combining is the card's job:
+        # the slate stacks below carry every one of these legs on a
+        # pre-built slip.
         by_league = {}
         for c in legs:              # legs arrive strongest-first
             by_league.setdefault(c["label"], []).append(c)
@@ -2254,11 +2286,12 @@ def build_parlay_html(legs, parlays, presults):
         if rows:
             out += (f"<p class='when'>Every favorite the sharps make "
                     f"{PARLAY_LEG_MIN_PROB:.0f}%+ likely on today's "
-                    f"slate &mdash; the full list, numbered strongest "
-                    f"first within each league. The stacks below use "
-                    f"the strongest of them; every line here clears "
-                    f"the same bar and can be stacked at your own "
-                    f"book (each is a different game).</p>"
+                    f"slate, numbered strongest first within each "
+                    f"league. Each line is a finished bet exactly as "
+                    f"printed &mdash; and every one of them also rides "
+                    f"a pre-built slip below, so there is nothing here "
+                    f"to combine or choose. Bet the lines, bet the "
+                    f"slips, or both.</p>"
                     f"<table><tr><th></th><th>The sharps' favorite</th>"
                     f"<th>Win chance</th><th>Books</th><th>DK</th></tr>"
                     f"{rows}</table>")
@@ -2266,8 +2299,15 @@ def build_parlay_html(legs, parlays, presults):
             combined = float(p["combined_pct"])
             boost = "BOOST" in p["parlay_id"]
             props = "PROPS" in p["parlay_id"]
-            tag = "PROPS" if props else ("BOOSTER" if boost else "LOCKS")
-            if props:
+            slate = "SLATE" in p["parlay_id"]
+            tag = ("SLATE" if slate else "PROPS" if props
+                   else ("BOOSTER" if boost else "LOCKS"))
+            if slate:
+                sub = ("the whole slate, pre-stacked: the next "
+                       f"{p['n_legs']} strongest favorites on one "
+                       "slip &mdash; every qualifying favorite rides "
+                       "exactly one of these, built for you top-down")
+            elif props:
                 sub = ("player-prop ladder: the sharps' "
                        f"{PARLAY_LEG_MIN_PROB:.0f}%+ prop favorites, "
                        "ONE leg per game &mdash; same-game props move "
@@ -2463,20 +2503,21 @@ def build_props_menu_html(pool, early=False):
     else:
         out = (f"<h2>The props menu &mdash; every "
                f"{PARLAY_LEG_MIN_PROB:.0f}%+ player prop, game by game</h2>")
-    out += ("<div class='why'>STRONG is the deepest bar the sharp books "
-           f"still make that player a {PARLAY_LEG_MIN_PROB:.0f}%+ "
-           "favorite to clear. SAFE is the dial moved back &mdash; the "
-           f"deepest bar he's a {PROPS_SAFE_PROB:.0f}%+ favorite to "
-           "clear: smaller payout, much harder to lose. Pick either at "
-           "your book, several from one game if you like. One warning, "
-           "said once: if you PARLAY two props from the SAME game, your "
-           "book multiplies them like separate coin tosses, but "
-           "same-game props rise and fall together &mdash; the real "
-           "combined chance is not what the slip implies. The PROPS "
-           "stacks above cross games so their multiplied number stays "
-           "honest; the TEAM STACKS section below bundles same-game "
-           "legs on purpose and says plainly what its number "
-           "means.</div>")
+    out += ("<div class='why'>Every line is a finished bet exactly as "
+           "printed: the player, the bar, the sharps' number. STRONG "
+           "is the deepest bar the sharp books still make that player "
+           f"a {PARLAY_LEG_MIN_PROB:.0f}%+ favorite to clear. SAFE is "
+           "the same bet dialed back for you &mdash; the deepest bar "
+           f"he's a {PROPS_SAFE_PROB:.0f}%+ favorite to clear: smaller "
+           "payout, much harder to lose. Nothing here needs combining "
+           "&mdash; the PROPS stacks, TEAM stacks and GAME stacks are "
+           "the pre-built slips, and they already carry these legs. "
+           "One warning, said once: if a slip bundles two props from "
+           "the SAME game, a book multiplies them like separate coin "
+           "tosses, but same-game props rise and fall together &mdash; "
+           "the PROPS stacks cross games so their number stays honest, "
+           "and the TEAM STACKS section says plainly what its own "
+           "number means.</div>")
     for g in sorted(games, key=lambda g: starts[g]):
         when = starts[g].strftime("%a %H:%M UTC")
         if early:
