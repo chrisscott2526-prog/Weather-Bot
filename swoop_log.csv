@@ -4994,3 +4994,4 @@ checked_utc,ticker,city,side,bracket,observed_high,obs_age_min,market_cents,stat
 2026-09-18T01:49:04+00:00,KXHIGHTDC-26SEP17-B88.5,Washington DC,yes,88° to 89°,87.8,19,1.0,ON TRACK
 2026-09-18T03:04:05+00:00,KXHIGHTDC-26SEP17-B88.5,Washington DC,yes,88° to 89°,87.8,24,1.0,ON TRACK
 2026-09-18T04:38:15+00:00,KXHIGHTDC-26SEP17-B88.5,Washington DC,yes,88° to 89°,87.8,23,1.0,ON TRACK
+2026-09-18T14:19:05+00:00,KXHIGHTATL-26SEP18-B93.5,Atlanta,yes,93° to 94°,82.4,14,36.0,NEEDS HEAT
