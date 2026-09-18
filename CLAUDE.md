@@ -222,12 +222,33 @@ translated one-to-one:
   printed as a measured number. Display only; no gate changed.
   **The every-sport widening (owner request, same night):** pitcher
   strikeouts (the original prop shelf) now join the props pool/menu
-  under the same OVER-only 70 floor; MLB **batter** props stay OFF
+  under the same OVER-only 70 floor; MLB **batter** props stayed OFF
   on recorded evidence — Kalshi's series are rich (KXMLBHIT 85 open,
   KXMLBHRR 125) but the odds feed returned only **1 book** for
   batter hits/total-bases/RBIs (probe run 117) and one book is not a
   consensus (`MIN_BOOKS = 3`); recheck by probe, since book coverage
-  can improve near game time. CFB and NBA player props are staged in
+  can improve near game time. **THE RECHECK RAN AND BATTER HITS
+  JOINED (Sep 18 2026, probe runs 148–150 — the wake-up the Sep 15
+  conversation scheduled):** probed 38 minutes before Cubs@Reds
+  first pitch, exactly the near-game-time condition the note above
+  prescribed, `batter_hits` carried **5 books** two-sided and
+  `batter_hits_alternate` **8 books / 437 over-only rows** with
+  points on Kalshi's half-point strikes — coverage does thicken near
+  game time, verdict reversed on the evidence. KXMLBHIT verified
+  live the same evening (200 open; anatomy hand-read from the raw
+  dump: `'Zach McKinstry: 3+'`, floor_strike 2.5, event tickers the
+  same dated form as KXMLBKS; rules settle on hits recorded, a
+  scratched/non-starting player resolves to fair price — the VOID
+  path grading already handles). The `MLB_HITS` shelf rides the
+  existing `player_prop` scanner unchanged — same laws, ADVISORY
+  ONLY. The other batter markets stay OFF, each for its recorded
+  reason: home runs and runs scored = **2 books** even near game
+  time (under MIN_BOOKS — recheck KXMLBHR by probe); total bases (7
+  books) and RBIs (4) have **no standalone Kalshi series** to grade
+  against (KXMLBHRR is a combined hits+runs+RBIs product no odds
+  market prices — no expert, no shelf). Cost: +2 keys in the
+  already-batched MLB per-event call, ~1,800 credits/month worst
+  case against the 20K plan. CFB and NBA player props are staged in
   the probe (odds keys + KXNCAAF*/KXNBA* inventory, `inventory_
   prefix`) — verdicts recorded from probe run 122, Sep 14 2026:
   **CFB player props do not exist on either side** (Kalshi has no
