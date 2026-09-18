@@ -187,7 +187,13 @@ PARLAY_LEG_MIN_PROB = 70.0
 # until Sep 10 2026; the owner's expansion made it a per-shelf flag,
 # same rule, more leagues.)
 PARLAY_MAX_LEGS = 4        # beyond 4 legs even 65% favorites hit <18%
-PARLAY_LEGS_SHOWN = 6      # the ranked leg list on the card
+# The ranked leg list on the card shows EVERY floor-clearing favorite,
+# grouped by league (owner request, Sep 18 2026: a Saturday slate had
+# 19 qualifying CFB favorites and the old 6-row display cap threw 13
+# of them away -- college has no props, so the moneyline list is the
+# whole college menu). Display only: the LOCKS ladder still stacks
+# the top PARLAY_MAX_LEGS and the boosters are unchanged. The floor
+# is NOT loosened -- more rows come only from more real favorites.
 
 # THE BOOSTER STACKS (owner decision, Sep 12 2026). The owner typed a
 # whole ladder of 95%+ locks into their own book and watched the
@@ -2218,18 +2224,42 @@ def build_parlay_html(legs, parlays, presults):
                 "from weaker favorites would be a lottery ticket, so "
                 "there isn't one.</div>")
     else:
+        # THE FULL FAVORITES LIST (owner request, Sep 18 2026): every
+        # floor-clearing favorite on today's slate, grouped by league,
+        # strongest first inside each group -- the whole menu, not just
+        # the top rows the stacks happen to use. Each line is its own
+        # game, so any mix the owner stacks at their book multiplies
+        # honestly (the one-leg-per-game law holds by construction for
+        # cross-game moneylines).
+        by_league = {}
+        for c in legs:              # legs arrive strongest-first
+            by_league.setdefault(c["label"], []).append(c)
         rows = ""
-        for i, c in enumerate(legs[:PARLAY_LEGS_SHOWN], 1):
-            when = c["commence"].strftime("%a %H:%M UTC")
-            rows += (f"<tr><td>#{i}</td>"
-                     f"<td><b>{html.escape(c['pick'])}</b><br>"
-                     f"<span class='when'>{html.escape(c['label'])} · "
-                     f"{html.escape(c['game'])} · {when}</span></td>"
-                     f"<td><b>{c['fair_pct']:.0f}%</b></td>"
-                     f"<td>{c['n_books']}</td>"
-                     f"<td>{c.get('dk') or '&mdash;'}</td></tr>")
+        i = 0
+        for league, group in by_league.items():
+            rows += (f"<tr><th colspan='5' style='text-align:left'>"
+                     f"{html.escape(league)} &mdash; {len(group)} "
+                     f"qualifying favorite"
+                     f"{'s' if len(group) != 1 else ''}</th></tr>")
+            for c in group:
+                i += 1
+                when = c["commence"].strftime("%a %H:%M UTC")
+                rows += (f"<tr><td>#{i}</td>"
+                         f"<td><b>{html.escape(c['pick'])}</b><br>"
+                         f"<span class='when'>{html.escape(c['label'])} · "
+                         f"{html.escape(c['game'])} · {when}</span></td>"
+                         f"<td><b>{c['fair_pct']:.0f}%</b></td>"
+                         f"<td>{c['n_books']}</td>"
+                         f"<td>{c.get('dk') or '&mdash;'}</td></tr>")
         if rows:
-            out += (f"<table><tr><th></th><th>The sharps' favorite</th>"
+            out += (f"<p class='when'>Every favorite the sharps make "
+                    f"{PARLAY_LEG_MIN_PROB:.0f}%+ likely on today's "
+                    f"slate &mdash; the full list, numbered strongest "
+                    f"first within each league. The stacks below use "
+                    f"the strongest of them; every line here clears "
+                    f"the same bar and can be stacked at your own "
+                    f"book (each is a different game).</p>"
+                    f"<table><tr><th></th><th>The sharps' favorite</th>"
                     f"<th>Win chance</th><th>Books</th><th>DK</th></tr>"
                     f"{rows}</table>")
         for p in parlays:
