@@ -298,6 +298,29 @@ translated one-to-one:
   longer 40× — if the CREDIT GUARD ever prints, this widening is
   the first suspect after the plan's renewal, and narrowing it
   back is one constant.
+- **THE EARLY BEST STACKS (owner request, Sep 18 2026).** The
+  owner's words: build the early player props out "with only the
+  players that have the highest/best chances of hitting their mark",
+  max 4 players from each team, leave the cards as they are but add
+  the best stack to each game's card — "I don't want to pick, I have
+  emotions... I only bet on what you give me." So each early game's
+  card (the early props menu) now ends with **THE BEST STACK** per
+  team: that team's most likely players, one leg per player (his
+  single most-likely qualifying bar — the game stacks' own law),
+  strongest first, capped at `EARLY_STACK_MAX_PLAYERS = 4`, teams
+  read off Kalshi's own tickers via `leg_team` (fail closed — an
+  unattributable leg joins no stack, and a team with under 2
+  qualifying players gets none, never padded). **DISPLAY ONLY, the
+  early-props law word for word**: these stacks are never logged to
+  `parlay_picks.csv`, never graded, and feed no board — a prop line
+  days out is soft (injuries, inactives, scratches), and grading a
+  days-old number would poison the TEAM/GAME calibration record. On
+  game day the same players re-qualify fresh and the REAL team
+  stacks (logged + graded) build through the normal 30h path,
+  unchanged. Each early stack prints the plain-product reference %,
+  the fair payout, the walk-away pricing test, and the check-the-
+  inactives warning. ADVISORY ONLY — the permanent rule covers it
+  word for word.
 - **THE TEAM AND GAME STACKS (owner request, Sep 17 2026).** The
   owner asked for correlated parlays "built for each team playing":
   when one player on an offense gets his numbers, his teammates

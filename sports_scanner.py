@@ -403,6 +403,28 @@ PROPS_SAFE_PROB = 90.0
 GAME_STACK_MAX_LEGS = 6     # strongest first; deeper than 6 even
                             # correlated favorites read as a lottery
 
+# THE EARLY BEST STACKS (owner request, Sep 18 2026): "In early player
+# props build them all out with only the players that have the best
+# chances of hitting their mark... no more than 4 players from each
+# team... I don't want to pick, I have emotions... I only bet on what
+# you give me." So every early game's card now ends with THE BEST
+# STACK for each team: the team's most likely players (one leg per
+# player, his single most-likely qualifying bar -- the game stacks'
+# own law), strongest first, capped at EARLY_STACK_MAX_PLAYERS. Team
+# attribution is Kalshi's own ticker via leg_team, never a guessed
+# roster; a team with fewer than 2 attributable qualifying players
+# gets no stack (never padded). DISPLAY ONLY, the early-props law
+# word for word: these stacks are never logged to parlay_picks.csv,
+# never graded, and feed no board -- prop lines days out are soft
+# (injuries, inactives, scratches), so grading a days-old number
+# would poison the TEAM/GAME calibration record. On game day the
+# same players re-qualify fresh at that morning's numbers and the
+# REAL team stacks (logged + graded) build through the normal path.
+# The stated combined % is the plain product printed as a correlated
+# REFERENCE, and the walk-away pricing test rides along -- same
+# honesty framing as the team stacks section, stated on the card.
+EARLY_STACK_MAX_PLAYERS = 4
+
 LEG_LAB_MIN_PROB = 55.0
 LEG_LAB_CSV = "leg_research.csv"
 LEG_LAB_RESULTS_CSV = "leg_research_results.csv"
@@ -2365,9 +2387,14 @@ def build_props_menu_html(pool, early=False):
     heading and the early-lines caveat -- these props are on no
     stack and no board until game day. Its players list by TEAM
     within each game (same-day owner request), attributed off
-    Kalshi's own ticker via leg_team -- never a guessed roster."""
+    Kalshi's own ticker via leg_team -- never a guessed roster, and
+    each game's card ends with THE BEST STACK per team (owner
+    request, Sep 18 2026 -- build_early_stack_html, display only)."""
     if not pool:
         return ""
+    raw_by_game = defaultdict(list)  # every qualifying bar, for the
+    for c in pool:                   # early best stacks' player ranking
+        raw_by_game[c["game"]].append(c)
     best, safe = {}, {}              # (game, player, market) -> deepest bar
     for c in pool:
         k = (c["game"], c.get("player") or c["pick"], c.get("what", ""))
@@ -2394,9 +2421,15 @@ def build_props_menu_html(pool, early=False):
                "plainly: a prop line this far out is SOFTER than a "
                "moneyline &mdash; it moves hard on injury reports and "
                "inactives, and a player can be scratched outright. "
-               "These props sit on NO stack and NO board until the "
-               "game is inside 30 hours; on game day they re-qualify "
-               "fresh, at that morning's numbers.</div>")
+               "These props sit on NO graded stack and NO board until "
+               "the game is inside 30 hours; on game day they "
+               "re-qualify fresh, at that morning's numbers. Under "
+               "each game's table sits <b>THE BEST STACK</b> for each "
+               "team &mdash; that team's most likely players, at most "
+               f"{EARLY_STACK_MAX_PLAYERS} of them, already picked "
+               "strongest-first so you never have to figure out the "
+               "who's-who. Bet it as given at your own book, and run "
+               "its printed pricing test before you place it.</div>")
     else:
         out = (f"<h2>The props menu &mdash; every "
                f"{PARLAY_LEG_MIN_PROB:.0f}%+ player prop, game by game</h2>")
@@ -2471,6 +2504,74 @@ def build_props_menu_html(pool, early=False):
                 f"<th>Strong ({PARLAY_LEG_MIN_PROB:.0f}%+)</th>"
                 f"<th>Safe ({PROPS_SAFE_PROB:.0f}%+)</th>"
                 f"<th>Books</th><th>DK</th></tr>{rows}</table>")
+        if early:
+            # THE BEST STACK per team, right on this game's card
+            # (owner request, Sep 18 2026 -- display only, laws in
+            # EARLY_STACK_MAX_PLAYERS's config block)
+            out += build_early_stack_html(g, raw_by_game[g], codes, when)
+    return out
+
+
+def build_early_stack_html(game, cands, codes, when):
+    """THE EARLY BEST STACKS (owner request, Sep 18 2026 -- laws and
+    the owner's words in EARLY_STACK_MAX_PLAYERS's config block): the
+    best stack for each of an early game's teams, so the owner never
+    has to figure out the who's-who -- the card names the players.
+    One leg per player (his single MOST LIKELY qualifying bar, not
+    his deepest), strongest first, at most EARLY_STACK_MAX_PLAYERS
+    per team, team read off Kalshi's own ticker (leg_team -- fail
+    closed, an unattributable leg joins no stack). DISPLAY ONLY:
+    never logged, never graded, feeds no board; the real graded team
+    stacks build fresh on game day."""
+    if len(codes) != 2:
+        return ""                # can't attribute teams -> no stack
+    by_player = {}
+    for c in sorted(cands, key=lambda c: -c["fair_pct"]):
+        if c.get("ticker"):
+            by_player.setdefault(c.get("player") or c["pick"], c)
+    teams = {nm: [] for nm in codes}
+    for c in sorted(by_player.values(), key=lambda c: -c["fair_pct"]):
+        t = leg_team(c, codes)
+        if t and len(teams[t]) < EARLY_STACK_MAX_PLAYERS:
+            teams[t].append(c)
+    out = ""
+    for nm in codes:             # away first -- game-string order
+        legs = teams[nm]
+        if len(legs) < 2:
+            continue             # a single leg is not a stack; never pad
+        combined = 1.0
+        for c in legs:
+            combined *= c["fair_pct"] / 100.0
+        weakest = min(c["fair_pct"] for c in legs)
+        walk = 1 / (weakest / 100.0)
+        legs_html = "".join(
+            f"<div class='pick'>&#10148; <b>{html.escape(c['pick'])}"
+            f"</b> <span class='when'>{c['fair_pct']:.0f}%"
+            + (f" · DK {html.escape(c['dk'])}" if c.get("dk") else "")
+            + "</span></div>"
+            for c in legs)
+        out += f"""
+<div class="slip"><div class="punch"></div>
+<div class="stamp gap">{len(legs)} LEGS</div>
+<div class="slipbody">
+<span class="tag">BEST STACK · EARLY</span><span class="when">{html.escape(nm)} · {html.escape(game)} · {when}</span>
+{legs_html}
+<div class="nums"><span>If the legs were independent: <b>{combined * 100:.0f}%</b></span>
+<span>Fair payout <b>${1 / combined:.2f} per $1</b></span>
+<span>Walk away under <b>${walk:.2f}</b></span></div>
+<div class="why">This team's {len(legs)} most likely players on one
+slip, strongest first &mdash; nothing under
+{PARLAY_LEG_MIN_PROB:.0f}%, never more than
+{EARLY_STACK_MAX_PLAYERS} players, and never padded with a weaker
+leg. Same offense, same drives: these legs tend to hit TOGETHER, so
+the stated number usually UNDERSTATES the real chance &mdash; but
+your book knows that too. THE PRICING TEST: this slip can never be
+more likely than its weakest leg ({weakest:.0f}%), so any same-game
+payout under <b>${walk:.2f} per $1</b> is a bad price no matter what
+&mdash; walk away. And the early warning, same as everything on this
+menu: lines this far out move on injury news, and a scratched player
+kills the slip &mdash; check the inactives before kickoff.</div>
+</div></div>"""
     return out
 
 
