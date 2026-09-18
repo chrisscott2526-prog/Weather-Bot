@@ -321,6 +321,22 @@ translated one-to-one:
   the fair payout, the walk-away pricing test, and the check-the-
   inactives warning. ADVISORY ONLY — the permanent rule covers it
   word for word.
+- **THE FULL FAVORITES LIST (owner request, Sep 18 2026).** The
+  owner saw six college legs on the board while ~40 CFB games played
+  Saturday and asked for more. The scanner was already reading the
+  whole slate — that scan had **19 CFB favorites clearing the 70
+  floor** — but the card's ranked leg list was capped at 6 rows
+  (`PARLAY_LEGS_SHOWN`, removed), silently discarding the rest; and
+  college has no player props on either side (probe-verified, the
+  props section above), so the moneyline list IS the whole college
+  menu. The list now shows EVERY floor-clearing favorite, grouped by
+  league with a per-league count, strongest first within each group —
+  the props-menu law applied to moneylines: the display never limits
+  what the owner may stack at their own book, and cross-game
+  moneylines multiply honestly by construction. Display only: the
+  LOCKS ladder still stacks the top `PARLAY_MAX_LEGS`, the boosters
+  are unchanged, and the 70 floor moved nowhere — more rows come only
+  from more real favorites, never from weaker ones.
 - **THE TEAM AND GAME STACKS (owner request, Sep 17 2026).** The
   owner asked for correlated parlays "built for each team playing":
   when one player on an offense gets his numbers, his teammates
