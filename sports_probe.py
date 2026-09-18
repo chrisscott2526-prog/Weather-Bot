@@ -50,6 +50,13 @@ MLB_PROP_MARKETS = [
     "pitcher_strikeouts", "pitcher_outs", "pitcher_record_a_win",
     "batter_home_runs", "batter_hits", "batter_total_bases",
     "batter_runs_scored", "batter_rbis",
+    # The batter-props recheck (probe run 148, Sep 18 2026): near game
+    # time the base keys thickened to 5/7/4 books for hits/total
+    # bases/RBIs (vs 1 book far out on run 117) -- so also verify the
+    # alternate ladder for hits, the one batter market with a live
+    # Kalshi series (KXMLBHIT, 200 open). Points should land on
+    # Kalshi's 1+/2+/3+ strikes (0.5/1.5/2.5).
+    "batter_hits_alternate",
 ]
 NFL_PROP_MARKETS = [
     "h2h_h1", "spreads_h1", "totals_h1",
@@ -306,7 +313,11 @@ PRIORITY_SERIES = [
 ]
 # Raw-JSON dump targets: one sample market printed in full so field names
 # (prices, volume, strike floor/cap) and ticker anatomy can be read.
-DUMP_SERIES = ["KXMLBGAME", "KXMLBF5", "KXMLBF5TOTAL", "KXMLBKS"]
+DUMP_SERIES = ["KXMLBGAME", "KXMLBF5", "KXMLBF5TOTAL", "KXMLBKS",
+               # the batter-props recheck (Sep 18 2026): dump the live
+               # batter series so ticker anatomy, strikes and the rules
+               # panel can be hand-read before any shelf is whitelisted
+               "KXMLBHIT", "KXMLBHR"]
 
 
 def probe_kalshi():
