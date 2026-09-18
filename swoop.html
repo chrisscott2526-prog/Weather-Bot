@@ -37,14 +37,14 @@ border-radius:3px;background:#2a323b}
 </style></head><body><div class="wrap">
 <h1>Swoop Alert</h1>
 <div class="sub">Thermometer vs. market on the bot's open positions -
-checked Fri Sep 18, 01:04 UTC (<span class="age" data-built="1789693446734">just
+checked Fri Sep 18, 01:13 UTC (<span class="age" data-built="1789694017561">just
 built</span>). Graded 1 of 1 open weather positions.
 </div>
 
 <div class="card ONTRACK"><div class="top">
 <span class="city">Washington DC &mdash; YES 88° to 89°</span>
 <span class="badge">ON TRACK</span></div>
-<div class="det">High so far: <b>87.8&deg;</b> &nbsp;|&nbsp; Now: <b>78.8&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789691706734">reading 29m old</span>
+<div class="det">High so far: <b>87.8&deg;</b> &nbsp;|&nbsp; Now: <b>78.8&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789692637561">reading 23m old</span>
  &nbsp;|&nbsp; Market now: <b>1c</b></div>
 <div class="note">Observed high 87.8° is inside the bracket. Wins if the heat stops here - watch for late overshoot.</div></div>
 <div class="foot"><b>Read it like this:</b> daily highs only rise, so a
@@ -95,7 +95,7 @@ setInterval(swoopTick, 30000);
 // never invents data -- it only replaces itself with the server's
 // newer truth. The pulse and the page ship in the same commit, so
 // after healing the two agree and the check goes quiet (no loop).
-var BUILD_MS = 1789693446734;
+var BUILD_MS = 1789694017561;
 var healing = false;
 async function freshCheck() {
   if (healing) return;
