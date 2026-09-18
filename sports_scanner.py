@@ -506,6 +506,33 @@ SHELVES = [
          series="KXNFLRSHYDS", odds_market="player_rush_yds",
          alt_market="player_rush_yds_alternate", featured=False,
          what="rushing yards"),
+    # -- THE MLB BATTER-HITS SHELF (Sep 18 2026 -- the batter-props
+    # -- recheck the Sep 14 note ordered). Sunday's probe (run 117,
+    # -- far from game time) saw 1 book on batter markets; probed
+    # -- again 38 minutes before Cubs@Reds first pitch (runs 148-149):
+    # -- batter_hits 5 books two-sided, batter_hits_alternate 8 books
+    # -- / 437 over-only rows with points on Kalshi's half-point
+    # -- strikes (Over 2.5 <-> '3+'). Kalshi side verified live the
+    # -- same evening (runs 148/150): KXMLBHIT 'Pro Baseball Hits',
+    # -- 200 open, anatomy identical to KXMLBKS ('Player: 1+',
+    # -- floor_strike 0.5). The OTHER batter markets stay OFF, each
+    # -- for its own recorded reason: batter_home_runs and
+    # -- batter_runs_scored = 2 books near game time (under
+    # -- MIN_BOOKS); batter_total_bases (7 books) and batter_rbis (4)
+    # -- have NO standalone Kalshi series to grade against (KXMLBHRR
+    # -- is a combined hits+runs+RBIs product no odds market prices);
+    # -- KXMLBHR waits on book coverage -- recheck by probe. Cost,
+    # -- said plainly: +2 keys in the already-batched MLB per-event
+    # -- call, ~2 credits x ~15 games x 2 scans/day ~= 1,800/month
+    # -- worst case against the 20K plan (used=2324 mid-month when
+    # -- this shipped). Same laws as every prop shelf: sharps price
+    # -- every leg, OVER-only, one prop leg per game in stacks,
+    # -- graded by Kalshi settlement, ADVISORY ONLY forever.
+    dict(key="MLB_HITS", sport="baseball_mlb",
+         label="MLB · HITS", kind="player_prop",
+         series="KXMLBHIT", odds_market="batter_hits",
+         alt_market="batter_hits_alternate", featured=False,
+         what="hits"),
     # -- the side dish: full-game moneylines -----------------------------
     dict(key="MLB_GAME", sport="baseball_mlb", label="MLB · MONEYLINE",
          kind="winner", series="KXMLBGAME", odds_market="h2h",
