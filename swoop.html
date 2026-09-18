@@ -37,7 +37,7 @@ border-radius:3px;background:#2a323b}
 </style></head><body><div class="wrap">
 <h1>Swoop Alert</h1>
 <div class="sub">Thermometer vs. market on the bot's open positions -
-checked Fri Sep 18, 13:33 UTC (<span class="age" data-built="1789738414793">just
+checked Fri Sep 18, 13:49 UTC (<span class="age" data-built="1789739350782">just
 built</span>). Graded 0 of 0 open weather positions.
 </div>
 <div class='empty'>No open same-day weather positions to grade right now. The board refreshes each scheduled pass.</div>
@@ -89,7 +89,7 @@ setInterval(swoopTick, 30000);
 // never invents data -- it only replaces itself with the server's
 // newer truth. The pulse and the page ship in the same commit, so
 // after healing the two agree and the check goes quiet (no loop).
-var BUILD_MS = 1789738414793;
+var BUILD_MS = 1789739350782;
 var healing = false;
 async function freshCheck() {
   if (healing) return;
