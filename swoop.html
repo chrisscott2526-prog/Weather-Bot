@@ -37,27 +37,27 @@ border-radius:3px;background:#2a323b}
 </style></head><body><div class="wrap">
 <h1>Swoop Alert</h1>
 <div class="sub">Thermometer vs. market on the bot's open positions -
-checked Fri Sep 18, 15:19 UTC (<span class="age" data-built="1789744745777">just
+checked Fri Sep 18, 15:34 UTC (<span class="age" data-built="1789745647791">just
 built</span>). Graded 3 of 3 open weather positions.
 </div>
 
 <div class="card NEEDSHEAT"><div class="top">
 <span class="city">New Orleans &mdash; YES 90° to 91°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">High so far: <b>86.0&deg;</b> &nbsp;|&nbsp; Now: <b>86.0&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789743905777">reading 14m old</span>
+<div class="det">High so far: <b>86.0&deg;</b> &nbsp;|&nbsp; Now: <b>86.0&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789744507791">reading 19m old</span>
  &nbsp;|&nbsp; Market now: <b>66c</b></div>
 <div class="note">Needs about 4° more warming to enter.</div></div>
 <div class="card NEEDSHEAT"><div class="top">
 <span class="city">San Antonio &mdash; YES 96° to 97°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">High so far: <b>80.6&deg;</b> &nbsp;|&nbsp; Now: <b>80.6&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789743605777">reading 19m old</span>
- &nbsp;|&nbsp; Market now: <b>13c</b></div>
+<div class="det">High so far: <b>80.6&deg;</b> &nbsp;|&nbsp; Now: <b>80.6&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789744207791">reading 24m old</span>
+ &nbsp;|&nbsp; Market now: <b>12c</b></div>
 <div class="note">Needs about 15° more warming to enter.</div></div>
 <div class="card NEEDSHEAT"><div class="top">
 <span class="city">Atlanta &mdash; YES 93° to 94°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">High so far: <b>86.0&deg;</b> &nbsp;|&nbsp; Now: <b>86.0&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789743905777">reading 14m old</span>
- &nbsp;|&nbsp; Market now: <b>35c</b></div>
+<div class="det">High so far: <b>86.0&deg;</b> &nbsp;|&nbsp; Now: <b>86.0&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789744207791">reading 24m old</span>
+ &nbsp;|&nbsp; Market now: <b>36c</b></div>
 <div class="note">Needs about 7° more warming to enter.</div></div>
 <div class="foot"><b>Read it like this:</b> daily highs only rise, so a
 bracket the thermometer has passed is settled physics, not opinion.
@@ -107,7 +107,7 @@ setInterval(swoopTick, 30000);
 // never invents data -- it only replaces itself with the server's
 // newer truth. The pulse and the page ship in the same commit, so
 // after healing the two agree and the check goes quiet (no loop).
-var BUILD_MS = 1789744745777;
+var BUILD_MS = 1789745647791;
 var healing = false;
 async function freshCheck() {
   if (healing) return;
