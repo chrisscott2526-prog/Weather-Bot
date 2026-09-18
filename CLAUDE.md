@@ -337,6 +337,29 @@ translated one-to-one:
   LOCKS ladder still stacks the top `PARLAY_MAX_LEGS`, the boosters
   are unchanged, and the 70 floor moved nowhere — more rows come only
   from more real favorites, never from weaker ones.
+  **THE EVERYTHING-PREBUILT RULE AND THE SLATE STACKS (owner
+  decision, same day, hours later).** The owner's correction of the
+  above, verbatim intent: "I don't wanna build my own anything...
+  I shouldn't see anything on the screen that I'm not allowed to bet
+  on... anything in this card I can bet on — the parlays and the
+  stacks and the player props. Everything is done already for me. Do
+  the percentages, build the parlays, build the stacks — you use the
+  math and you do it." The standing card law that came out of it:
+  **every line and every slip on the card is a finished bet, bettable
+  exactly as printed — the card never asks the owner to combine,
+  choose, or judge anything.** "Build your own / pick freely" framing
+  is banned from the card's wording (the menus stay — each menu line
+  is itself a finished single bet — but they are presented as bets,
+  never as options). And the mechanism: **the SLATE STACKS** — after
+  the locks and boosters, the whole ranked pool is chunked top-down
+  into ready-made slips of up to `PARLAY_MAX_LEGS` (the depth the
+  record convicted deeper rungs at), so every qualifying favorite
+  rides exactly one pre-built stack. Ids `<day>-SLATE<n>` on
+  parlay_picks.csv, graded by settlement like every board; a chunk
+  identical to an existing rung is skipped (never the same stack
+  under two names); a leftover single leg makes no stack — it already
+  stands on the ranked list as its own bet. The floor, the ladders,
+  and every gate are unchanged.
 - **THE TEAM AND GAME STACKS (owner request, Sep 17 2026).** The
   owner asked for correlated parlays "built for each team playing":
   when one player on an offense gets his numbers, his teammates
@@ -840,7 +863,7 @@ check that line first when a feed dies.
 | `results.csv` | `settle.py` | `graded_utc,ticker,city,action,cost_cents,count,fee_cents,market_result,result,pnl,strategy` (fee_cents added Aug 18, strategy Aug 20 2026; old rows backfilled `night`; readers treat a blank strategy as night) |
 | `sports_picks.csv` | `sports_scanner.py` | `scanned_utc,sport,shelf,game,detail,commence_utc,series,ticker,side,pick,books_pct,kalshi_cents,fee_cents,gap_cents,n_books,shown,why` (wiped + new header Aug 19, 2026 — edge-era rows graded a dead rule) |
 | `sports_results.csv` | `sports_scanner.py` | `graded_utc,sport,shelf,game,detail,ticker,side,pick,books_pct,kalshi_cents,gap_cents,market_result,result,pnl` (wiped same commit) |
-| `parlay_picks.csv` | `sports_scanner.py` | `scanned_utc,parlay_id,n_legs,legs,tickers,leg_probs_pct,combined_pct,fair_payout,last_start_utc` (the parlay board, Sep 8 2026; legs/tickers/leg_probs_pct pipe-separated and index-aligned; fair_payout = 1/combined_prob in $ per $1; id families share the file: `<day>-<n>LEG` locks, `<day>-BOOST<n>`, `<day>-PROPS<n>`, and since Sep 17 2026 `<day>-TEAM<n>` / `<day>-GAME<n>` — the same-game team/game stacks, whose combined_pct is the plain product stated as a correlated REFERENCE, see the team-stacks law; append-only, union-merged; ADVISORY ONLY — nothing that trades may ever read it) |
+| `parlay_picks.csv` | `sports_scanner.py` | `scanned_utc,parlay_id,n_legs,legs,tickers,leg_probs_pct,combined_pct,fair_payout,last_start_utc` (the parlay board, Sep 8 2026; legs/tickers/leg_probs_pct pipe-separated and index-aligned; fair_payout = 1/combined_prob in $ per $1; id families share the file: `<day>-<n>LEG` locks, `<day>-BOOST<n>`, `<day>-PROPS<n>`, since Sep 17 2026 `<day>-TEAM<n>` / `<day>-GAME<n>`, and since Sep 18 2026 `<day>-SLATE<n>` — the whole-pool chunk stacks of the everything-prebuilt rule — the same-game team/game stacks, whose combined_pct is the plain product stated as a correlated REFERENCE, see the team-stacks law; append-only, union-merged; ADVISORY ONLY — nothing that trades may ever read it) |
 | `parlay_results.csv` | `sports_scanner.py` | `graded_utc,parlay_id,n_legs,legs,tickers,combined_pct,legs_won,legs_lost,legs_void,result` (result HIT/MISS/VOID by Kalshi settlement per leg — any lost leg = MISS, void legs drop out like a book's pushed legs; **no pnl column on purpose**: a book's parlay payout is unknowable, so the scoreboard grades calibration — stated % vs hit rate) |
 | `combo_picks.csv` | `sports_scanner.py` | `scanned_utc,combo_id,n_legs,sectors,legs,tickers,leg_probs_pct,combined_pct,fair_payout,last_start_utc` (THE COMBO BOARD, Sep 10 2026 — cross-sector stacks: parlay-board sports legs + dual-expert weather legs; sectors/legs/tickers/leg_probs_pct pipe-separated and index-aligned, sectors ∈ MLB/NFL/CFB/NBA/TENNIS/WEATHER; a weather leg's stated prob = min(ensemble member share, live Kalshi YES bid); append-only, union-merged; ADVISORY ONLY — nothing that trades may ever read it) |
 | `combo_results.csv` | `sports_scanner.py` | `graded_utc,combo_id,n_legs,sectors,legs,tickers,combined_pct,legs_won,legs_lost,legs_void,result` (HIT/MISS/VOID by Kalshi settlement per leg, void legs drop out, **no pnl column on purpose** — same laws as `parlay_results.csv`; the scoreboard question is calibration of the cross-sector product, which the card admits is approximate when weather legs share an air mass) |
