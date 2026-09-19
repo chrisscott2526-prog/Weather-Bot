@@ -455,6 +455,39 @@ def probe_kalshi():
     # guessing prefixes is how series get missed, not how they join.
     inventory_prefix("KXNHL", ("goals", "assists", "shots", "saves",
                                "points"), cap=20)
+    # THE SECOND PASS (Sep 19 2026, after the first sweep's read): the
+    # match-level NHL and cricket series, open counts + anatomy, so a
+    # human can whitelist from real tickers. First pass found KXNHLTOTAL
+    # 200 open on the Sep 22 preseason slate and a full cricket match
+    # catalogue; these are the series a moneyline shelf would read.
+    print("\nMatch-level NHL + cricket series (open counts + anatomy):")
+    for t in ["KXNHLGAME", "KXNHLSPREAD", "KXNHLWINS",
+              "KXT20MATCH", "KXCRICKETT20IMATCH", "KXODIMATCH",
+              "KXCRICKETODIMATCH", "KXIPLGAME", "KXPSLGAME",
+              "KXHUNDREDMATCH", "KXMLC", "KXCOUNTYCHAMPMATCH"]:
+        if t not in catalogue:
+            print(f"  {t}: NOT in the Sports catalogue")
+            continue
+        data, err = kalshi_get(
+            f"/trade-api/v2/markets?series_ticker={t}"
+            f"&status=open&limit=200", t)
+        if err:
+            print(f"  {t}: {err}")
+            continue
+        mkts = data.get("markets", [])
+        vol = sum(m.get("volume") or 0 for m in mkts)
+        print(f"  {t:<24}{len(mkts):>5} open  vol={vol:<12,} "
+              f"{catalogue.get(t, '')[:50]}")
+        for m in mkts[:4]:
+            print(f"      {m.get('ticker', '')}  "
+                  f"yes_sub={m.get('yes_sub_title', '')!r}  "
+                  f"title={m.get('title', '')[:60]!r}")
+        if mkts:
+            r = mkts[0].get("rules_primary") or ""
+            if r:
+                print(f"      rules: {r[:220]}")
+        time.sleep(0.7)
+
     print("\nTitle sweep -- every Sports-catalogue series whose title "
           "mentions hockey or cricket (reading aid for the sidebar "
           "expansion; nothing is whitelisted automatically):")
