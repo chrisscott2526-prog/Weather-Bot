@@ -409,12 +409,30 @@ translated one-to-one:
   score feed. A fifth cron slot (20:23 UTC) fills the old 4-hour
   afternoon gap; estimated total ~15-16K credits/month against the
   20K plan — if the CREDIT GUARD prints, that slot is the first
-  removal. **Hockey and cricket are STAGED, not added**:
-  sports_probe.py (same day) inventories `icehockey_nhl` odds +
-  `KXNHL*` + a full-catalogue hockey/cricket title sweep; either
-  league joins the shelves and the sidebar ONLY after the probe
-  verifies both sides live and a human reads the series — the
-  whitelist law, unchanged. TV/video highlights were asked for and
+  removal. **Hockey and cricket VERIFIED AND JOINED the same day**
+  (probe runs 157–158, both sides hand-read live before wiring — the
+  whitelist law followed to the letter): **NHL** — `KXNHLGAME` "NHL
+  Game", 60 open on the Sep 22 preseason slate, dated no-time event
+  tickers (`KXNHLGAME-26SEP22UTALA`), city-name subtitles ('Utah'),
+  the NBA/CFB anatomy exactly → two moneyline shelves
+  (`icehockey_nhl` + `icehockey_nhl_preseason`, both active on the
+  odds feed, 33 regular-season games at probe time), match="names",
+  has_tie=False; **NHL player props stay OFF** — zero books quoted
+  them 10 days before the opener; the shelves are staged in the
+  probe, re-probe near game time (the batter-hits lesson).
+  **Cricket** — `KXT20MATCH` "Men's T20 Cricket Match", 16 open,
+  anatomy hand-read (tickers carry date+start-time+codes,
+  `KXT20MATCH-26SEP210500GHANIG`, which `EVENT_DATE_RE` already
+  parses; 'Nigeria wins' subtitles → match="names"); shelves build
+  at run time from a HAND-WHITELISTED set of T20 competition keys
+  (the tennis pattern — cricket odds keys are per-competition and
+  transient; the Kalshi side stays fixed), has_tie=False because a
+  T20 tie goes to a super over. **ODIs stay off** (Kalshi's
+  KXODIMATCH held domestic one-day-cup matches while cricket_odi
+  prices internationals — no honest pairing, and rain/no-result
+  rules unread); **test matches stay off** (draws are a real third
+  outcome, rules unread); IPL/PSL/Hundred/MLC series had 0 open —
+  re-probe when their seasons start. TV/video highlights were asked for and
   are deliberately absent: no licensed feed exists to embed, and an
   unlicensed embed is someone else's product. ADVISORY ONLY — the
   permanent rule covers every page word for word.
