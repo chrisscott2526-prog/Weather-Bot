@@ -37,15 +37,15 @@ border-radius:3px;background:#2a323b}
 </style></head><body><div class="wrap">
 <h1>Swoop Alert</h1>
 <div class="sub">Thermometer vs. market on the bot's open positions -
-checked Sat Sep 19, 13:34 UTC (<span class="age" data-built="1789824848390">just
+checked Sat Sep 19, 13:49 UTC (<span class="age" data-built="1789825747925">just
 built</span>). Graded 1 of 1 open weather positions.
 </div>
 
 <div class="card NEEDSHEAT"><div class="top">
 <span class="city">Atlanta &mdash; YES 94° to 95°</span>
 <span class="badge">NEEDS HEAT</span></div>
-<div class="det">High so far: <b>78.8&deg;</b> &nbsp;|&nbsp; Now: <b>75.2&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789823708390">reading 19m old</span>
- &nbsp;|&nbsp; Market now: <b>52c</b></div>
+<div class="det">High so far: <b>78.8&deg;</b> &nbsp;|&nbsp; Now: <b>77.0&deg;</b> &nbsp;|&nbsp; <span class="age" data-obs="1789824607925">reading 19m old</span>
+ &nbsp;|&nbsp; Market now: <b>56c</b></div>
 <div class="note">Needs about 15° more warming to enter.</div></div>
 <div class="foot"><b>Read it like this:</b> daily highs only rise, so a
 bracket the thermometer has passed is settled physics, not opinion.
@@ -95,7 +95,7 @@ setInterval(swoopTick, 30000);
 // never invents data -- it only replaces itself with the server's
 // newer truth. The pulse and the page ship in the same commit, so
 // after healing the two agree and the check goes quiet (no loop).
-var BUILD_MS = 1789824848390;
+var BUILD_MS = 1789825747925;
 var healing = false;
 async function freshCheck() {
   if (healing) return;
