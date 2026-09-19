@@ -1,0 +1,160 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Daily Card - Sharps vs. Kalshi</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--felt:#14532d;--felt2:#0e3d21;--paper:#fbf8f1;--ink:#1d2733;
+--dim:#6b7280;--gold:#b8860b;--red:#b3392f;--line:#d8d2c4}
+body{background:#e9e4d8;color:var(--ink);
+font:16px/1.5 "Inter",-apple-system,system-ui,sans-serif}
+.wrap{max-width:680px;margin:0 auto;padding:0 14px 60px}
+header{background:linear-gradient(180deg,var(--felt),var(--felt2));
+color:#f3efe4;padding:26px 18px 20px;border-bottom:6px double var(--gold)}
+header .inner{max-width:680px;margin:0 auto}
+h1{font:700 34px/1 "Barlow Condensed",Impact,sans-serif;
+letter-spacing:.04em;text-transform:uppercase}
+h1 span{color:#e8c766}
+.rec{display:flex;gap:22px;margin-top:12px;font-size:14px}
+.rec b{font:600 22px/1 "Barlow Condensed",sans-serif;display:block}
+.upd{margin-top:8px;font-size:12px;opacity:.75}
+.dead{background:var(--red);color:#fff;padding:12px 16px;border-radius:6px;
+margin:18px 0 0;font-size:14px;font-weight:600}
+h2{font:600 15px/1 "Barlow Condensed",sans-serif;letter-spacing:.18em;
+text-transform:uppercase;color:var(--dim);margin:28px 2px 12px}
+.slip{background:var(--paper);border:1px solid var(--line);border-radius:6px;
+margin-bottom:16px;position:relative;overflow:hidden;
+box-shadow:0 1px 3px rgba(29,39,51,.12)}
+.slip::before{content:"";position:absolute;top:0;bottom:0;left:52px;
+border-left:2px dashed var(--line)}
+.punch{position:absolute;left:18px;top:50%;width:16px;height:16px;
+transform:translateY(-50%);border-radius:50%;background:#e9e4d8;
+border:1px solid var(--line)}
+.slipbody{padding:16px 16px 14px 72px}
+.tag{display:inline-block;font:600 12px/1 "Barlow Condensed",sans-serif;
+letter-spacing:.14em;background:var(--ink);color:#fff;
+padding:4px 8px;border-radius:3px;margin-right:8px}
+.when{font-size:12px;color:var(--dim)}
+.match{font:600 21px/1.25 "Barlow Condensed",sans-serif;margin:8px 0 2px}
+.pick{font-size:15px;margin:6px 0}
+.pick b{color:var(--felt)}
+.nums{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--dim);
+margin:8px 0 10px;font-variant-numeric:tabular-nums}
+.nums b{color:var(--ink)}
+.why{font-size:14px;border-top:1px solid var(--line);padding-top:10px}
+.stamp{position:absolute;right:12px;top:12px;
+font:700 15px/1 "Barlow Condensed",sans-serif;letter-spacing:.1em;
+border:2.5px solid;border-radius:4px;padding:6px 9px;
+transform:rotate(6deg);text-transform:uppercase}
+.stamp.gap{color:var(--felt);border-color:var(--felt)}
+.stamp.top{color:var(--gold);border-color:var(--gold)}
+.empty{background:var(--paper);border:1px dashed var(--line);border-radius:6px;
+padding:26px 20px;text-align:center;color:var(--dim);font-size:15px}
+.empty b{color:var(--ink)}
+table{width:100%;border-collapse:collapse;background:var(--paper);
+border:1px solid var(--line);border-radius:6px;overflow:hidden;font-size:13px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--line)}
+th{font:600 12px/1 "Barlow Condensed",sans-serif;letter-spacing:.12em;
+text-transform:uppercase;color:var(--dim)}
+.teamhead{font:600 13px/1 "Barlow Condensed",sans-serif;
+letter-spacing:.14em;text-transform:uppercase;color:var(--felt);
+background:rgba(29,39,51,.05)}
+tr:last-child td{border-bottom:none}
+.W{color:var(--felt);font-weight:600}.L{color:var(--red);font-weight:600}
+.V{color:var(--dim);font-weight:600}
+.foot{margin-top:26px;font-size:12.5px;color:var(--dim);line-height:1.6}
+@media (prefers-reduced-motion:no-preference){
+.slip{transition:transform .12s}.slip:hover{transform:translateY(-2px)}}
+nav{background:var(--felt2);border-bottom:1px solid rgba(232,199,102,.4);
+position:sticky;top:0;z-index:9}
+nav .inner{max-width:680px;margin:0 auto;display:flex;gap:6px;
+overflow-x:auto;padding:8px 14px;-webkit-overflow-scrolling:touch}
+nav a{flex:0 0 auto;color:#f3efe4;text-decoration:none;
+font:600 13px/1 "Barlow Condensed",sans-serif;letter-spacing:.12em;
+text-transform:uppercase;padding:8px 12px;border-radius:5px;
+border:1px solid transparent}
+nav a.on{background:#e8c766;color:#14532d}
+nav a.back{border-color:rgba(243,239,228,.45)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.grid a{background:var(--paper);border:1px solid var(--line);
+border-left:6px solid var(--felt);border-radius:8px;padding:14px;
+text-decoration:none;color:var(--ink);
+box-shadow:0 1px 3px rgba(29,39,51,.12)}
+.grid a .ico{font-size:26px;display:block}
+.grid a .lg{font:700 22px/1.1 "Barlow Condensed",sans-serif;
+letter-spacing:.04em;text-transform:uppercase;display:block;margin-top:4px}
+.grid a .ct{font-size:12px;color:var(--dim);display:block;margin-top:4px}
+.gblock{background:var(--paper);border:1px solid var(--line);
+border-left:6px solid var(--accent,#14532d);border-radius:8px;
+padding:14px 14px 6px;margin-bottom:18px;
+box-shadow:0 1px 3px rgba(29,39,51,.12)}
+.gblock h3{font:700 22px/1.15 "Barlow Condensed",sans-serif;
+letter-spacing:.03em}
+.gblock .sub{font-size:12px;color:var(--dim);margin:2px 0 10px}
+.gblock h4{font:600 13px/1 "Barlow Condensed",sans-serif;
+letter-spacing:.16em;text-transform:uppercase;color:var(--dim);
+margin:14px 0 8px}
+.gblock table{border:none;box-shadow:none}
+.gblock .slip{box-shadow:none;background:#fdfcf8}
+.mlrow{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;
+font-size:15px;padding:8px 10px;background:rgba(29,39,51,.04);
+border-radius:6px}
+.mlrow b{color:var(--felt)}
+.recstrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+gap:10px;margin-top:8px}
+.recstrip .rc{background:var(--paper);border:1px solid var(--line);
+border-radius:6px;padding:10px 12px;font-size:12px;color:var(--dim)}
+.recstrip .rc b{display:block;font:600 19px/1.2 "Barlow Condensed",
+sans-serif;color:var(--ink)}
+.asof{font-size:12px;color:var(--dim);margin:10px 2px 0}
+.asof .old{color:var(--red);font-weight:600}
+.scorerow td.fin b{color:var(--felt)}
+:root{--accent:#b45309}</style></head><body>
+<nav><div class='inner'><a href='sports.html' class='back'>&#8592; Back</a><a href='sports.html'>Home</a><a href='sports_nfl.html'>&#127944; NFL</a><a href='sports_cfb.html' class='on'>&#127944; CFB</a><a href='sports_mlb.html'>&#9918; MLB</a><a href='sports_nba.html'>&#127936; NBA</a><a href='sports_tennis.html'>&#127934; TENNIS</a></div></nav>
+<header><div class="inner">
+<h1>&#127944; College Football <span>CFB</span></h1>
+<div class='rec'><div><b>0-0</b>CFB record</div><div><b>+0.00</b>P&L ($1 slips)</div><div><b>25</b>games today</div></div>
+<div class="upd"><span id="asof" class="asof"></span> This card is
+advice between friends, not a robot with your wallet -- it never
+bets. You do (or don't).</div>
+</div></header>
+<div class="wrap">
+<div class='why'>College has no player-prop markets on either side (probe-verified) &mdash; the moneyline favorites ARE the whole college menu.</div><h2>Today's games &mdash; every line on a block is a finished bet</h2><div class='gblock'><h3>Utah State Aggies @ Utah Utes</h3><div class='sub'>starts <span data-t='2026-09-19T19:30:00+00:00'>Sat 19:30 UTC</span> · in 0h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Utah Utes wins</b><span>sharps <b>95%</b></span><span>7 books</span><span>DK -5000</span></div></div><div class='gblock'><h3>USC Trojans @ Rutgers Scarlet Knights</h3><div class='sub'>starts <span data-t='2026-09-19T19:30:00+00:00'>Sat 19:30 UTC</span> · in 0h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>USC Trojans wins</b><span>sharps <b>92%</b></span><span>10 books</span><span>DK -2000</span></div></div><div class='gblock'><h3>Florida State Seminoles @ Alabama Crimson Tide</h3><div class='sub'>starts <span data-t='2026-09-19T19:30:00+00:00'>Sat 19:30 UTC</span> · in 0h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Alabama Crimson Tide wins</b><span>sharps <b>89%</b></span><span>11 books</span><span>DK -1429</span></div></div><div class='gblock'><h3>Kentucky Wildcats @ Texas A&amp;M Aggies</h3><div class='sub'>starts <span data-t='2026-09-19T19:30:00+00:00'>Sat 19:30 UTC</span> · in 0h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Texas A&amp;M Aggies wins</b><span>sharps <b>86%</b></span><span>11 books</span><span>DK -833</span></div></div><div class='gblock'><h3>Miami (OH) RedHawks @ Cincinnati Bearcats</h3><div class='sub'>starts <span data-t='2026-09-19T19:30:00+00:00'>Sat 19:30 UTC</span> · in 0h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Cincinnati Bearcats wins</b><span>sharps <b>83%</b></span><span>9 books</span><span>DK -667</span></div></div><div class='gblock'><h3>Louisiana Tech Bulldogs @ Baylor Bears</h3><div class='sub'>starts <span data-t='2026-09-19T20:00:00+00:00'>Sat 20:00 UTC</span> · in 1h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Baylor Bears wins</b><span>sharps <b>89%</b></span><span>10 books</span><span>DK -1429</span></div></div><div class='gblock'><h3>Ball State Cardinals @ Liberty Flames</h3><div class='sub'>starts <span data-t='2026-09-19T20:00:00+00:00'>Sat 20:00 UTC</span> · in 1h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Liberty Flames wins</b><span>sharps <b>83%</b></span><span>9 books</span><span>DK -667</span></div></div><div class='gblock'><h3>Stanford Cardinal @ Duke Blue Devils</h3><div class='sub'>starts <span data-t='2026-09-19T20:00:00+00:00'>Sat 20:00 UTC</span> · in 1h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Duke Blue Devils wins</b><span>sharps <b>76%</b></span><span>10 books</span><span>DK -370</span></div></div><div class='gblock'><h3>Charlotte 49ers @ Appalachian State Mountaineers</h3><div class='sub'>starts <span data-t='2026-09-19T22:00:00+00:00'>Sat 22:00 UTC</span> · in 3h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Appalachian State Mountaineers wins</b><span>sharps <b>88%</b></span><span>9 books</span><span>DK -1111</span></div></div><div class='gblock'><h3>Troy Trojans @ Missouri Tigers</h3><div class='sub'>starts <span data-t='2026-09-19T23:00:00+00:00'>Sat 23:00 UTC</span> · in 4h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Missouri Tigers wins</b><span>sharps <b>94%</b></span><span>10 books</span><span>DK -5000</span></div></div><div class='gblock'><h3>Nicholls State Colonels @ Sam Houston State Bearkats</h3><div class='sub'>starts <span data-t='2026-09-19T23:00:00+00:00'>Sat 23:00 UTC</span> · in 4h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Sam Houston State Bearkats wins</b><span>sharps <b>91%</b></span><span>4 books</span><span>DK &mdash;</span></div></div><div class='gblock'><h3>Georgia State Panthers @ UCF Knights</h3><div class='sub'>starts <span data-t='2026-09-19T23:00:00+00:00'>Sat 23:00 UTC</span> · in 4h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>UCF Knights wins</b><span>sharps <b>88%</b></span><span>9 books</span><span>DK -1111</span></div></div><div class='gblock'><h3>Western Michigan Broncos @ Rice Owls</h3><div class='sub'>starts <span data-t='2026-09-19T23:00:00+00:00'>Sat 23:00 UTC</span> · in 4h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Western Michigan Broncos wins</b><span>sharps <b>75%</b></span><span>9 books</span><span>DK -357</span></div></div><div class='gblock'><h3>North Dakota Fighting Hawks @ Nebraska Cornhuskers</h3><div class='sub'>starts <span data-t='2026-09-19T23:15:00+00:00'>Sat 23:15 UTC</span> · in 4h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Nebraska Cornhuskers wins</b><span>sharps <b>94%</b></span><span>5 books</span><span>DK -2500</span></div></div><div class='gblock'><h3>Michigan State Spartans @ Notre Dame Fighting Irish</h3><div class='sub'>starts <span data-t='2026-09-19T23:30:00+00:00'>Sat 23:30 UTC</span> · in 4h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Notre Dame Fighting Irish wins</b><span>sharps <b>95%</b></span><span>7 books</span><span>DK -5000</span></div></div><div class='gblock'><h3>New Mexico Lobos @ Oklahoma Sooners</h3><div class='sub'>starts <span data-t='2026-09-19T23:30:00+00:00'>Sat 23:30 UTC</span> · in 4h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Oklahoma Sooners wins</b><span>sharps <b>92%</b></span><span>11 books</span><span>DK -2000</span></div></div><div class='gblock'><h3>BYU Cougars @ Colorado State Rams</h3><div class='sub'>starts <span data-t='2026-09-19T23:30:00+00:00'>Sat 23:30 UTC</span> · in 4h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>BYU Cougars wins</b><span>sharps <b>88%</b></span><span>11 books</span><span>DK -1000</span></div></div><div class='gblock'><h3>Virginia Cavaliers @ West Virginia Mountaineers</h3><div class='sub'>starts <span data-t='2026-09-19T23:30:00+00:00'>Sat 23:30 UTC</span> · in 4h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Virginia Cavaliers wins</b><span>sharps <b>77%</b></span><span>11 books</span><span>DK -417</span></div></div><div class='gblock'><h3>UTSA Roadrunners @ Texas Longhorns</h3><div class='sub'>starts <span data-t='2026-09-20T00:00:00+00:00'>Sun 00:00 UTC</span> · in 5h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Texas Longhorns wins</b><span>sharps <b>95%</b></span><span>6 books</span><span>DK -5000</span></div></div><div class='gblock'><h3>Arkansas State Red Wolves @ TCU Horned Frogs</h3><div class='sub'>starts <span data-t='2026-09-20T00:00:00+00:00'>Sun 00:00 UTC</span> · in 5h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>TCU Horned Frogs wins</b><span>sharps <b>89%</b></span><span>10 books</span><span>DK -1429</span></div></div><div class='gblock'><h3>UAB Blazers @ Louisiana Ragin Cajuns</h3><div class='sub'>starts <span data-t='2026-09-20T00:00:00+00:00'>Sun 00:00 UTC</span> · in 5h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Louisiana Ragin Cajuns wins</b><span>sharps <b>70%</b></span><span>9 books</span><span>DK -278</span></div></div><div class='gblock'><h3>South Dakota Coyotes @ Boise State Broncos</h3><div class='sub'>starts <span data-t='2026-09-20T02:00:00+00:00'>Sun 02:00 UTC</span> · in 7h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Boise State Broncos wins</b><span>sharps <b>94%</b></span><span>5 books</span><span>DK -2500</span></div></div><div class='gblock'><h3>North Dakota State Bison @ Sacramento State Hornets</h3><div class='sub'>starts <span data-t='2026-09-20T02:30:00+00:00'>Sun 02:30 UTC</span> · in 7h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>North Dakota State Bison wins</b><span>sharps <b>94%</b></span><span>8 books</span><span>DK -5000</span></div></div><div class='gblock'><h3>Montana Grizzlies @ Oregon State Beavers</h3><div class='sub'>starts <span data-t='2026-09-20T03:00:00+00:00'>Sun 03:00 UTC</span> · in 8h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>Oregon State Beavers wins</b><span>sharps <b>86%</b></span><span>5 books</span><span>DK -833</span></div></div><div class='gblock'><h3>Purdue Boilermakers @ UCLA Bruins</h3><div class='sub'>starts <span data-t='2026-09-20T03:00:00+00:00'>Sun 03:00 UTC</span> · in 8h</div><div class='mlrow'><span class='tag'>MONEYLINE</span><b>UCLA Bruins wins</b><span>sharps <b>83%</b></span><span>10 books</span><span>DK -667</span></div></div><div class='foot'>Cross-sport slips (the locks ladder, boosters, slate stacks, props ladder and the combo board) live on the <a href='sports.html'>home page</a>, where the leagues meet. Advisory only, forever: nothing on any page of this card places a bet.</div>
+</div>
+<script>
+(function(){
+var BUILD_MS = 1789845090003;
+function tick(){
+  var el=document.getElementById('asof'); if(!el) return;
+  var m=Math.round((Date.now()-BUILD_MS)/60000);
+  var txt=(m<1?'just now':(m<60?m+' min ago':Math.floor(m/60)+'h '+(m%60)+'m ago'));
+  el.textContent='Numbers from the last scan, '+txt+'.';
+  el.className=(m>360)?'old':'';
+}
+async function heal(){
+  try{
+    var r=await fetch('sports_pulse.json?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok) return;
+    var p=await r.json();
+    var live=Date.parse(p.checked_utc);
+    if(isFinite(live) && live-BUILD_MS>180000){
+      location.replace(location.pathname+'?fresh='+Date.now());
+    }
+  }catch(e){}
+}
+function local(){
+  var els=document.querySelectorAll('[data-t]');
+  for(var i=0;i<els.length;i++){
+    var d=new Date(els[i].getAttribute('data-t'));
+    if(!isNaN(d)) els[i].textContent=d.toLocaleString([],
+      {weekday:'short',hour:'numeric',minute:'2-digit'});
+  }
+}
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden){heal();tick();}});
+window.addEventListener('pageshow',function(){heal();tick();});
+setInterval(heal,120000); setInterval(tick,30000);
+local(); tick(); heal();
+})();
+</script>
+</body></html>
