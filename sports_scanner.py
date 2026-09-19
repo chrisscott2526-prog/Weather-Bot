@@ -2753,13 +2753,36 @@ stacks really live inside that range.</div>
         hits = sum(1 for r in done if r["result"] == "HIT")
         stated = (sum(float(r["combined_pct"]) for r in done)
                   / len(done)) if done else 0.0
+        rate = (100.0 * hits / len(done)) if done else 0.0
+        # The record split by stack depth: the one pattern every
+        # graded board keeps showing (the quality tightening's own
+        # evidence) is that deep slips die, so the blended number
+        # alone would hide the split the owner needs to see.
+        by_depth = {}
+        for r in done:
+            try:
+                n = int(r.get("n_legs") or 0)
+            except (TypeError, ValueError):
+                continue
+            w, l = by_depth.get(n, (0, 0))
+            by_depth[n] = (w + (r["result"] == "HIT"),
+                           l + (r["result"] == "MISS"))
+        depth = " &middot; ".join(
+            f"{n} legs: {w}&ndash;{l}"
+            for n, (w, l) in sorted(by_depth.items()) if n)
+        depth_html = (f" By depth (wins&ndash;losses): {depth}."
+                      if depth else "")
         out += (f"<div class='why'><b>Team/game stack record: {hits} hit, "
-                f"{len(done) - hits} missed</b>, stating "
-                f"{stated:.0f}% on average (graded by Kalshi "
-                "settlement). If the hit rate runs above the stated "
-                "number as this record grows, that's the same-game "
-                "correlation showing up as a measured fact instead of "
-                "a theory.</div>")
+                f"{len(done) - hits} missed &mdash; a {rate:.0f}% hit "
+                f"rate, against the {stated:.0f}% these slips stated on "
+                f"average</b> (graded by Kalshi settlement)."
+                f"{depth_html} The stated number is the slip's own "
+                "claimed chance, not the record. If the hit rate runs "
+                "above the stated number as this record grows, that's "
+                "the same-game correlation showing up as a measured "
+                "fact instead of a theory; below it, the correlation "
+                "isn't paying &mdash; and the depth line shows where "
+                "the misses actually live.</div>")
     return out
 
 
