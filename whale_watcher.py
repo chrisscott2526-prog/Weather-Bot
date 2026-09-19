@@ -53,6 +53,7 @@ KBASE = "https://api.elections.kalshi.com/trade-api/v2"
 TRADES_CSV = "whale_trades.csv"
 RESULTS_CSV = "whale_results.csv"
 PAGE = "whales.html"
+PULSE = "whales_pulse.json"
 
 TRADE_FIELDS = ["seen_utc", "sector", "series", "ticker", "event",
                 "bet_on", "bet_type", "side", "contracts",
@@ -851,25 +852,50 @@ def build_page(rows_all):
                 f"{early}</div>"
                 f"{expert_html}</div>")
 
-    parts.append("""</div><script>
-    function whaleTick(){
+    parts.append(f"""</div><script>
+    var BUILD_MS = {built_ms};
+    function whaleTick(){{
       var now=Date.now();
-      document.querySelectorAll('[data-utc]').forEach(function(el){
+      document.querySelectorAll('[data-utc]').forEach(function(el){{
         var d=new Date(+el.dataset.utc);
-        el.textContent=d.toLocaleString([],{weekday:'short',hour:'numeric',
-          minute:'2-digit'});});
-      document.querySelectorAll('[data-built]').forEach(function(el){
+        el.textContent=d.toLocaleString([],{{weekday:'short',hour:'numeric',
+          minute:'2-digit'}});}});
+      document.querySelectorAll('[data-built]').forEach(function(el){{
         var m=Math.max(0,Math.floor((now-+el.dataset.built)/60000));
         el.textContent=m<1?'built just now':'built '+m+'m ago';
-        el.classList.toggle('old',m>180);});
-    }
-    whaleTick();setInterval(whaleTick,30000);
+        el.classList.toggle('old',m>180);}});
+    }}
+    async function whaleHeal(){{
+      try{{
+        var r=await fetch('whales_pulse.json?t='+Date.now(),
+                           {{cache:'no-store'}});
+        if(!r.ok) return;
+        var p=await r.json();
+        var live=Date.parse(p.checked_utc);
+        if(isFinite(live) && live-BUILD_MS>180000){{
+          location.replace(location.pathname+'?fresh='+Date.now());
+        }}
+      }}catch(e){{}}
+    }}
+    document.addEventListener('visibilitychange',function(){{
+      if(!document.hidden){{whaleHeal();whaleTick();}}}});
+    window.addEventListener('pageshow',function(){{whaleHeal();whaleTick();}});
+    whaleTick();setInterval(whaleTick,30000);setInterval(whaleHeal,120000);
+    whaleHeal();
     </script>""")
     with open(PAGE, "w") as f:
         f.write("\n".join(parts))
     n_lines = sum(len(v) for v in by_sector.values())
     print(f"board: wrote {PAGE} ({n_lines} line(s) from "
           f"{len(recent)} burst(s))")
+    # the self-heal pulse (full rewrite; display only, never
+    # union-merged) -- the page polls it and replaces a frozen copy,
+    # same mechanism as swoop_pulse.json / sports_pulse.json
+    with open(PULSE, "w") as f:
+        json.dump({"checked_utc": now.isoformat(timespec="seconds"),
+                   "note": "whales board build pulse -- display only"},
+                  f)
+    print(f"wrote {PULSE}")
 
 
 def main():
