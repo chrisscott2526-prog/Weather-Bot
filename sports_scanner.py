@@ -331,6 +331,27 @@ SPORT_PAGES = [
          note="Tennis runs tournament by tournament &mdash; an empty "
               "page between tournaments is the schedule, not a "
               "failure."),
+    # NHL + cricket joined Sep 19 2026 after probe runs 157-158
+    # hand-verified both sides live (KXNHLGAME 60 open on the Sep 22
+    # preseason slate; KXT20MATCH 16 open + active T20 odds keys) --
+    # the whitelist law, followed to the letter.
+    dict(label="NHL", page="sports_nhl.html", icon="&#127954;",
+         name="Pro Hockey", accent="#334155",
+         prefixes=("icehockey_",),
+         note="Preseason starts Sep 22, the regular season Oct 8. "
+              "Moneylines only for now: at verification time zero "
+              "books quoted NHL player props (10 days out) &mdash; "
+              "the prop shelves are staged in the probe and join "
+              "once the books wake up on them."),
+    dict(label="CRICKET", page="sports_cricket.html", icon="&#127951;",
+         name="Cricket", accent="#7c3aed",
+         prefixes=("cricket_",),
+         note="T20 matches only, where a super over guarantees a "
+              "winner. One-day and test formats stay off for "
+              "recorded reasons (draws and rain rules that haven't "
+              "been hand-read against Kalshi's panels yet), and "
+              "competitions come and go with their seasons &mdash; "
+              "an empty page between slates is the schedule."),
 ]
 
 # The self-heal pulse (full rewrite every scan; display only, no money
@@ -351,7 +372,7 @@ PULSE = "sports_pulse.json"
 SCORES_JSON = "sports_scores.json"
 SCORES_FETCH_HOURS = (13, 22)
 SCORES_SPORT_KEYS = ["americanfootball_nfl", "americanfootball_ncaaf",
-                     "baseball_mlb", "basketball_nba"]
+                     "baseball_mlb", "basketball_nba", "icehockey_nhl"]
 
 PICKS_FIELDS = ["scanned_utc", "sport", "shelf", "game", "detail",
                 "commence_utc", "series", "ticker", "side", "pick",
@@ -634,6 +655,30 @@ SHELVES = [
          label="NBA · MONEYLINE", kind="winner", series="KXNBAGAME",
          odds_market="h2h", featured=True, has_tie=False, parlay=True,
          match="names"),
+    # -- THE NHL (owner request Sep 19 2026, verified the same day by
+    # -- probe runs 157-158): KXNHLGAME "NHL Game", 60 open markets on
+    # -- the Sep 22 preseason slate, hand-read live -- event tickers
+    # -- the dated no-time form (KXNHLGAME-26SEP22UTALA), subtitles
+    # -- carry city names ('Utah', 'Los Angeles'), rules 'If Utah wins
+    # -- the ... NHL game ... resolves to Yes' -- the NBA/CFB anatomy
+    # -- exactly, so match="names" (norm() strips accents, so
+    # -- Montreal pairs; any name the rule can't pair is a loud
+    # -- UNMATCHED skip). The odds feed carries icehockey_nhl (33
+    # -- games at probe time) AND icehockey_nhl_preseason, both
+    # -- active; books thin far from game day and MIN_BOOKS gates
+    # -- that honestly. No ties in the NHL (OT/shootout), so
+    # -- has_tie=False. PLAYER PROPS STAY OFF: probe run 157 found
+    # -- ZERO books quoting NHL player markets 10 days before the
+    # -- opener -- re-probe near game time (the batter-hits lesson),
+    # -- and the shelves are already staged in the probe.
+    dict(key="NHL_GAME", sport="icehockey_nhl",
+         label="NHL · MONEYLINE", kind="winner", series="KXNHLGAME",
+         odds_market="h2h", featured=True, has_tie=False, parlay=True,
+         match="names"),
+    dict(key="NHL_PRESEASON", sport="icehockey_nhl_preseason",
+         label="NHL · PRESEASON", kind="winner", series="KXNHLGAME",
+         odds_market="h2h", featured=True, has_tie=False, parlay=True,
+         match="names"),
     # NOT included on purpose (verified but not comparable yet):
     #  KXMLBF7 -- books don't quote a first-7-innings line.
     #  KXNFL1H/KXNFL1HTOTAL -- tie handling in Kalshi's 1H rules not yet
@@ -694,6 +739,52 @@ def tennis_shelves():
         print("tennis: no active tour keys on the odds feed right now "
               "(between tournaments) -- tennis returns when the next "
               "tournament's lines go up")
+
+    # THE CRICKET SHELVES (owner request Sep 19 2026, verified the
+    # same day by probe runs 157-158): the same transient-key pattern
+    # as tennis -- the Odds API keys cricket PER COMPETITION and
+    # retires keys between seasons, so the T20 competition keys below
+    # are hand-whitelisted and any of them that is live becomes a
+    # shelf. The KALSHI side stays fixed and hand-verified:
+    # KXT20MATCH "Men's T20 Cricket Match", 16 open at verification,
+    # anatomy hand-read live (event tickers carry date + start time +
+    # codes, KXT20MATCH-26SEP210500GHANIG -- EVENT_DATE_RE already
+    # parses it; subtitles are the team names, 'Nigeria wins', so
+    # match="names"). T20 has no draw (a tie goes to a super over),
+    # so has_tie=False and the books' two-way line de-vigs honestly.
+    # DELIBERATELY OFF, each for its recorded reason: ODIs (Kalshi's
+    # KXODIMATCH held 2 open DOMESTIC one-day-cup matches while the
+    # cricket_odi odds key prices INTERNATIONALS -- no honest pairing
+    # yet, and rain-shortened no-results need the rules panel read
+    # before money-adjacent display); test matches (draws are a real
+    # third outcome, KXCRICKETTESTMATCH's tie handling unread); The
+    # Hundred / IPL / PSL / MLC (0 open at verification -- their
+    # Kalshi series wake when the seasons start; re-probe then).
+    cricket_t20_keys = {
+        "cricket_international_t20",
+        "cricket_caribbean_premier_league",
+        "cricket_big_bash",
+        "cricket_ipl",
+        "cricket_psl",
+        "cricket_t20_blast",
+    }
+    n_cricket = 0
+    for s in data or []:
+        key = s.get("key", "")
+        if not s.get("active") or key not in cricket_t20_keys:
+            continue
+        shelves.append(dict(
+            key=f"CRICKET_{key}", sport=key,
+            label=f"CRICKET · {s.get('title', 'T20')}", kind="winner",
+            series="KXT20MATCH", odds_market="h2h", featured=True,
+            has_tie=False, parlay=True, match="names"))
+        n_cricket += 1
+        print(f"cricket shelf: {key} -> KXT20MATCH "
+              f"({s.get('title', '')})")
+    if not n_cricket:
+        print("cricket: no whitelisted T20 competition live on the "
+              "odds feed right now -- cricket returns with the next "
+              "T20 slate")
     return shelves
 
 # Kalshi's team codes as they appear INSIDE event tickers, keyed by the
@@ -3451,10 +3542,11 @@ to pass TWO experts at once (ensemble AND live market both
 record shows the ensemble alone runs overconfident. The only honest
 road to a bigger payout is MORE real favorites, never longer shots.
 Golf is deliberately absent (the odds feed carries only
-tournament-winner longshots for it); hockey and cricket are staged in
-the probe and join the sidebar only after both the odds feed and a
-hand-read Kalshi series verify live. This card never bets. You do
-(or don't).</div>"""
+tournament-winner longshots for it). Hockey and cricket joined the
+sidebar Sep 19 2026 after both sides verified live (the whitelist
+law): NHL moneylines ride now with props staged until the books quote
+them, and cricket rides T20 matches only. This card never bets. You
+do (or don't).</div>"""
     return body
 
 
