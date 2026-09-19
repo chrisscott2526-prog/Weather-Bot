@@ -92,6 +92,20 @@ NBA_PROP_MARKETS = [
     "player_points_alternate", "player_rebounds_alternate",
     "player_assists_alternate", "player_threes_alternate",
 ]
+# THE EVERY-SPORT SIDEBAR STAGING (owner request, Sep 19 2026): the
+# owner asked for every sport that BOTH the odds feed and Kalshi can
+# carry -- hockey and cricket are the two candidates not yet probed.
+# Staged here per the whitelist law: nothing joins the card until a
+# human reads this probe's output -- live two-sided odds coverage AND
+# an open, hand-read Kalshi series. NHL preseason starts late Sep,
+# regular season Oct 8; cricket's Kalshi side is unknown until the
+# Part 2 title sweep prints it.
+NHL_PROP_MARKETS = [
+    "player_points", "player_goals", "player_assists",
+    "player_shots_on_goal", "player_total_saves",
+    "player_points_alternate", "player_goals_alternate",
+    "player_assists_alternate", "player_shots_on_goal_alternate",
+]
 
 
 def http_json(url, label):
@@ -281,6 +295,56 @@ def probe_odds_api():
           "October slate's props post) --")
     probe_event_markets("basketball_nba", NBA_PROP_MARKETS)
 
+    # -- THE EVERY-SPORT SIDEBAR STAGING (Sep 19 2026): hockey and
+    # -- cricket, the two leagues not yet probed on either side.
+    print("\n-- Featured h2h on icehockey_nhl --")
+    data, err = http_json(
+        odds_url("/sports/icehockey_nhl/odds",
+                 regions="us", markets="h2h", oddsFormat="decimal"),
+        "featured nhl")
+    if err:
+        print(f"  featured NHL call failed: {err}")
+    else:
+        n_books = {len(ev.get("bookmakers", [])) for ev in data}
+        print(f"  {len(data)} NHL games returned, books per game: "
+              f"{sorted(n_books) if n_books else '[]'}")
+        for ev in data[:15]:
+            print(f"    {ev.get('away_team','?')} @ {ev.get('home_team','?')}"
+                  f"  ({ev.get('commence_time','')})")
+
+    print("\n-- Per-event NHL player-prop markets --")
+    probe_event_markets("icehockey_nhl", NHL_PROP_MARKETS)
+
+    print("\n-- Cricket on the odds feed (keys are per-league, like "
+          "tennis) --")
+    cricket = [s for s in sports
+               if (s.get("key") or "").startswith("cricket_")]
+    if not cricket:
+        print("  no cricket_* keys in the catalogue at all")
+    for s in cricket:
+        print(f"  {s['key']:<40} active={s.get('active')} "
+              f"{s.get('title', '')}")
+    live_cricket = [s for s in cricket if s.get("active")]
+    if live_cricket:
+        key = live_cricket[0]["key"]
+        print(f"\n  trying featured h2h on {key}:")
+        data, err = http_json(
+            odds_url(f"/sports/{key}/odds", regions="us,uk,au",
+                     markets="h2h", oddsFormat="decimal"),
+            f"featured {key}")
+        if err:
+            print(f"    failed: {err}")
+        else:
+            n_books = {len(ev.get("bookmakers", [])) for ev in data}
+            print(f"    {len(data)} matches, books per match: "
+                  f"{sorted(n_books) if n_books else '[]'} "
+                  f"(a draw-capable format needs has_tie handling "
+                  f"-- read the outcomes below)")
+            for ev in data[:6]:
+                print(f"    {ev.get('away_team','?')} vs "
+                      f"{ev.get('home_team','?')}"
+                      f"  ({ev.get('commence_time','')})")
+
 
 def kalshi_get(path, label, tries=4):
     req = urllib.request.Request(KBASE + path,
@@ -385,6 +449,23 @@ def probe_kalshi():
                                  "receiving yards", "rushing yards"))
     inventory_prefix("KXNBA", ("points", "rebounds", "assists",
                                "threes", "three point"), cap=20)
+    # THE EVERY-SPORT SIDEBAR STAGING (Sep 19 2026): hockey by prefix,
+    # plus a full-catalogue TITLE sweep for hockey/cricket -- cricket's
+    # ticker prefix (if Kalshi lists cricket at all) is unknown, and
+    # guessing prefixes is how series get missed, not how they join.
+    inventory_prefix("KXNHL", ("goals", "assists", "shots", "saves",
+                               "points"), cap=20)
+    print("\nTitle sweep -- every Sports-catalogue series whose title "
+          "mentions hockey or cricket (reading aid for the sidebar "
+          "expansion; nothing is whitelisted automatically):")
+    hits = [(t, title) for t, title in sorted(catalogue.items())
+            if any(w in title.lower() or w in t.lower()
+                   for w in ("hockey", "nhl", "cricket"))]
+    if not hits:
+        print("  none -- Kalshi lists no hockey or cricket series "
+              "under category=Sports right now")
+    for t, title in hits:
+        print(f"  {t:<28} {title[:70]}")
 
     rows, samples = [], {}
     for t in PRIORITY_SERIES:

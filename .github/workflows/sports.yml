@@ -13,9 +13,16 @@ on:
     # morning. Four slots + the poller-relay tripwire (poll.yml) now
     # keep worst-case staleness ~5h. Cost: ~8 credits/scan against
     # the 20K/month plan -- nothing.
+    # Fifth slot added Sep 19 2026 (owner asked for fresher numbers
+    # through the day): 20:23 UTC fills the old 4-hour afternoon gap.
+    # Cost, said plainly: one more full scan/day, worst case ~130
+    # credits on an NFL-window day -- estimated ~15-16K/month total
+    # against the 20K plan. If the CREDIT GUARD ever prints, this
+    # slot is the first thing to remove (one line).
     - cron: "23 13 * * *"  # ~9am ET: the early card, before lines move
     - cron: "23 15 * * *"  # ~11am ET: lines are up for the day's slates
     - cron: "23 18 * * *"  # ~2pm ET: afternoon refresh
+    - cron: "23 20 * * *"  # ~4pm ET: late-afternoon refresh (new)
     - cron: "23 22 * * *"  # ~6pm ET: evening slates + late line moves
   workflow_dispatch:
     inputs:

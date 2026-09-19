@@ -285,6 +285,74 @@ PARLAY_CSV = "parlay_picks.csv"
 PARLAY_RESULTS_CSV = "parlay_results.csv"
 PAGE = "sports.html"
 
+# THE SPORT PAGES (owner request, Sep 19 2026): the one enormous page
+# became a small site -- sports.html is the HOME page (the overall
+# records, the sport buttons, and the cross-sport boards: locks,
+# boosters, slate stacks, props ladder, combo board -- those mix
+# leagues BY DESIGN, so they live where the leagues meet), and each
+# league gets its OWN page built from per-game BLOCKS, the weather
+# board's own shape: one block per game holding that game's moneyline
+# favorite, its player props (STRONG/SAFE), and its TEAM/GAME stacks,
+# so a block reads top to bottom as one game's finished bets. Every
+# page carries the shared nav bar, a back button, the as-of stamp,
+# and the swoop-board self-heal (a frozen iPad home-screen copy
+# replaces itself when a newer build exists -- the exact pattern
+# CLAUDE.md pre-authorized rolling out here). All pages are rebuilt
+# and committed together every scan; nothing here changes any gate,
+# any board's construction, or any CSV contract.
+#
+# A league joins this list only when its Kalshi series is already
+# whitelisted in SHELVES (the whitelist law) -- hockey and cricket
+# are STAGED in sports_probe.py (Sep 19 2026) and join here only
+# after that probe verifies both sides live.
+SPORT_PAGES = [
+    dict(label="NFL", page="sports_nfl.html", icon="&#127944;",
+         name="Pro Football", accent="#14532d",
+         prefixes=("americanfootball_nfl",), note=""),
+    dict(label="CFB", page="sports_cfb.html", icon="&#127944;",
+         name="College Football", accent="#b45309",
+         prefixes=("americanfootball_ncaaf",),
+         note="College has no player-prop markets on either side "
+              "(probe-verified) &mdash; the moneyline favorites ARE "
+              "the whole college menu."),
+    dict(label="MLB", page="sports_mlb.html", icon="&#9918;",
+         name="Baseball", accent="#1e3a8a",
+         prefixes=("baseball_mlb",), note=""),
+    dict(label="NBA", page="sports_nba.html", icon="&#127936;",
+         name="Pro Basketball", accent="#b3392f",
+         prefixes=("basketball_nba",),
+         note="The NBA season opens Oct 20 &mdash; games appear here "
+              "when they enter the scan window, and the player-prop "
+              "shelves join the day Kalshi's NBA prop markets open "
+              "(already staged in the probe)."),
+    dict(label="TENNIS", page="sports_tennis.html", icon="&#127934;",
+         name="Tennis", accent="#0f766e",
+         prefixes=("tennis_",),
+         note="Tennis runs tournament by tournament &mdash; an empty "
+              "page between tournaments is the schedule, not a "
+              "failure."),
+]
+
+# The self-heal pulse (full rewrite every scan; display only, no money
+# code reads it, NEVER union-merge it): each page embeds its build
+# time and polls this file -- if the live pulse is newer by 3+
+# minutes, the page reloads itself with a cache-busting URL. Same
+# mechanism, same reasons as swoop_pulse.json.
+PULSE = "sports_pulse.json"
+
+# Yesterday's finals (owner request, Sep 19 2026): the Odds API
+# /scores endpoint, daysFrom=1 (2 credits per league per call). To
+# hold the cost, scores are FETCHED only on the first and last daily
+# scans (SCORES_FETCH_HOURS, ~16 credits/day, ~500/month against the
+# 20K plan) and cached in SCORES_JSON (full rewrite on fetch; display
+# only, no money code reads it, NEVER union-merge it) so every other
+# rebuild still shows them. Scores are INFORMATION for the owner's
+# eyes -- grading stays Kalshi settlement only, the same law as ever.
+SCORES_JSON = "sports_scores.json"
+SCORES_FETCH_HOURS = (13, 22)
+SCORES_SPORT_KEYS = ["americanfootball_nfl", "americanfootball_ncaaf",
+                     "baseball_mlb", "basketball_nba"]
+
 PICKS_FIELDS = ["scanned_utc", "sport", "shelf", "game", "detail",
                 "commence_utc", "series", "ticker", "side", "pick",
                 "books_pct", "kalshi_cents", "fee_cents", "gap_cents",
@@ -2258,6 +2326,50 @@ tr:last-child td{border-bottom:none}
 .foot{margin-top:26px;font-size:12.5px;color:var(--dim);line-height:1.6}
 @media (prefers-reduced-motion:no-preference){
 .slip{transition:transform .12s}.slip:hover{transform:translateY(-2px)}}
+nav{background:var(--felt2);border-bottom:1px solid rgba(232,199,102,.4);
+position:sticky;top:0;z-index:9}
+nav .inner{max-width:680px;margin:0 auto;display:flex;gap:6px;
+overflow-x:auto;padding:8px 14px;-webkit-overflow-scrolling:touch}
+nav a{flex:0 0 auto;color:#f3efe4;text-decoration:none;
+font:600 13px/1 "Barlow Condensed",sans-serif;letter-spacing:.12em;
+text-transform:uppercase;padding:8px 12px;border-radius:5px;
+border:1px solid transparent}
+nav a.on{background:#e8c766;color:#14532d}
+nav a.back{border-color:rgba(243,239,228,.45)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:6px}
+.grid a{background:var(--paper);border:1px solid var(--line);
+border-left:6px solid var(--felt);border-radius:8px;padding:14px;
+text-decoration:none;color:var(--ink);
+box-shadow:0 1px 3px rgba(29,39,51,.12)}
+.grid a .ico{font-size:26px;display:block}
+.grid a .lg{font:700 22px/1.1 "Barlow Condensed",sans-serif;
+letter-spacing:.04em;text-transform:uppercase;display:block;margin-top:4px}
+.grid a .ct{font-size:12px;color:var(--dim);display:block;margin-top:4px}
+.gblock{background:var(--paper);border:1px solid var(--line);
+border-left:6px solid var(--accent,#14532d);border-radius:8px;
+padding:14px 14px 6px;margin-bottom:18px;
+box-shadow:0 1px 3px rgba(29,39,51,.12)}
+.gblock h3{font:700 22px/1.15 "Barlow Condensed",sans-serif;
+letter-spacing:.03em}
+.gblock .sub{font-size:12px;color:var(--dim);margin:2px 0 10px}
+.gblock h4{font:600 13px/1 "Barlow Condensed",sans-serif;
+letter-spacing:.16em;text-transform:uppercase;color:var(--dim);
+margin:14px 0 8px}
+.gblock table{border:none;box-shadow:none}
+.gblock .slip{box-shadow:none;background:#fdfcf8}
+.mlrow{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;
+font-size:15px;padding:8px 10px;background:rgba(29,39,51,.04);
+border-radius:6px}
+.mlrow b{color:var(--felt)}
+.recstrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+gap:10px;margin-top:8px}
+.recstrip .rc{background:var(--paper);border:1px solid var(--line);
+border-radius:6px;padding:10px 12px;font-size:12px;color:var(--dim)}
+.recstrip .rc b{display:block;font:600 19px/1.2 "Barlow Condensed",
+sans-serif;color:var(--ink)}
+.asof{font-size:12px;color:var(--dim);margin:10px 2px 0}
+.asof .old{color:var(--red);font-weight:600}
+.scorerow td.fin b{color:var(--felt)}
 """
 
 
@@ -2673,63 +2785,26 @@ kills the slip &mdash; check the inactives before kickoff.</div>
     return out
 
 
-def build_game_stacks_html(gstacks, presults):
-    """THE GAME AND TEAM STACKS section (owner request, Sep 17
-    2026): the correlated same-game bundles -- a stack per team,
-    plus the whole-game bundle when it's genuinely different --
-    built for the owner's own book's same-game parlay. Laws and
-    honesty framing in the config block; the TEAM/GAME-id slice of
-    the parlay record is shown here because its stated-vs-actual
-    gap is the measured answer to what the correlation is worth."""
-    grec = [r for r in presults
-            if "-GAME" in r.get("parlay_id", "")
-            or "-TEAM" in r.get("parlay_id", "")]
-    if not gstacks and not grec:
-        return ""
-    out = ("<h2>The team stacks &mdash; correlated bundles, one team "
-           "at a time</h2>"
-           "<div class='why'>These are the same-game bundles: each "
-           "team's favorite legs on one slip &mdash; the moneyline "
-           "when it qualifies, plus each player's most-likely prop "
-           "line. When an offense gets rolling, the quarterback's "
-           "yards and his catchers' yards come from the same drives "
-           "&mdash; these legs tend to hit TOGETHER, which is exactly "
-           "why your book sells this as a same-game parlay. Which "
-           "team each player is on comes straight off Kalshi's own "
-           "market ticker, never a guess. The WHOLE GAME slip appears "
-           "when it adds legs beyond one team &mdash; in a "
-           "high-scoring game both offenses' numbers rise together. "
-           "The stated chance still multiplies the legs like separate "
-           "coin flips, because that is the only number we can state "
-           "without inventing one: for legs riding the same offense "
-           "the real chance is usually HIGHER than stated, while two "
-           "receivers fighting for the same targets pull it a little "
-           "lower &mdash; the record below measures which way it "
-           "really leans. And Kalshi has no parlay ticket: buying "
-           "these legs on Kalshi pays each leg alone, minus a fee per "
-           "leg (that's the ~$2 slip you saw) &mdash; this section is "
-           "for your own sportsbook.</div>")
-    for s in gstacks:
-        row, legs = s["row"], s["legs"]
-        combined = float(row["combined_pct"])
-        # THE WALK-AWAY PRICE (owner incident, Sep 17 2026: they
-        # priced the first night's stack at their book and the payout
-        # didn't work). Exact bound, no correlation guessed: a stack
-        # can never be MORE likely than its single weakest leg, so a
-        # same-game payout under 1/(weakest leg) is a bad price under
-        # ANY correlation. Fair sits between that and the independent
-        # value; the graded record pins where these stacks really
-        # live inside the range.
-        weakest = min(c["fair_pct"] for c in legs)
-        walk = 1 / (weakest / 100.0)
-        when = min(c["commence"] for c in legs).strftime("%a %H:%M UTC")
-        legs_html = "".join(
-            f"<div class='pick'>&#10148; <b>{html.escape(c['pick'])}"
-            f"</b> <span class='when'>{c['fair_pct']:.0f}%"
-            + (f" · DK {html.escape(c['dk'])}" if c.get("dk") else "")
-            + "</span></div>"
-            for c in legs)
-        out += f"""
+def stack_slip_html(s):
+    """One TEAM/GAME stack slip -- the walk-away pricing test and the
+    honesty framing ride every slip wherever it renders (the section
+    intro on the sport pages, or standalone)."""
+    row, legs = s["row"], s["legs"]
+    combined = float(row["combined_pct"])
+    # THE WALK-AWAY PRICE (owner incident, Sep 17 2026): a stack can
+    # never be MORE likely than its single weakest leg, so a same-game
+    # payout under 1/(weakest leg) is a bad price under ANY
+    # correlation -- a theorem, not a guessed coefficient.
+    weakest = min(c["fair_pct"] for c in legs)
+    walk = 1 / (weakest / 100.0)
+    when = min(c["commence"] for c in legs).strftime("%a %H:%M UTC")
+    legs_html = "".join(
+        f"<div class='pick'>&#10148; <b>{html.escape(c['pick'])}"
+        f"</b> <span class='when'>{c['fair_pct']:.0f}%"
+        + (f" · DK {html.escape(c['dk'])}" if c.get("dk") else "")
+        + "</span></div>"
+        for c in legs)
+    return f"""
 <div class="slip"><div class="punch"></div>
 <div class="stamp gap">{row['n_legs']} LEGS</div>
 <div class="slipbody">
@@ -2743,11 +2818,19 @@ quote before you place it: this slip can never be MORE likely to hit
 than its weakest leg ({weakest:.0f}%), so any payout under
 <b>${walk:.2f} per $1</b> is a bad price no matter how tightly the
 legs move together &mdash; walk away. Full independent value is
-${row['fair_payout']}; an honest quote lands between the two, and the
-closer your book sits to ${walk:.2f}, the more of the stack it is
-keeping for itself. The graded record keeps score on where these
-stacks really live inside that range.</div>
+${row['fair_payout']}; an honest quote lands between the two.</div>
 </div></div>"""
+
+
+def stack_record_html(presults):
+    """The TEAM/GAME stack record footer -- rendered on the home page
+    (and wherever stacks show), stating BOTH numbers plainly so the
+    stated average can never be read as the hit rate again (the
+    owner's Sep 19 2026 misread)."""
+    grec = [r for r in presults
+            if "-GAME" in r.get("parlay_id", "")
+            or "-TEAM" in r.get("parlay_id", "")]
+    out = ""
     if grec:
         done = [r for r in grec if r["result"] in ("HIT", "MISS")]
         hits = sum(1 for r in done if r["result"] == "HIT")
@@ -2832,24 +2915,470 @@ def build_early_html(pool):
     return out
 
 
-def build_page(shown, results, feed_dead, parlay_legs, parlays, presults,
-               combo_legs, combos, cresults, game_stacks):
-    now = datetime.now(timezone.utc).strftime("%a %b %d, %H:%M UTC")
-    wins = sum(1 for r in results if r["result"] == "WIN")
-    losses = sum(1 for r in results if r["result"] == "LOSS")
-    pnl = sum(float(r["pnl"]) for r in results)
-    dead = ""
-    if feed_dead:
-        dead = ("<div class='dead'>THE ODDS FEED IS DOWN, so today's card "
-                "is empty -- no picks can exist without the sharps. "
-                "(Fix: re-add the ODDS_API_KEY secret in GitHub → Settings "
-                "→ Secrets → Actions.) The scoreboard below is still "
-                "real.</div>")
+# ------------------------------------------------- the page shell
+# THE SPORT PAGES build (owner request, Sep 19 2026). Display only:
+# no gate, no board construction, no CSV contract changes here --
+# these functions only decide WHERE existing sections render.
+
+SELF_HEAL_JS = """
+<script>
+(function(){
+var BUILD_MS = __BUILD_MS__;
+function tick(){
+  var el=document.getElementById('asof'); if(!el) return;
+  var m=Math.round((Date.now()-BUILD_MS)/60000);
+  var txt=(m<1?'just now':(m<60?m+' min ago':Math.floor(m/60)+'h '+(m%60)+'m ago'));
+  el.textContent='Numbers from the last scan, '+txt+'.';
+  el.className=(m>360)?'old':'';
+}
+async function heal(){
+  try{
+    var r=await fetch('sports_pulse.json?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok) return;
+    var p=await r.json();
+    var live=Date.parse(p.checked_utc);
+    if(isFinite(live) && live-BUILD_MS>180000){
+      location.replace(location.pathname+'?fresh='+Date.now());
+    }
+  }catch(e){}
+}
+function local(){
+  var els=document.querySelectorAll('[data-t]');
+  for(var i=0;i<els.length;i++){
+    var d=new Date(els[i].getAttribute('data-t'));
+    if(!isNaN(d)) els[i].textContent=d.toLocaleString([],
+      {weekday:'short',hour:'numeric',minute:'2-digit'});
+  }
+}
+document.addEventListener('visibilitychange',function(){
+  if(!document.hidden){heal();tick();}});
+window.addEventListener('pageshow',function(){heal();tick();});
+setInterval(heal,120000); setInterval(tick,30000);
+local(); tick(); heal();
+})();
+</script>
+"""
+
+DEAD_HTML = ("<div class='dead'>THE ODDS FEED IS DOWN, so today's card "
+             "is empty -- no picks can exist without the sharps. "
+             "(Fix: re-add the ODDS_API_KEY secret in GitHub → Settings "
+             "→ Secrets → Actions.) The scoreboards are still real.</div>")
+
+# The team-stacks honesty framing, stated once per page that shows a
+# stack (the Sep 17 2026 law, wording unchanged -- only WHERE it
+# renders moved when the card became a site).
+TEAM_STACK_INTRO = (
+    "<div class='why'>The TEAM and GAME stacks bundle legs from a "
+    "SINGLE game on purpose &mdash; when an offense gets rolling, the "
+    "quarterback's yards and his catchers' yards come from the same "
+    "drives, which is exactly why your book sells this as a same-game "
+    "parlay. Which team each player is on comes straight off Kalshi's "
+    "own market ticker, never a guess. The stated chance still "
+    "multiplies the legs like separate coin flips, because that is "
+    "the only number we can state without inventing one: for legs "
+    "riding the same offense the real chance is usually HIGHER than "
+    "stated, while two receivers fighting for the same targets pull "
+    "it a little lower &mdash; the graded record on the home page "
+    "measures which way it really leans. Kalshi has no parlay ticket "
+    "(each leg there pays alone, minus a fee per leg) &mdash; these "
+    "slips are for your own sportsbook, and every slip prints its "
+    "own walk-away pricing test.</div>")
+
+
+def timestamp_span(dt):
+    """A UTC time the page's JS re-renders on the viewer's own clock
+    (the Station Board's rule: times on the page are the viewer's)."""
+    return (f"<span data-t='{dt.isoformat()}'>"
+            f"{dt.strftime('%a %H:%M UTC')}</span>")
+
+
+def build_nav(active):
+    links = []
+    if active != "home":
+        links.append("<a href='sports.html' class='back'>&#8592; "
+                     "Back</a>")
+    links.append("<a href='sports.html'"
+                 + (" class='on'" if active == "home" else "")
+                 + ">Home</a>")
+    for m in SPORT_PAGES:
+        cls = " class='on'" if active == m["label"] else ""
+        links.append(f"<a href='{m['page']}'{cls}>{m['icon']} "
+                     f"{m['label']}</a>")
+    return "<nav><div class='inner'>" + "".join(links) + "</div></nav>"
+
+
+def page_shell(title_html, active, rec_html, body, accent=None):
+    build_ms = int(datetime.now(timezone.utc).timestamp() * 1000)
+    accent_css = f":root{{--accent:{accent}}}" if accent else ""
+    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Daily Card - Sharps vs. Kalshi</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>{CSS}{accent_css}</style></head><body>
+{build_nav(active)}
+<header><div class="inner">
+<h1>{title_html}</h1>
+{rec_html}
+<div class="upd"><span id="asof" class="asof"></span> This card is
+advice between friends, not a robot with your wallet -- it never
+bets. You do (or don't).</div>
+</div></header>
+<div class="wrap">
+{body}
+</div>{SELF_HEAL_JS.replace("__BUILD_MS__", str(build_ms))}</body></html>"""
+
+
+# ------------------------------------------- yesterday's finals
+def fetch_scores():
+    """Yesterday's finals from the Odds API /scores endpoint,
+    fetched only on the first and last daily scans (the cost gate in
+    SCORES_FETCH_HOURS's config note) and cached in SCORES_JSON so
+    every rebuild in between still shows them. A dead call prints
+    and shows the cache -- never a guessed score, and grading stays
+    Kalshi settlement only."""
+    cached = {}
+    if os.path.exists(SCORES_JSON):
+        try:
+            with open(SCORES_JSON) as f:
+                cached = json.load(f)
+        except Exception:
+            cached = {}
+    hour = datetime.now(timezone.utc).hour
+    if not ODDS_KEY or hour not in SCORES_FETCH_HOURS:
+        return cached.get("scores", {})
+    fresh = {}
+    for key in SCORES_SPORT_KEYS:
+        data, err = oget(f"/sports/{key}/scores?daysFrom=1"
+                         f"&apiKey={ODDS_KEY}", f"{key} scores")
+        if err:
+            print(f"!! {key}: scores fetch failed ({err}) -- "
+                  f"yesterday's finals ride the cache, never a guess")
+            continue
+        fin = []
+        for ev in data or []:
+            if not ev.get("completed"):
+                continue
+            sc = {s.get("name"): s.get("score")
+                  for s in (ev.get("scores") or [])}
+            fin.append({"away": ev.get("away_team"),
+                        "home": ev.get("home_team"),
+                        "away_score": sc.get(ev.get("away_team")),
+                        "home_score": sc.get(ev.get("home_team")),
+                        "commence": ev.get("commence_time", "")})
+        fresh[key] = fin
+    if fresh:
+        merged = dict(cached.get("scores", {}))
+        merged.update(fresh)
+        try:
+            with open(SCORES_JSON, "w") as f:
+                json.dump({"checked_utc": SCAN_STAMP,
+                           "scores": merged}, f, indent=1)
+        except Exception as e:
+            print(f"!! could not write {SCORES_JSON}: {e}")
+        return merged
+    return cached.get("scores", {})
+
+
+def build_scores_html(meta, scores):
+    fin = []
+    for key, evs in (scores or {}).items():
+        if any(key.startswith(px) for px in meta["prefixes"]):
+            fin.extend(evs or [])
+    rows = ""
+    for ev in fin[:40]:
+        try:
+            a = float(ev.get("away_score"))
+            h = float(ev.get("home_score"))
+        except (TypeError, ValueError):
+            continue
+        away = html.escape(str(ev.get("away") or "?"))
+        home = html.escape(str(ev.get("home") or "?"))
+        aw = f"<b>{away}</b>" if a > h else away
+        hw = f"<b>{home}</b>" if h > a else home
+        rows += (f"<tr class='scorerow'><td class='fin'>{aw} "
+                 f"{ev.get('away_score')} &mdash; "
+                 f"{ev.get('home_score')} {hw}</td><td>Final</td></tr>")
+    if not rows:
+        return ""
+    return ("<h2>Yesterday's finals</h2>"
+            "<div class='why'>Winners in <b>bold</b>, from the odds "
+            "feed's own score report. Information only: every graded "
+            "record on this site is still judged by Kalshi's own "
+            "settlement, never by a score feed.</div>"
+            f"<table>{rows}</table>")
+
+
+# --------------------------------------------- per-game blocks
+def props_game_table(game, cands):
+    """One game's player props: STRONG (deepest floor-clearing bar)
+    and SAFE (deepest PROPS_SAFE_PROB bar) per player, grouped by
+    team when Kalshi's own ticker names one (leg_team -- fail
+    closed, never a guessed roster). Same laws as the props menu."""
+    best, safe = {}, {}
+    for c in cands:
+        k = (c.get("player") or c["pick"], c.get("what", ""))
+        cur = best.get(k)
+        if cur is None or (c.get("bar") or 0) > (cur.get("bar") or 0):
+            best[k] = c
+        if c["fair_pct"] >= PROPS_SAFE_PROB:
+            cur = safe.get(k)
+            if cur is None or (c.get("bar") or 0) > (cur.get("bar") or 0):
+                safe[k] = c
+    entries = sorted(((c, safe.get(k)) for k, c in best.items()),
+                     key=lambda x: -x[0]["fair_pct"])
+    codes = {}
+    for nm in (t.strip() for t in game.split(" @ ")):
+        for table in TEAM_CODES.values():
+            if nm in table:
+                codes[nm] = table[nm]
+                break
+    grouped = {nm: [] for nm in codes}
+    unread = []
+    for e in entries:
+        t = leg_team(e[0], codes) if len(codes) == 2 else None
+        (grouped[t] if t else unread).append(e)
+    sections = [(nm, grouped[nm]) for nm in codes if grouped.get(nm)]
+    if unread:
+        sections.append(("Team not named on the ticker"
+                         if sections else None, unread))
+    rows = ""
+    for team, ents in sections:
+        if team:
+            rows += (f"<tr><td colspan='5' class='teamhead'>"
+                     f"{html.escape(team)}</td></tr>")
+        for c, s in ents:
+            safe_cell = (f"{s.get('bar', '?')}+ "
+                         f"<span class='when'>{s['fair_pct']:.0f}%"
+                         f"</span>" if s else "&mdash;")
+            rows += (f"<tr><td><b>{html.escape(c.get('player') or '')}"
+                     f"</b><br><span class='when'>"
+                     f"{html.escape(c.get('what') or '')}</span></td>"
+                     f"<td>{c.get('bar', '?')}+ "
+                     f"<span class='when'>{c['fair_pct']:.0f}%</span>"
+                     f"</td><td>{safe_cell}</td>"
+                     f"<td>{c['n_books']}</td>"
+                     f"<td>{c.get('dk') or '&mdash;'}</td></tr>")
+    return (f"<table><tr><th>Player</th>"
+            f"<th>Strong ({PARLAY_LEG_MIN_PROB:.0f}%+)</th>"
+            f"<th>Safe ({PROPS_SAFE_PROB:.0f}%+)</th>"
+            f"<th>Books</th><th>DK</th></tr>{rows}</table>")
+
+
+def build_game_block(game, start, ml, props, stacks, picks):
+    """One game, one block -- the weather board's card shape: the
+    moneyline favorite, any gap-card picks, the player props, and
+    the TEAM/GAME stacks, all finished bets exactly as printed."""
+    hrs = (start - datetime.now(timezone.utc)).total_seconds() / 3600
+    if hrs > 0:
+        sub = f"starts {timestamp_span(start)} · in {hrs:.0f}h"
+    else:
+        sub = f"started {timestamp_span(start)}"
+    out = (f"<div class='gblock'><h3>{html.escape(game)}</h3>"
+           f"<div class='sub'>{sub}</div>")
+    for c in ml:
+        out += (f"<div class='mlrow'><span class='tag'>MONEYLINE</span>"
+                f"<b>{html.escape(c['pick'])}</b>"
+                f"<span>sharps <b>{c['fair_pct']:.0f}%</b></span>"
+                f"<span>{c['n_books']} books</span>"
+                f"<span>DK {c.get('dk') or '&mdash;'}</span></div>")
+    if not ml:
+        out += ("<div class='sub'>No moneyline favorite clears the "
+                f"{PARLAY_LEG_MIN_PROB:.0f}% floor in this game "
+                "&mdash; too close to call, so no side is printed."
+                "</div>")
+    if picks:
+        out += ("<h4>Gap-card picks &mdash; Kalshi undercharges "
+                "these</h4>")
+        for p in picks:
+            out += (f"<div class='pick'>&#10148; "
+                    f"<b>{html.escape(p['pick'])}</b> "
+                    f"<span class='when'>sharps "
+                    f"{float(p['books_pct']):.0f}% · Kalshi "
+                    f"{float(p['kalshi_cents']):.0f}&cent; · gap "
+                    f"+{float(p['gap_cents']):.1f}&cent;</span></div>")
+    if props:
+        out += ("<h4>Player props &mdash; strong &amp; safe bars"
+                "</h4>" + props_game_table(game, props))
+    for s in stacks:
+        out += stack_slip_html(s)
+    out += "</div>"
+    return out
+
+
+def sport_slice(meta, ctx):
+    label = meta["label"]
+    def by_sport(rows):
+        return [r for r in rows
+                if any((r.get("sport") or "").startswith(px)
+                       for px in meta["prefixes"])]
+    return dict(
+        ml=[c for c in ctx["parlay_legs"] if c.get("label") == label],
+        props=[c for c in ctx["props_pool"] if c.get("label") == label],
+        stacks=[s for s in ctx["game_stacks"]
+                if s["legs"] and s["legs"][0].get("label") == label],
+        picks=by_sport(ctx["shown"]),
+        res=by_sport(ctx["results"]),
+        early=[c for c in ctx["early_pool"] if c.get("label") == label],
+        eprops=[c for c in ctx["early_props"]
+                if c.get("label") == label])
+
+
+def build_sport_page(meta, ctx):
+    sl = sport_slice(meta, ctx)
+    graded = [r for r in sl["res"] if r["result"] in ("WIN", "LOSS")]
+    wins = sum(1 for r in graded if r["result"] == "WIN")
+    pnl = sum(float(r["pnl"] or 0) for r in graded)
+    games = {}
+    for c in sl["ml"] + sl["props"]:
+        cur = games.get(c["game"])
+        games[c["game"]] = (min(cur, c["commence"])
+                            if cur else c["commence"])
+    for s in sl["stacks"]:
+        st = min(c["commence"] for c in s["legs"])
+        cur = games.get(s["game"])
+        games[s["game"]] = min(cur, st) if cur else st
+    for p in sl["picks"]:
+        st = iso(p.get("commence_utc", ""))
+        if st:
+            cur = games.get(p["game"])
+            games[p["game"]] = min(cur, st) if cur else st
+    body = DEAD_HTML if ctx["feed_dead"] else ""
+    if meta.get("note"):
+        body += f"<div class='why'>{meta['note']}</div>"
+    if games:
+        body += (f"<h2>Today's games &mdash; every line on a block "
+                 f"is a finished bet</h2>")
+        if any(sl["stacks"]):
+            body += TEAM_STACK_INTRO
+        for game, start in sorted(games.items(), key=lambda kv: kv[1]):
+            body += build_game_block(
+                game, start,
+                [c for c in sl["ml"] if c["game"] == game],
+                [c for c in sl["props"] if c["game"] == game],
+                [s for s in sl["stacks"] if s["game"] == game],
+                [p for p in sl["picks"] if p["game"] == game])
+    else:
+        body += (f"<div class='empty'><b>No {meta['label']} games in "
+                 "the scan window right now.</b><br>Games appear here "
+                 "when the sharps post lines inside the fetch window "
+                 "and Kalshi's markets are open for them. Nothing is "
+                 "hidden -- there is just nothing to bet yet.</div>")
+    if sl["early"] or sl["eprops"]:
+        body += build_early_html(sl["early"])
+        body += build_props_menu_html(sl["eprops"], early=True)
+    body += build_scores_html(meta, ctx["scores"])
+    if graded:
+        rows = ""
+        for r in list(reversed(graded))[:12]:
+            rows += (f"<tr><td>{html.escape(r['pick'])}</td>"
+                     f"<td class='{r['result'][0]}'>{r['result']}</td>"
+                     f"<td>{'+' if float(r['pnl']) >= 0 else ''}"
+                     f"{float(r['pnl']):.2f}</td></tr>")
+        body += (f"<h2>{meta['label']} gap-card record (graded by "
+                 f"Kalshi settlement)</h2>"
+                 f"<table><tr><th>Pick</th><th>Result</th>"
+                 f"<th>P&L $</th></tr>{rows}</table>")
+    body += ("<div class='foot'>Cross-sport slips (the locks ladder, "
+             "boosters, slate stacks, props ladder and the combo "
+             "board) live on the <a href='sports.html'>home page</a>, "
+             "where the leagues meet. Advisory only, forever: nothing "
+             "on any page of this card places a bet.</div>")
+    rec = (f"<div class='rec'><div><b>{wins}-{len(graded) - wins}"
+           f"</b>{meta['label']} record</div>"
+           f"<div><b>{'+' if pnl >= 0 else ''}{pnl:.2f}</b>P&L "
+           f"($1 slips)</div>"
+           f"<div><b>{len(games)}</b>games today</div></div>")
+    title = (f"{meta['icon']} {html.escape(meta['name'])} "
+             f"<span>{meta['label']}</span>")
+    return page_shell(title, meta["label"], rec, body,
+                      accent=meta["accent"])
+
+
+def build_home_grid(ctx):
+    tiles = ""
+    for m in SPORT_PAGES:
+        label = m["label"]
+        games = {c["game"] for c in ctx["parlay_legs"]
+                 if c.get("label") == label}
+        games |= {c["game"] for c in ctx["props_pool"]
+                  if c.get("label") == label}
+        nlegs = sum(1 for c in ctx["parlay_legs"]
+                    if c.get("label") == label)
+        nprops = sum(1 for c in ctx["props_pool"]
+                     if c.get("label") == label)
+        early = {c["game"] for c in ctx["early_pool"] + ctx["early_props"]
+                 if c.get("label") == label}
+        bits = [f"{len(games)} game{'s' if len(games) != 1 else ''} today"]
+        if nlegs:
+            bits.append(f"{nlegs} favorite{'s' if nlegs != 1 else ''}")
+        if nprops:
+            bits.append(f"{nprops} props")
+        if early:
+            bits.append(f"{len(early)} early game"
+                        f"{'s' if len(early) != 1 else ''}")
+        tiles += (f"<a href='{m['page']}' "
+                  f"style='border-left-color:{m['accent']}'>"
+                  f"<span class='ico'>{m['icon']}</span>"
+                  f"<span class='lg'>{html.escape(m['name'])}</span>"
+                  f"<span class='ct'>{' · '.join(bits)}</span></a>")
+    return ("<h2>Pick a sport &mdash; each page has its games, "
+            "props and stacks</h2><div class='grid'>" + tiles
+            + "</div>")
+
+
+def records_strip(ctx):
+    """The scoreboard row the owner asked to see at the top: every
+    board family's graded record, hit rate vs stated, plus the gap
+    card's dollars. All by Kalshi settlement, as always."""
+    def fam_rows(rows, *tags):
+        return [r for r in rows
+                if any(t in r.get("parlay_id", r.get("combo_id", ""))
+                       for t in tags)]
+
+    def rec_cell(rows, name):
+        done = [r for r in rows if r["result"] in ("HIT", "MISS")]
+        if not done:
+            return ""
+        hits = sum(1 for r in done if r["result"] == "HIT")
+        stated = sum(float(r["combined_pct"]) for r in done) / len(done)
+        rate = 100.0 * hits / len(done)
+        return (f"<div class='rc'><b>{hits}&ndash;{len(done) - hits}"
+                f"</b>{name} · hit {rate:.0f}% vs stated "
+                f"{stated:.0f}%</div>")
+
+    pres = ctx["presults"]
+    cells = ""
+    graded = [r for r in ctx["results"] if r["result"] in ("WIN", "LOSS")]
+    if graded:
+        w = sum(1 for r in graded if r["result"] == "WIN")
+        pnl = sum(float(r["pnl"] or 0) for r in graded)
+        cells += (f"<div class='rc'><b>{w}&ndash;{len(graded) - w} · "
+                  f"{'+' if pnl >= 0 else ''}{pnl:.2f}</b>gap card, "
+                  f"$1 slips, after fees</div>")
+    legs_only = [r for r in pres if "LEG" in r.get("parlay_id", "")]
+    cells += rec_cell(legs_only, "locks ladder")
+    cells += rec_cell(fam_rows(pres, "-BOOST"), "boosters")
+    cells += rec_cell(fam_rows(pres, "-SLATE"), "slate stacks")
+    cells += rec_cell(fam_rows(pres, "-PROPS"), "props stacks")
+    cells += rec_cell(fam_rows(pres, "-TEAM", "-GAME"),
+                      "team/game stacks")
+    cells += rec_cell(ctx["cresults"], "combo board")
+    if not cells:
+        return ""
+    return ("<h2>Every board's record, graded by Kalshi settlement"
+            "</h2><div class='recstrip'>" + cells + "</div>")
+
+
+def build_home_body(ctx):
+    shown, results = ctx["shown"], ctx["results"]
+    body = DEAD_HTML if ctx["feed_dead"] else ""
+    body += build_home_grid(ctx)
+    body += records_strip(ctx)
     slips = ""
     for i, p in enumerate(shown):
         gap = float(p["gap_cents"])
         stamp = "top" if i == 0 and len(shown) > 1 else "gap"
-        label = "TOP PICK" if stamp == "top" else f"+{gap:.0f}¢ GAP"
+        label = "TOP PICK" if stamp == "top" else f"+{gap:.0f}&cent; GAP"
         start = iso(p["commence_utc"])
         when = start.strftime("%a %H:%M UTC") if start else ""
         slips += f"""
@@ -2861,111 +3390,88 @@ def build_page(shown, results, feed_dead, parlay_legs, parlays, presults,
 <div class="pick">The sharps' pick: <b>{html.escape(p['pick'])}</b>.
 On Kalshi ({html.escape(p['ticker'])}), {side_words(p)}.</div>
 <div class="nums"><span>Sharps say <b>{float(p['books_pct']):.0f}%</b></span>
-<span>Kalshi charges <b>{float(p['kalshi_cents']):.0f}¢</b></span>
-<span>Fee <b>{float(p['fee_cents']):.0f}¢</b></span>
-<span>Gap <b>+{gap:.1f}¢</b></span>
+<span>Kalshi charges <b>{float(p['kalshi_cents']):.0f}&cent;</b></span>
+<span>Fee <b>{float(p['fee_cents']):.0f}&cent;</b></span>
+<span>Gap <b>+{gap:.1f}&cent;</b></span>
 <span>{html.escape(str(p['n_books']))} books</span></div>
 <div class="why">{html.escape(p['why'])}</div>
 </div></div>"""
-    if not slips and not feed_dead:
-        slips = ("<div class='empty'><b>No picks today.</b><br>"
-                 "Everywhere the sharps lean, Kalshi's crowd already "
-                 "charges full price. That's the normal result -- the gap "
-                 "this card waits for is rare on purpose. When there's "
-                 "nothing mispriced, the best bet is no bet.</div>")
+    if not slips and not ctx["feed_dead"]:
+        slips = ("<div class='empty'><b>No gap-card picks today.</b>"
+                 "<br>Everywhere the sharps lean, Kalshi's crowd "
+                 "already charges full price. That's the normal "
+                 "result -- the gap this card waits for is rare on "
+                 "purpose. When there's nothing mispriced, the best "
+                 "bet is no bet.</div>")
+    body += "<h2>Today's gap-card picks, biggest gap first</h2>" + slips
+    body += build_parlay_html(ctx["parlay_legs"], ctx["parlays"],
+                              ctx["presults"])
+    body += stack_record_html(ctx["presults"])
+    body += build_combo_html(ctx["combo_legs"], ctx["combos"],
+                             ctx["cresults"])
     rows = ""
     for r in list(reversed(results))[:20]:
-        rows += (f"<tr><td>{html.escape(r['shelf'].replace('_', ' '))}</td>"
-                 f"<td>{html.escape(r['pick'])}</td>"
+        rows += (f"<tr><td>{html.escape(r['shelf'].replace('_', ' '))}"
+                 f"</td><td>{html.escape(r['pick'])}</td>"
                  f"<td class='{r['result'][0]}'>{r['result']}</td>"
                  f"<td>{'+' if float(r['pnl']) >= 0 else ''}"
                  f"{float(r['pnl']):.2f}</td></tr>")
-    hist = (f"<h2>The card's record (graded by Kalshi settlement)</h2>"
-            f"<table><tr><th>Shelf</th><th>Pick</th><th>Result</th>"
-            f"<th>P&L $</th></tr>{rows}</table>") if rows else (
-            "<h2>The card's record</h2><div class='empty'>Fresh scoreboard "
-            "-- the pick-first card started Aug 19, 2026 and grades itself "
-            "from day one. Every shown pick lands here as a WIN or LOSS at "
-            "$1 a slip, settled by Kalshi itself. Give it a few weeks "
-            "before trusting it with real beer money.</div>")
-    return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>The Daily Card - Sharps vs. Kalshi</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
-<style>{CSS}</style></head><body>
-<header><div class="inner">
-<h1>The Daily <span>Card</span></h1>
-<div class="rec"><div><b>{wins}-{losses}</b>record</div>
-<div><b>{'+' if pnl >= 0 else ''}{pnl:.2f}</b>P&L ($1 slips)</div>
-<div><b>{len(shown)}</b>picks today</div></div>
-<div class="upd">Scanned {now}. This card is advice between friends, not a
-robot with your wallet -- it never bets. You do (or don't).</div>
-{dead}
-</div></header>
-<div class="wrap">
-<h2>Today's picks, biggest gap first</h2>
-{slips}
-{build_parlay_html(parlay_legs, parlays, presults)}
-{build_early_html(EARLY_POOL)}
-{build_props_menu_html(EARLY_PROPS, early=True)}
-{build_props_menu_html(PROPS_POOL)}
-{build_game_stacks_html(game_stacks, presults)}
-{build_combo_html(combo_legs, combos, cresults)}
-{hist}
+    if rows:
+        body += (f"<h2>The card's record (graded by Kalshi settlement)"
+                 f"</h2><table><tr><th>Shelf</th><th>Pick</th>"
+                 f"<th>Result</th><th>P&L $</th></tr>{rows}</table>")
+    body += f"""
 <div class="foot"><b>How this card works, in one breath:</b> the sharpest
 sportsbooks in the world publish their opinion as prices; we strip out
 their commission to get an honest probability, then check what Kalshi's
 crowd charges for the same thing. When the crowd sells the sharps' pick
-at least {GAP_MIN:.0f}¢ under the sharps' own number (after Kalshi's
-fee), it makes the card. We never pick against the sharps, never chase
-a "cheap" longshot, and anything over +{GAP_MAX:.0f}¢ is treated as bad
-data and suppressed. Props (first-5-innings, totals, strikeouts) are the
-main event -- moneylines tag along. The card covers MLB, NFL, college
-football, the NBA (once its games are inside the scan window) and
-tour-level tennis; golf is deliberately absent because the odds feed
-carries only tournament-winner longshots for it -- no matchup lines
-means no honest pick, so none is invented. Sharps must lean at least
+at least {GAP_MIN:.0f}&cent; under the sharps' own number (after Kalshi's
+fee), it makes the gap card. We never pick against the sharps, never
+chase a "cheap" longshot, and anything over +{GAP_MAX:.0f}&cent; is
+treated as bad data and suppressed. Sharps must lean at least
 {MIN_PICK_PROB:.0f}% -- coin flips don't get picks. Every market we
 evaluate is logged to sports_picks.csv, shown or not, and every shown
-pick is graded by Kalshi's own settlement in sports_results.csv. The
-record above is the only reason to trust (or ignore) this card.
-<br><br><b>The parlay board</b> answers a different question: not
-"what's mispriced" but "who are today's most likely winners". Legs are
-the sharps' strongest full-game or full-match favorites, from any
-league on the card ({PARLAY_LEG_MIN_PROB:.0f}%+
-after removing the books' commission), Kalshi's price plays no part in
-choosing them, and each leg must match a hand-verified Kalshi market so
-the board can be graded by Kalshi's own settlement &mdash; hit or miss,
-in parlay_results.csv. The stated combined chance is the honest
-multiplied probability; there's no dollar score on purpose, because
-every sportsbook pays parlays differently. This board, like everything
-here, never bets. You do (or don't). <b>The team stacks</b> are the one
-section that bundles legs from a SINGLE game on purpose &mdash; one
-slip per team (each player's team read off Kalshi's own ticker, never
-guessed), plus the whole-game slip when it adds legs &mdash; built for
-a sportsbook's same-game parlay, since Kalshi has no parlay ticket.
-Their stated % is the plain independent product, printed as a reference
-with the direction of its error said out loud, and their graded record
-(the TEAM/GAME ids in parlay_results.csv) measures what the same-game
-correlation is actually worth.
-<br><br><b>The combo board</b> is the parlay board with every sector
-of this operation invited: the sharps' strongest game favorites plus
-the weather bot's own strongest bracket picks, stacked tallest-payout
-first. A weather leg has to pass TWO experts at once &mdash; the
-ensemble must put {PARLAY_LEG_MIN_PROB:.0f}%+ of its members on the
-bracket AND Kalshi's live market must bid {PARLAY_LEG_MIN_PROB:.0f}¢+
-for it &mdash; because the record shows the ensemble alone runs
-overconfident; the leg then states the LOWER of the two numbers, so
-the board understates on purpose. Cities benched by the scoreboard
-never supply a leg. One honest wrinkle: weather picks in the same air
-mass can win or lose together, so a stack heavy on nearby cities is
-riskier than the multiplied number implies &mdash; the combo record
-above is the judge of that, stated chance vs hit rate. And the plain
-truth about "high paying": the payout and the chance are the same
-number upside down &mdash; the only honest way to a bigger payout is
-stacking MORE real favorites, never reaching for longer shots. This
-board never bets, same permanent rule as everything on this page.</div>
-</div></body></html>"""
+pick is graded by Kalshi's own settlement in sports_results.csv.
+<br><br><b>Each sport's own page</b> (the buttons up top) carries that
+league's games as blocks: the moneyline favorite, the player props with
+their STRONG and SAFE bars, and the TEAM/GAME same-game stacks with the
+walk-away pricing test on every slip. <b>The parlay board</b> above
+answers a different question: not "what's mispriced" but "who are
+today's most likely winners". Legs are the sharps' strongest favorites
+({PARLAY_LEG_MIN_PROB:.0f}%+ after removing the books' commission),
+Kalshi's price plays no part in choosing them, and each leg must match
+a hand-verified Kalshi market so the board can be graded by Kalshi's
+own settlement -- hit or miss, in parlay_results.csv. The stated
+combined chance is the honest multiplied probability; there's no
+dollar score on purpose, because every sportsbook pays parlays
+differently. <b>The combo board</b> is the parlay board with the
+weather bot's own strongest bracket picks invited -- a weather leg has
+to pass TWO experts at once (ensemble AND live market both
+{PARLAY_LEG_MIN_PROB:.0f}%+) and states the lower number, because the
+record shows the ensemble alone runs overconfident. The only honest
+road to a bigger payout is MORE real favorites, never longer shots.
+Golf is deliberately absent (the odds feed carries only
+tournament-winner longshots for it); hockey and cricket are staged in
+the probe and join the sidebar only after both the odds feed and a
+hand-read Kalshi series verify live. This card never bets. You do
+(or don't).</div>"""
+    return body
+
+
+def build_pages(ctx):
+    results = ctx["results"]
+    wins = sum(1 for r in results if r["result"] == "WIN")
+    losses = sum(1 for r in results if r["result"] == "LOSS")
+    pnl = sum(float(r["pnl"]) for r in results)
+    rec = (f"<div class='rec'><div><b>{wins}-{losses}</b>record</div>"
+           f"<div><b>{'+' if pnl >= 0 else ''}{pnl:.2f}</b>P&L "
+           f"($1 slips)</div>"
+           f"<div><b>{len(ctx['shown'])}</b>picks today</div></div>")
+    pages = {PAGE: page_shell("The Daily <span>Card</span>", "home",
+                              rec, build_home_body(ctx))}
+    for m in SPORT_PAGES:
+        pages[m["page"]] = build_sport_page(m, ctx)
+    return pages
 
 
 # ----------------------------------------------------------------- main
@@ -3150,11 +3656,25 @@ def main():
     cresults = list(csv.DictReader(open(COMBO_RESULTS_CSV))) \
         if os.path.exists(COMBO_RESULTS_CSV) else []
 
-    with open(PAGE, "w") as f:
-        f.write(build_page(shown, results, feed_dead,
-                           parlay_legs, parlays, presults,
-                           combo_legs, combos, cresults, game_stacks))
-    print(f"wrote {PAGE}")
+    scores = fetch_scores()
+    ctx = dict(shown=shown, results=results, feed_dead=feed_dead,
+               parlay_legs=parlay_legs, parlays=parlays,
+               presults=presults, combo_legs=combo_legs, combos=combos,
+               cresults=cresults, game_stacks=game_stacks,
+               props_pool=PROPS_POOL, early_pool=EARLY_POOL,
+               early_props=EARLY_PROPS, scores=scores)
+    for fname, doc in build_pages(ctx).items():
+        with open(fname, "w") as f:
+            f.write(doc)
+        print(f"wrote {fname}")
+    # the self-heal pulse (full rewrite; display only, never
+    # union-merged) -- pages poll it and replace a frozen copy
+    with open(PULSE, "w") as f:
+        json.dump({"checked_utc": datetime.now(timezone.utc)
+                    .isoformat(timespec="seconds"),
+                   "note": "sports card build pulse -- display only"},
+                  f)
+    print(f"wrote {PULSE}")
 
     if feed_dead:
         raise SystemExit(3)        # red run = someone looks. The card and
