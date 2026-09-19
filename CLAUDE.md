@@ -381,6 +381,43 @@ translated one-to-one:
   under two names); a leftover single leg makes no stack — it already
   stands on the ranked list as its own bet. The floor, the ladders,
   and every gate are unchanged.
+- **THE SPORT PAGES (owner request, Sep 19 2026).** The one
+  enormously long card became a small site, display only — no gate,
+  no board construction, no CSV contract changed. `sports.html` is
+  the HOME page: every board family's graded record up top (hit rate
+  vs stated, the gap card's dollars), a sport-button grid, and the
+  cross-sport boards (locks/boosters/slate stacks, props ladder,
+  combo board — they mix leagues BY DESIGN). Each league has its own
+  page (`sports_nfl.html`, `sports_cfb.html`, `sports_mlb.html`,
+  `sports_nba.html`, `sports_tennis.html` — the `SPORT_PAGES`
+  registry in sports_scanner.py) built from per-game BLOCKS, the
+  weather board's shape: one block per game holding that game's
+  moneyline favorite, its gap-card picks, its player props
+  (STRONG/SAFE, split by team off Kalshi's own tickers), and its
+  TEAM/GAME stacks with the walk-away pricing test on every slip.
+  Every page carries the shared nav bar + back button, the as-of
+  stamp ticking on the viewer's clock (red past 6h), game times
+  re-rendered on the viewer's clock, and the swoop-board SELF-HEAL
+  (`sports_pulse.json`, full rewrite each scan — a frozen iPad
+  home-screen copy fetches the pulse no-store and replaces itself
+  when a newer build exists; that rollout was pre-authorized by the
+  self-heal section). **Yesterday's finals** ride each sport page
+  from the Odds API `/scores` endpoint (daysFrom=1), fetched only on
+  the first and last daily scans (~16 credits/day, ~500/month) and
+  cached in `sports_scores.json` — scores are information ONLY:
+  every graded record stays judged by Kalshi settlement, never a
+  score feed. A fifth cron slot (20:23 UTC) fills the old 4-hour
+  afternoon gap; estimated total ~15-16K credits/month against the
+  20K plan — if the CREDIT GUARD prints, that slot is the first
+  removal. **Hockey and cricket are STAGED, not added**:
+  sports_probe.py (same day) inventories `icehockey_nhl` odds +
+  `KXNHL*` + a full-catalogue hockey/cricket title sweep; either
+  league joins the shelves and the sidebar ONLY after the probe
+  verifies both sides live and a human reads the series — the
+  whitelist law, unchanged. TV/video highlights were asked for and
+  are deliberately absent: no licensed feed exists to embed, and an
+  unlicensed embed is someone else's product. ADVISORY ONLY — the
+  permanent rule covers every page word for word.
 - **THE TEAM AND GAME STACKS (owner request, Sep 17 2026).** The
   owner asked for correlated parlays "built for each team playing":
   when one player on an offense gets his numbers, his teammates
@@ -832,10 +869,13 @@ swoop_alert.py (every 15 min      advisor board -> swoop.html, swoop_log.csv,
                                   grades each position on its CITY'S
                                   local day, so West Coast evenings
                                   stay on the board)
-sports_scanner.py (2x daily)      sharps consensus (MLB/NFL/CFB/NBA/
-                                  tennis) vs Kalshi props ->
-                                  sports.html card, sports_picks.csv;
-                                  grades by Kalshi settlement ->
+sports_scanner.py (5 cron slots   sharps consensus (MLB/NFL/CFB/NBA/
+              13:23-22:23 UTC +   tennis) vs Kalshi props ->
+              the poller-relay    the card SITE (sports.html home +
+              sports tripwire)    per-league pages, Sep 19 2026) +
+                                  sports_pulse.json + sports_scores
+                                  .json, sports_picks.csv; grades by
+                                  Kalshi settlement ->
                                   sports_results.csv. ADVISORY ONLY.
 sports_probe.py  (on demand)      read-only inventory: what the Odds API
                                   plan carries + Kalshi's live sports
@@ -892,6 +932,8 @@ check that line first when a feed dies.
 | `swoop_pulse.json` | `swoop_alert.py` (full rewrite each run) | JSON: `checked_utc, open_weather_positions, graded, note` (added Sep 1 2026 — the grader's heartbeat, written every run even with zero open positions, so the watchdog can tell "grader dead" from "nothing to grade"; a no-bet day writes zero `swoop_log.csv` rows honestly and used to false-alarm. Display/alerting ONLY, no money code reads it, NEVER union-merge it) |
 | `balance.json` | `trader.py` (every trading pass + end-of-day sweep: cash bucket) and `account_check.py` (Run button: all buckets) — full rewrite each write | JSON: `checked_utc, cash_cents, source, note` (+ `held_cents, riding_cents, n_resting, n_open` when written by account_check) (THE WALLET LINE, Sep 12 2026 — the Station Board's spendable-cash display, red under $1; display/alerting ONLY, no money code reads it, NEVER union-merge it; a dead balance call leaves the old file, whose own checked_utc shows the staleness) |
 | `settlements_pulse.json` | `settlements.py` (full rewrite each run) | JSON: `checked_utc, api_tried, api_ok, rows_written, rows_total, note` (added Sep 12 2026 — the settlements job’s heartbeat, written every run even when nothing new settled, so the watchdog can tell "job dead" from "Kalshi slow to finalize"; checked_utc in settlements.csv moves only when a settlement pins, and on Sep 11–12 2026 that false-alarmed SETTLEMENTS STALE for ~20 h at a healthy job — the swoop_pulse lesson applied. Display/alerting ONLY, no money code reads it, NEVER union-merge it) |
+| `sports_pulse.json` | `sports_scanner.py` (full rewrite each scan) | JSON: `checked_utc, note` (THE SPORT PAGES self-heal pulse, Sep 19 2026 — every card page embeds its build time and polls this file no-store; a frozen iPad home-screen copy replaces itself when the pulse is 3+ min newer. The swoop_pulse pattern exactly. Display ONLY, no money code reads it, NEVER union-merge it) |
+| `sports_scores.json` | `sports_scanner.py` (full rewrite on the first/last daily scans only — the cost gate) | JSON: `checked_utc, scores{odds_sport_key: [away/home/scores/commence]}` (yesterday's finals cache, Sep 19 2026 — the Odds API /scores endpoint at 2 credits per league, fetched twice daily and cached so every rebuild between fetches still shows the finals. INFORMATION ONLY: scores decorate the sport pages; every graded record is judged by Kalshi settlement, never a score feed. Display ONLY, no money code reads it, NEVER union-merge it) |
 | `model_research.csv` | `model_lab.py` (forecast.yml, nightly after the money forecast) | `forecast_date,station,city,model,forecast_high_f,n_members,members,fetched_utc` (THE MODEL LAB, Aug 31 2026 — candidate models riding as research passengers: `icon` = the German global ensemble, `nws` = the NWS public point forecast, and since Sep 14 2026 (owner request) `hrrr` = NOAA's hourly-refreshed ~3 km US short-range model via Open-Meteo's free forecast API (models=gfs_hrrr, a single deterministic number like nws; its short horizon can honestly miss a nightly for-tomorrow row), and since Sep 15 2026 (the widen-the-field pass, under the owner's run-every-test mandate) `nbm` = NOAA's National Blend of Models (ncep_nbm_conus — NOAA's own per-station statistical blend of all major models, the product NWS forecasters start from), `ukmo` = the UK Met Office global model (ukmo_seamless), and `gem` = the Canadian global ensemble (~21 members, ensemble API) — all three verified live 20/20 cities by `modellab_probe.yml` (probe run 1, Sep 15 2026) before riding; the probe is the read-only Run button for vetting any future candidate (its header documents the after-dark nws=0 quirk: red at that hour means read the per-city log, not necessarily a dead feed) — all raw and uncalibrated. RESEARCH LOG ONLY, same law as afternoon_forecasts.csv: **no trading or calibration code may ever read it**; union-merged append-only) |
 | `model_research_today.csv` | `model_lab.py --today --out model_research_today.csv` (samedaylab.yml, 14:12 + 19:42 UTC) | same header as `model_research.csv` (THE SAME-DAY LAB, Sep 14 2026 — the candidates' SAME-DAY numbers, one pull in the buy-window hours and one in the afternoon, so the October review can judge same-day skill (HRRR's whole reason for existing) on a real record instead of nightly-horizon rows; separate file on purpose so the nightly standings in model_report.md never mix horizons. RESEARCH LOG ONLY, same law as its parent: **nothing that trades, scans for money, or calibrates may ever read it**; union-merged append-only) |
 | `whale_trades.csv` | `whale_watcher.py` (whales.yml, every 2h at :37) | `seen_utc,sector,series,ticker,event,bet_on,bet_type,side,contracts,avg_price_cents,dollars,n_fills,first_trade_utc,last_trade_utc,close_time_utc,hours_before_close,expert_pct,agrees` (THE WHALE WATCHER, Sep 11 2026 — big executed bets from Kalshi's public tape on hand-verified series only; a row is a fill-burst, never a person; sector ∈ CFB/NFL/NBA/MLB/WEATHER/TENNIS; expert_pct = ensemble % (weather, from edges.csv) or sharps' de-vigged % (sports, from sports_picks.csv) for the whale's side, blank when no fresh row; bet_type added Sep 12 2026 = MONEYLINE / SPREAD n / TOTAL n / PROP, parsed structured-first (series ticker + Kalshi's floor_strike, then title text; a PROP's bet_on carries the full market question) — blank on rows older than the column, which readers treat as MONEYLINE for sports (only winner/match series were ever watched) and as blank-on-purpose for weather (a bracket is not a sports bet type); the board shows one line per team+side+bet type, summing same-window bursts, while the CSV keeps every burst; append-only, union-merged; **RESEARCH ONLY — nothing that trades, scans, or calibrates may ever read it**) |
